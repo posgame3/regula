@@ -122,7 +122,8 @@ async def call_with_thinking(
     response = await client.messages.create(
         model=MODEL,
         max_tokens=max_tokens,
-        thinking={"type": "enabled", "budget_tokens": budget_tokens},
+        thinking={"type": "adaptive"},
+        output_config={"effort": "high"},
         system=system,
         messages=messages,
     )

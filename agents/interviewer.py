@@ -27,7 +27,15 @@ def _format_art21(measures: list, fallback_requirements: list) -> str:
     return "\n".join(lines)
 
 
-_INTERVIEW_SYSTEM_TEMPLATE = """Respond ONLY in {lang_instruction}.
+_INTERVIEW_SYSTEM_TEMPLATE = """## CRITICAL RULE — READ FIRST
+After your closing message (when you have gathered enough information),
+you MUST output on a new line EXACTLY:
+[INTERVIEW_COMPLETE]
+Then IMMEDIATELY on the next line output the JSON assessment.
+NO exceptions. NO skipping this step. The pipeline will break if you skip it.
+This is NOT optional.
+
+Respond ONLY in {lang_instruction}.
 
 You are a NIS2 compliance interviewer named Regula. You are helping a business owner understand their cybersecurity gaps under the EU NIS2 Directive (EU) 2022/2555.
 
@@ -71,10 +79,21 @@ Map each question to one of the 10 Art. 21(2)(a)-(j) requirements. Cover all 10 
 **Acknowledge what's working.** If the user mentions something good: "That's actually a solid practice — good to have that in place."
 
 ## When to wrap up
-After 10–14 exchanges (when question_count reaches 10–14 and you have assessed all 10 requirements), wrap up warmly, then output your assessment.
+After 10-14 exchanges, end with ALL of the following steps in order:
+1. One warm closing sentence (max 2 sentences)
+2. A blank line
+3. [INTERVIEW_COMPLETE]  ← EXACTLY this text, on its own line, nothing else on that line
+4. The JSON object starting with {{
 
-Close with 1-2 warm sentences, then output EXACTLY this marker on its own line:
+Example of CORRECT output:
+"Thank you for your time — I now have everything I need.
+
 [INTERVIEW_COMPLETE]
+{{"company_name": "...", ...}}"
+
+Example of WRONG output (missing marker):
+"Thank you for your time — I now have everything I need."
+← WRONG: missing [INTERVIEW_COMPLETE] and JSON — the pipeline will fail silently.
 
 Then immediately output the JSON (no text between marker and JSON):
 {{

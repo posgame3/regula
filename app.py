@@ -337,6 +337,44 @@ async def _dispatch(client, session, reqs, user_text, send):
             except ValueError:
                 await send({"type": "error", "text": "Could not parse interview results."})
         else:
+            _closing_words = {"dziękuję", "thank you", "podsumowując", "summary",
+                              "za chwilę dostaniesz", "you'll receive", "dziękuje"}
+            _looks_like_closing = (
+                session["question_count"] >= 10
+                and any(w in text.lower() for w in _closing_words)
+            )
+            if _looks_like_closing:
+                # Model gave a closing message but forgot the marker — force it
+                fallback_messages = list(session["messages"])
+                fallback_messages.append({
+                    "role": "user",
+                    "content": "[SYSTEM: Output [INTERVIEW_COMPLETE] and the JSON assessment now.]",
+                })
+                fallback_system = build_interview_system(
+                    session["qualifier_result"], reqs, session["question_count"], session["language"]
+                )
+                fallback_text = await stream_silent(client, fallback_system, fallback_messages, 2048)
+                if COMPLETE_MARKER in fallback_text:
+                    idx = fallback_text.find(COMPLETE_MARKER)
+                    closing = text.strip()
+                    if closing:
+                        await send({"type": "agent_message", "text": closing, "stage": "interview"})
+                    try:
+                        findings = extract_json(fallback_text[idx + len(COMPLETE_MARKER):].strip())
+                        await _run_analysis_pipeline(findings, session, reqs, client, send)
+                        return
+                    except ValueError:
+                        pass
+                # If fallback also failed, try extracting JSON directly from fallback_text
+                try:
+                    findings = extract_json(fallback_text)
+                    closing = text.strip()
+                    if closing:
+                        await send({"type": "agent_message", "text": closing, "stage": "interview"})
+                    await _run_analysis_pipeline(findings, session, reqs, client, send)
+                    return
+                except ValueError:
+                    pass
             await send({"type": "agent_message", "text": text, "stage": "interview"})
             session["last_question"] = text
             if session.get("demo_mode"):

@@ -23,7 +23,164 @@ from utils.pdf import generate_report_pdf
 app = FastAPI()
 MODEL = "claude-opus-4-7"
 COMPLETE_MARKER = "[INTERVIEW_COMPLETE]"
+MOCK_MODE = bool(os.getenv("MOCK_MODE"))
 sessions: dict = {}
+
+# ---------------------------------------------------------------------------
+# Mock responses — used when MOCK_MODE=1 to skip all API calls
+# Interview mock: first call (question_count=0) asks one question;
+# subsequent calls (question_count>=1) immediately complete.
+# ---------------------------------------------------------------------------
+_MOCK_QUALIFIER = json.dumps({
+    "applies": True, "scope": "important", "proceed": True,
+    "reasoning": "[MOCK] Transport company with 80 employees is an important entity under NIS2.",
+})
+
+_MOCK_INTERVIEW_Q1 = (
+    "What security measures does your company currently have in place — "
+    "for example, do employees use a password plus a code from their phone to log in?"
+)
+
+_MOCK_INTERVIEW_COMPLETE = (
+    "Thank you — I now have everything I need.\n\n"
+    + COMPLETE_MARKER + "\n"
+    + json.dumps({
+        "company_name": "Test Transport Sp. z o.o.",
+        "sector": "transport",
+        "employee_count": 80,
+        "scope": "important",
+        "language": "en",
+        "findings": {
+            "req_1_risk": 1, "req_2_risk": 3, "req_3_risk": 2,
+            "req_4_risk": 1, "req_5_risk": 3, "req_6_risk": 2,
+            "req_7_risk": 3, "req_8_risk": 1, "req_9_risk": 2, "req_10_risk": 3,
+        },
+        "key_quotes": [
+            "We don't have written security policies",
+            "Backups set up a year ago, never tested",
+            "No employee cybersecurity training",
+        ],
+        "biggest_concern": (
+            "No incident response plan and untested backups leave the company "
+            "completely exposed during a cyberattack."
+        ),
+    })
+)
+
+_MOCK_ANALYZER = json.dumps({
+    "overall_risk": "high",
+    "headline": "4 critical gaps require immediate action",
+    "gaps": [
+        {"req_id": "req_5", "name": "Incident Response", "risk_level": "critical",
+         "business_impact": "No plan means days of downtime if attacked", "article": "Art. 21(2)(e)"},
+        {"req_id": "req_7", "name": "Cybersecurity Training", "risk_level": "critical",
+         "business_impact": "Staff are the easiest entry point for attackers", "article": "Art. 21(2)(g)"},
+        {"req_id": "req_2", "name": "Risk Assessment", "risk_level": "high",
+         "business_impact": "Cannot prioritize security without knowing risks", "article": "Art. 21(2)(b)"},
+        {"req_id": "req_10", "name": "Access Controls", "risk_level": "high",
+         "business_impact": "One stolen password gives full access", "article": "Art. 21(2)(j)"},
+    ],
+    "priority_3": [
+        "Write an incident response plan",
+        "Enable MFA on all company accounts",
+        "Run annual security awareness training",
+    ],
+    "good_news": "Client contracts in place and an external IT contractor to build on.",
+    "board_summary": "4 critical gaps found. Immediate action needed on incident response and training.",
+})
+
+_MOCK_REDTEAM = json.dumps({
+    "verdict": "FAIL",
+    "overall_score": 2,
+    "critical_failures": [
+        "No documented incident response plan",
+        "No MFA on email accounts",
+        "Backups never tested — recovery capability unknown",
+    ],
+    "preparation": (
+        "Your company would fail a real NIS2 audit today. "
+        "The three critical failures above need remediation within 6 months."
+    ),
+    "passed_checks": ["Client contracts in place", "External IT support available"],
+})
+
+_MOCK_DRAFTER = json.dumps({
+    "policies": [
+        {
+            "gap": "Incident Response",
+            "title": "Incident Response Policy",
+            "outline": (
+                "1. Define what counts as a security incident\n"
+                "2. Assign a response team lead\n"
+                "3. Establish 24-hour notification procedures\n"
+                "4. Test the plan quarterly"
+            ),
+            "effort": "2 weeks",
+            "cost": "Low (internal effort only)",
+        },
+        {
+            "gap": "Cybersecurity Training",
+            "title": "Employee Security Awareness Policy",
+            "outline": (
+                "1. Annual mandatory security training for all staff\n"
+                "2. Phishing simulation twice per year\n"
+                "3. New hire onboarding security briefing"
+            ),
+            "effort": "1 week to set up",
+            "cost": "Low (free tools available)",
+        },
+    ],
+})
+
+_MOCK_THREAT_ACTOR = json.dumps({
+    "scenarios": [
+        {
+            "title": "Ransomware via phishing email",
+            "attack_vector": "Email phishing",
+            "how_it_starts": "Driver receives fake invoice PDF with malicious macro",
+            "what_happens": "Ransomware encrypts all company files including dispatch records",
+            "business_impact": "2-3 days downtime, potential €50,000 ransom demand",
+            "likelihood": "high",
+        },
+    ],
+    "summary": "Phishing is the most realistic threat given no employee training and untested backups.",
+})
+
+_MOCK_BOARD = json.dumps({
+    "slides": [
+        {
+            "title": "NIS2 Compliance Status",
+            "subtitle": "Where we stand today",
+            "key_message": "4 critical gaps requiring immediate action",
+            "details": [
+                "EU NIS2 applies — important entity in transport",
+                "4 critical / 2 high risk gaps identified",
+                "Audit risk: HIGH — fines up to €7M",
+            ],
+            "recommendation": "Approve 3-month remediation budget of ~€15,000",
+        },
+    ],
+})
+
+
+def _mock_response(system: str) -> str:
+    if "determine in exactly 3 questions" in system:
+        return _MOCK_QUALIFIER
+    if "interviewer named Regula" in system or COMPLETE_MARKER in system:
+        m = re.search(r"Questions asked so far: (\d+)", system)
+        count = int(m.group(1)) if m else 0
+        return _MOCK_INTERVIEW_COMPLETE if count >= 1 else _MOCK_INTERVIEW_Q1
+    if "NIS2 compliance analyst" in system:
+        return _MOCK_ANALYZER
+    if "strict NIS2 compliance auditor" in system:
+        return _MOCK_REDTEAM
+    if "practical policy writer" in system:
+        return _MOCK_DRAFTER
+    if "real attacker would exploit" in system:
+        return _MOCK_THREAT_ACTOR
+    if "5-slide executive presentation" in system:
+        return _MOCK_BOARD
+    return json.dumps({"mock": True, "unknown_stage": True})
 
 MAREK_PERSONA_SYSTEM = """\
 You are Marek, owner of a Polish road freight company (80 employees, \
@@ -114,6 +271,8 @@ async def stream_to_ws(client: AsyncAnthropic, system: str, messages: list, max_
 
 async def stream_silent(client: AsyncAnthropic, system: str, messages: list, max_tokens: int) -> str:
     """Stream without sending tokens to UI. Returns full collected text."""
+    if MOCK_MODE:
+        return _mock_response(system)
     full_text = ""
     async with client.messages.stream(
         model=MODEL,
@@ -136,6 +295,8 @@ async def call_with_thinking(
 ) -> tuple[str, str, list]:
     """Call with extended thinking enabled. Returns (thinking_text, result_text, full_content_blocks).
     In demo mode, skips extended thinking for speed."""
+    if MOCK_MODE:
+        return "", _mock_response(system), []
     if session and session.get("demo_mode"):
         response = await client.messages.create(
             model=MODEL,

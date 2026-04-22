@@ -48,3 +48,9 @@ regula/
 
 ## API key
 In .env as ANTHROPIC_API_KEY
+
+## Testing
+- Unit tests: `python -m pytest tests/ -v`
+- Mock pipeline: `MOCK_MODE=1 uvicorn app:app --reload` (no API calls, instant) → open browser → click "Historia Marka"
+- Smoke test (automated): start server above, then `python tests/mock_pipeline.py`
+- Full demo: `uvicorn app:app --reload` → click "Historia Marka"

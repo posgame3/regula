@@ -29,18 +29,38 @@ def load_nis2_requirements() -> list:
         return json.load(f)["requirements"]
 
 
-def extract_json(text: str):
-    try:
-        return json.loads(text.strip())
-    except json.JSONDecodeError:
-        pass
-    match = re.search(r"\{.*\}", text, re.DOTALL)
+def extract_json(text: str) -> dict:
+    stripped = text.strip()
+
+    # Method 1: find first { and last }, parse between them
+    start = stripped.find('{')
+    end = stripped.rfind('}')
+    if start != -1 and end > start:
+        try:
+            return json.loads(stripped[start:end + 1])
+        except json.JSONDecodeError:
+            pass
+
+    # Method 2: strip markdown fences, then parse
+    no_fences = re.sub(r'```(?:json)?\s*', '', stripped)
+    no_fences = re.sub(r'\s*```', '', no_fences).strip()
+    start = no_fences.find('{')
+    end = no_fences.rfind('}')
+    if start != -1 and end > start:
+        try:
+            return json.loads(no_fences[start:end + 1])
+        except json.JSONDecodeError:
+            pass
+
+    # Method 3: regex to find JSON object pattern
+    match = re.search(r'\{.*\}', text, re.DOTALL)
     if match:
         try:
             return json.loads(match.group())
         except json.JSONDecodeError:
             pass
-    return None
+
+    raise ValueError("Could not extract JSON from model response")
 
 
 def parse_after_json(text: str) -> tuple:
@@ -101,10 +121,13 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         text = await call_claude(client, build_qualifier_system(session["language"]), session["messages"], max_tokens=1024)
         session["messages"].append({"role": "assistant", "content": text})
 
-        parsed = extract_json(text)
-        if parsed and "applies" in parsed:
-            await _handle_qualifier_result(parsed, session, reqs, client, send)
-        else:
+        try:
+            parsed = extract_json(text)
+            if "applies" in parsed:
+                await _handle_qualifier_result(parsed, session, reqs, client, send)
+            else:
+                await send({"type": "agent_message", "text": text, "stage": "qualifier"})
+        except ValueError:
             await send({"type": "agent_message", "text": text, "stage": "qualifier"})
     except Exception as exc:
         await send({"type": "error", "text": str(exc)})
@@ -153,10 +176,13 @@ async def _dispatch(client, session, reqs, user_text, send):
     if stage == "qualifier":
         text = await call_claude(client, build_qualifier_system(session["language"]), session["messages"], max_tokens=1024)
         session["messages"].append({"role": "assistant", "content": text})
-        parsed = extract_json(text)
-        if parsed and "applies" in parsed:
-            await _handle_qualifier_result(parsed, session, reqs, client, send)
-        else:
+        try:
+            parsed = extract_json(text)
+            if "applies" in parsed:
+                await _handle_qualifier_result(parsed, session, reqs, client, send)
+            else:
+                await send({"type": "agent_message", "text": text, "stage": "qualifier"})
+        except ValueError:
             await send({"type": "agent_message", "text": text, "stage": "qualifier"})
 
     elif stage == "interview":
@@ -170,10 +196,10 @@ async def _dispatch(client, session, reqs, user_text, send):
             closing = text[:idx].strip()
             if closing:
                 await send({"type": "agent_message", "text": closing, "stage": "interview"})
-            findings = extract_json(text[idx + len(COMPLETE_MARKER):].strip())
-            if findings:
+            try:
+                findings = extract_json(text[idx + len(COMPLETE_MARKER):].strip())
                 await _run_analysis_pipeline(findings, session, reqs, client, send)
-            else:
+            except ValueError:
                 await send({"type": "error", "text": "Could not parse interview results."})
         else:
             await send({"type": "agent_message", "text": text, "stage": "interview"})
@@ -226,8 +252,9 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     system = build_analyzer_system(findings, reqs, lang)
     messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
     text = await call_claude(client, system, messages, max_tokens=4096)
-    gaps = extract_json(text)
-    if not gaps:
+    try:
+        gaps = extract_json(text)
+    except ValueError:
         await send({"type": "error", "text": "Could not parse gap analysis."})
         return
 
@@ -252,8 +279,9 @@ async def _run_drafter(session, client, send):
     )
     messages = [{"role": "user", "content": "Please generate the policy outlines for the critical and high risk gaps."}]
     text = await call_claude(client, system, messages, max_tokens=4096)
-    policies = extract_json(text)
-    if not policies:
+    try:
+        policies = extract_json(text)
+    except ValueError:
         await send({"type": "error", "text": "Could not generate policy drafts."})
         return
 

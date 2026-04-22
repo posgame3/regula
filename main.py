@@ -4,7 +4,7 @@ import re
 from dotenv import load_dotenv
 import anthropic
 
-from agents.qualifier import QUALIFIER_SYSTEM
+from agents.qualifier import build_qualifier_system
 from agents.interviewer import build_interview_system
 from agents.analyzer import build_analyzer_system
 from agents.redteam import build_redteam_system
@@ -22,19 +22,38 @@ def load_nis2_requirements() -> list:
         return json.load(f)["requirements"]
 
 
-def extract_json(text: str) -> dict | None:
-    """Try to extract a JSON object from a response string."""
-    try:
-        return json.loads(text.strip())
-    except json.JSONDecodeError:
-        pass
-    match = re.search(r"\{.*\}", text, re.DOTALL)
+def extract_json(text: str) -> dict:
+    stripped = text.strip()
+
+    # Method 1: find first { and last }, parse between them
+    start = stripped.find('{')
+    end = stripped.rfind('}')
+    if start != -1 and end > start:
+        try:
+            return json.loads(stripped[start:end + 1])
+        except json.JSONDecodeError:
+            pass
+
+    # Method 2: strip markdown fences, then parse
+    no_fences = re.sub(r'```(?:json)?\s*', '', stripped)
+    no_fences = re.sub(r'\s*```', '', no_fences).strip()
+    start = no_fences.find('{')
+    end = no_fences.rfind('}')
+    if start != -1 and end > start:
+        try:
+            return json.loads(no_fences[start:end + 1])
+        except json.JSONDecodeError:
+            pass
+
+    # Method 3: regex to find JSON object pattern
+    match = re.search(r'\{.*\}', text, re.DOTALL)
     if match:
         try:
             return json.loads(match.group())
         except json.JSONDecodeError:
             pass
-    return None
+
+    raise ValueError("Could not extract JSON from model response")
 
 
 def parse_after_json(text: str) -> tuple[dict | None, str]:
@@ -87,13 +106,17 @@ def run_qualifier(client: anthropic.Anthropic) -> dict:
     seed = "Hello, I'd like to find out if NIS2 applies to my company."
     messages = [{"role": "user", "content": seed}]
 
-    text = _chat(client, QUALIFIER_SYSTEM, messages)
+    qualifier_system = build_qualifier_system("en")
+    text = _chat(client, qualifier_system, messages)
     messages.append({"role": "assistant", "content": text})
     print(f"Regula: {text}\n")
 
-    result = extract_json(text)
-    if result and "applies" in result:
-        return result
+    try:
+        result = extract_json(text)
+        if "applies" in result:
+            return result
+    except ValueError:
+        pass
 
     while True:
         user_input = _get_input("You: ")
@@ -101,12 +124,15 @@ def run_qualifier(client: anthropic.Anthropic) -> dict:
             continue
 
         messages.append({"role": "user", "content": user_input})
-        text = _chat(client, QUALIFIER_SYSTEM, messages)
+        text = _chat(client, qualifier_system, messages)
         messages.append({"role": "assistant", "content": text})
 
-        result = extract_json(text)
-        if result and "applies" in result:
-            return result
+        try:
+            result = extract_json(text)
+            if "applies" in result:
+                return result
+        except ValueError:
+            pass
 
         print(f"\nRegula: {text}\n")
 
@@ -131,9 +157,10 @@ def run_interviewer(client: anthropic.Anthropic, qualifier_result: dict, require
 
     if COMPLETE_MARKER in text:
         idx = text.find(COMPLETE_MARKER)
-        result = extract_json(text[idx + len(COMPLETE_MARKER):].strip())
-        if result:
-            return result
+        try:
+            return extract_json(text[idx + len(COMPLETE_MARKER):].strip())
+        except ValueError:
+            pass
 
     question_count += 1
     print(f"[Q{question_count}] Regula: {text}\n")
@@ -159,11 +186,11 @@ def run_interviewer(client: anthropic.Anthropic, qualifier_result: dict, require
             closing = text[:idx].strip()
             if closing:
                 print(f"\nRegula: {closing}\n")
-            result = extract_json(text[idx + len(COMPLETE_MARKER):].strip())
-            if result:
-                return result
-            print("\nRegula: (parsing issue, continuing...)\n")
-            continue
+            try:
+                return extract_json(text[idx + len(COMPLETE_MARKER):].strip())
+            except ValueError:
+                print("\nRegula: (parsing issue, continuing...)\n")
+                continue
 
         question_count += 1
         print(f"\n[Q{question_count}] Regula: {text}\n")
@@ -191,13 +218,12 @@ def run_analyzer(
         print(f"\nAPI error during analysis: {e}")
         raise SystemExit(1)
 
-    result = extract_json(text)
-    if not result:
+    try:
+        return extract_json(text)
+    except ValueError:
         print("Warning: Could not parse analyzer output.")
         print(text)
         raise SystemExit(1)
-
-    return result
 
 
 def print_gap_analysis(gap_analysis: dict) -> None:
@@ -343,13 +369,12 @@ def run_drafter(
         print(f"\nAPI error during drafting: {e}")
         raise SystemExit(1)
 
-    result = extract_json(text)
-    if not result:
+    try:
+        return extract_json(text)
+    except ValueError:
         print("Warning: Could not parse drafter output.")
         print(text)
         raise SystemExit(1)
-
-    return result
 
 
 def print_drafter_result(drafter_result: dict) -> None:

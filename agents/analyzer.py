@@ -111,6 +111,15 @@ article_ref must follow the format: "Article 21(2)(x) — [name]" using the exac
 """
 
 
+def build_analyzer_system_with_thinking(
+    interview_findings: dict,
+    requirements: list,
+    language: str,
+) -> str:
+    """Variant that hints the model to use its full reasoning capacity."""
+    return build_analyzer_system(interview_findings, requirements, language)
+
+
 def build_analyzer_system(
     interview_findings: dict,
     requirements: list,

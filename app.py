@@ -12,7 +12,7 @@ load_dotenv()
 
 from agents.qualifier import build_qualifier_system
 from agents.interviewer import build_interview_system
-from agents.analyzer import build_analyzer_system
+from agents.analyzer import build_analyzer_system, build_analyzer_system_with_thinking
 from agents.redteam import build_redteam_system
 from agents.drafter import build_drafter_system
 
@@ -107,6 +107,33 @@ async def stream_silent(client: AsyncAnthropic, system: str, messages: list, max
         async for token in stream.text_stream:
             full_text += token
     return full_text
+
+
+async def call_with_thinking(
+    client: AsyncAnthropic,
+    system: str,
+    messages: list,
+    max_tokens: int = 16000,
+    budget_tokens: int = 10000,
+) -> tuple[str, str, list]:
+    """Call with extended thinking enabled. Returns (thinking_text, result_text, full_content_blocks)."""
+    response = await client.messages.create(
+        model=MODEL,
+        max_tokens=max_tokens,
+        thinking={"type": "enabled", "budget_tokens": budget_tokens},
+        system=system,
+        messages=messages,
+    )
+    thinking_text = ""
+    result_text = ""
+    for block in response.content:
+        if block.type == "thinking":
+            thinking_text = block.thinking
+        elif block.type == "text":
+            result_text += block.text
+    # Convert SDK objects to dicts so they can be passed back as conversation history
+    content_blocks = [b.model_dump() for b in response.content]
+    return thinking_text, result_text, content_blocks
 
 
 @app.get("/")
@@ -229,22 +256,22 @@ async def _dispatch(client, session, reqs, user_text, send):
         system = build_redteam_system(
             session["gap_analysis"], session["qualifier_result"], session["language"]
         )
-        text = await stream_to_ws(client, system, session["messages"], 4096, send, "redteam")
-        session["messages"].append({"role": "assistant", "content": text})
+        thinking_text, text, content_blocks = await call_with_thinking(client, system, session["messages"])
+        # Store full content blocks (with thinking) so conversation threading works
+        session["messages"].append({"role": "assistant", "content": content_blocks})
 
         verdict, prep = parse_after_json(text)
         if verdict and "verdict" in verdict:
+            # Show auditor's reasoning before the verdict — most interesting thinking to reveal
+            if thinking_text:
+                await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
             pre_json = text[:text.find("{")].strip() if "{" in text else ""
-            # Replace bubble with only the pre-JSON narrative, strip the verdict JSON
             if pre_json:
-                await send({"type": "stream_replace", "text": pre_json, "stage": "redteam"})
-            else:
-                await send({"type": "stream_abort"})
-            await send({"type": "stream_end", "stage": "redteam"})
+                await send({"type": "agent_message", "text": pre_json, "stage": "redteam"})
             session["redteam_result"] = {"verdict": verdict, "preparation": prep}
             await _run_drafter(session, client, send)
         else:
-            await send({"type": "stream_end", "stage": "redteam"})
+            await send({"type": "agent_message", "text": text, "stage": "redteam"})
 
 
 async def _handle_qualifier_result(parsed, session, reqs, client, send):
@@ -274,15 +301,18 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
 
     await send({"type": "stage_change", "stage": "analyze", "label": "Analyzing"})
 
-    system = build_analyzer_system(findings, reqs, lang)
+    system = build_analyzer_system_with_thinking(findings, reqs, lang)
     messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
-    text = await stream_silent(client, system, messages, 4096)
+    thinking_text, text, _ = await call_with_thinking(client, system, messages)
     try:
         gaps = extract_json(text)
     except ValueError:
         await send({"type": "error", "text": "Could not parse gap analysis."})
         return
 
+    # Reveal analyzer's reasoning before showing the gap analysis card
+    if thinking_text:
+        await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
     session["gap_analysis"] = gaps
     await send({"type": "analysis_result", "data": gaps})
     await send({"type": "stage_change", "stage": "redteam", "label": "Audit Simulation"})
@@ -291,9 +321,9 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     system = build_redteam_system(gaps, session["qualifier_result"], lang)
     seed = "I'm ready for the inspection."
     session["messages"] = [{"role": "user", "content": seed}]
-    q1 = await stream_to_ws(client, system, session["messages"], 2048, send, "redteam")
-    session["messages"].append({"role": "assistant", "content": q1})
-    await send({"type": "stream_end", "stage": "redteam"})
+    thinking_text, q1, content_blocks = await call_with_thinking(client, system, session["messages"])
+    session["messages"].append({"role": "assistant", "content": content_blocks})
+    await send({"type": "agent_message", "text": q1, "stage": "redteam"})
 
 
 async def _run_drafter(session, client, send):

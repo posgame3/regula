@@ -161,6 +161,20 @@ function addError(text) {
     </div>`);
 }
 
+function addThinking(text) {
+  const id = 'think-' + Date.now();
+  append(`
+    <div class="my-1">
+      <button onclick="document.getElementById('${id}').classList.toggle('hidden')"
+        class="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors group">
+        <span class="text-base leading-none">🧠</span>
+        <span class="font-medium">How Regula analyzed your company (Extended Thinking)</span>
+        <span class="text-slate-400 group-hover:text-slate-600 ml-1">▸ click to expand</span>
+      </button>
+      <div id="${id}" class="hidden mt-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-500 italic leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">${esc(text)}</div>
+    </div>`);
+}
+
 // ── Streaming helpers ──────────────────────────────────────────────────────
 function startOrAppendStream(text) {
   if (!streamBubble) {
@@ -364,6 +378,8 @@ function connect() {
       abortStreamBubble();
     } else if (msg.type === 'stream_replace') {
       replaceStreamBubble(msg.text);
+    } else if (msg.type === 'thinking_reveal') {
+      addThinking(msg.text);
     } else if (msg.type === 'agent_message') {
       setProcessing(false);
       addAgent(msg.text);

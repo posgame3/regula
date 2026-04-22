@@ -23,9 +23,15 @@
       <span class="text-xl font-bold tracking-widest">REGULA</span>
       <span class="text-xs text-slate-400 hidden sm:inline">NIS2 Compliance Assessment</span>
     </div>
-    <div class="flex items-center gap-1 bg-[#061929] rounded-lg p-1">
-      <button id="btn-pl" onclick="setLang('pl')">PL</button>
-      <button id="btn-en" onclick="setLang('en')">EN</button>
+    <div class="flex items-center gap-3">
+      <button id="btn-demo" onclick="runDemo()"
+        class="border border-slate-500 text-slate-300 px-3 py-1 rounded-lg text-xs font-medium hover:border-slate-200 hover:text-white transition-colors">
+        ▶️ Watch Marek's story
+      </button>
+      <div class="flex items-center gap-1 bg-[#061929] rounded-lg p-1">
+        <button id="btn-pl" onclick="setLang('pl')">PL</button>
+        <button id="btn-en" onclick="setLang('en')">EN</button>
+      </div>
     </div>
   </header>
 
@@ -73,6 +79,7 @@ let busy = false;
 let conversationStarted = false;
 let streamBubble = null;
 let streamText = '';
+let demoRunning = false;
 
 const STAGES = [
   { key: 'qualifier', en: 'Qualify',   pl: 'Kwalifikacja' },
@@ -82,6 +89,41 @@ const STAGES = [
   { key: 'draft',     en: 'Report',    pl: 'Raport'        },
 ];
 const STAGE_IDX = { qualifier:0, interview:1, analyze:2, redteam:3, draft:4, complete:4 };
+
+const DEMO_SCRIPTS = {
+  pl: [
+    "Prowadzę firmę transportu drogowego, przewozimy towary po Polsce i do Niemiec. Sektor transportu.",
+    "Zatrudniamy około 80 osób — kierowcy, dyspozytor, biuro.",
+    "Tak, kilku naszych klientów to duże firmy produkcyjne, które zależą od naszych dostaw.",
+    "Nie, nie mamy pisemnych polityk bezpieczeństwa. Wszystko jest nieformalne.",
+    "Mamy zewnętrznego informatyka, który przychodzi jak coś się psuje.",
+    "Chyba mamy backupy, informatyk to ustawił, ale szczerze mówiąc nie sprawdzałem czy działają.",
+    "Używamy Gmaila firmowego. Każdy ma swoje konto, ale nie ma żadnego dodatkowego logowania.",
+    "Pracownicy nie mieli żadnych szkoleń z cyberbezpieczeństwa.",
+    "Jak ktoś odchodzi z firmy, to informatyk usuwa konto, ale czasem trwa to kilka dni.",
+    "Nie, nigdy nie testowaliśmy systemu pod kątem bezpieczeństwa.",
+    "Tak, mamy umowy NDA z kontrahentami, ale nic specjalnego o bezpieczeństwie IT.",
+    "Nie wiem co to szyfrowanie dysku. Laptopy są zwykłe, kupione w Media Markt.",
+    "Jeśli systemy by padły, myślę że potrzebowalibyśmy 2-3 dni żeby wrócić do normalnej pracy.",
+    "Tak, to prawda, warto to sprawdzić."
+  ],
+  en: [
+    "We run a road freight company, transporting goods across Poland and into Germany. Transport sector.",
+    "We have about 80 people — drivers, dispatchers, office staff.",
+    "Yes, several of our clients are large manufacturing companies that depend on our deliveries.",
+    "No, we don't have written security policies. Everything is informal.",
+    "We have an external IT person who comes in when something breaks.",
+    "I think we have backups, our IT guy set it up, but honestly I've never checked if they actually work.",
+    "We use Gmail for business. Everyone has their own account but no additional login step.",
+    "Employees haven't had any cybersecurity training.",
+    "When someone leaves, the IT guy removes their account, but sometimes it takes a few days.",
+    "No, we've never had any security testing done.",
+    "Yes, we have NDAs with our contractors, but nothing specific about IT security.",
+    "I don't know what disk encryption is. Laptops are regular ones, bought at a consumer store.",
+    "If systems went down, I think we'd need 2-3 days to get back to normal.",
+    "Yes, that's a fair point, worth checking."
+  ]
+};
 
 const RISK_COLORS = {
   critical: { badge:'bg-red-500 text-white',         tag:'bg-red-100 text-red-700'        },
@@ -432,6 +474,53 @@ function copySlide(payloadJson) {
   navigator.clipboard?.writeText(lines.join('\n')).catch(() => {});
 }
 
+// ── Demo mode ─────────────────────────────────────────────────────────────
+function updateDemoButton() {
+  const btn = document.getElementById('btn-demo');
+  if (!btn) return;
+  btn.textContent = lang === 'pl' ? '▶️ Historia Marka' : '▶️ Watch Marek\'s story';
+  btn.style.display = (conversationStarted || demoRunning) ? 'none' : '';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function waitUntilReady() {
+  return new Promise(resolve => {
+    const check = () => {
+      if (!busy && ws && ws.readyState === WebSocket.OPEN) { resolve(); return; }
+      setTimeout(check, 200);
+    };
+    check();
+  });
+}
+
+async function runDemo() {
+  if (demoRunning || conversationStarted) return;
+  demoRunning = true;
+  document.getElementById('btn-demo').style.display = 'none';
+  const inp = document.getElementById('input');
+  inp.disabled = true;
+  inp.placeholder = lang === 'pl' ? 'Tryb demo…' : 'Demo mode…';
+  document.getElementById('send-btn').disabled = true;
+  append(`
+    <div class="flex justify-center my-1">
+      <span class="px-3 py-1 bg-slate-100 text-slate-500 text-xs rounded-full font-medium border border-slate-200">
+        🎬 ${lang === 'pl' ? 'Tryb demo — Historia Marka' : 'Demo mode — Marek\'s story'}
+      </span>
+    </div>`);
+  const script = DEMO_SCRIPTS[lang];
+  for (const answer of script) {
+    await waitUntilReady();
+    await sleep(1500);
+    if (!demoRunning) break;
+    conversationStarted = true;
+    document.getElementById('lang-confirm')?.remove();
+    addUser(answer);
+    ws.send(JSON.stringify({ type: 'message', text: answer, language: lang }));
+    setProcessing(true);
+  }
+}
+
 // ── UI helpers ─────────────────────────────────────────────────────────────
 function setProcessing(on) {
   busy = on;
@@ -451,6 +540,7 @@ function updateLangButtons() {
   const inactive = 'px-3 py-1 rounded text-sm font-semibold text-slate-400 hover:text-white transition-colors';
   document.getElementById('btn-en').className = lang === 'en' ? active : inactive;
   document.getElementById('btn-pl').className = lang === 'pl' ? active : inactive;
+  updateDemoButton();
 }
 
 function resetSession() {
@@ -458,6 +548,7 @@ function resetSession() {
   currentSessionId = crypto.randomUUID();
   stage = 'qualifier';
   conversationStarted = false;
+  demoRunning = false;
   busy = false;
   document.getElementById('chat').innerHTML = '';
   document.getElementById('input').disabled = false;

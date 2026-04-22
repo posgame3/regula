@@ -9,7 +9,7 @@ Built with Claude Opus 4.7 for **Cerebral Valley Built with 4.7 Hackathon**.
 ## Quick start
 
 ```bash
-git clone https://github.com/yourusername/regula.git
+git clone https://github.com/posgame3/regula.git
 cd regula
 pip install -r requirements.txt
 cp .env.example .env          # add your Anthropic API key

@@ -330,6 +330,13 @@ function addComplete(data) {
           class="w-full border border-[#0A2540] bg-[#0A2540] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-[#0e3566] active:bg-[#061929] transition-colors">
           ${lang === 'pl' ? '⬇️ Pobierz raport PDF' : '⬇️ Download PDF Report'}
         </button>
+        <p class="text-center text-xs text-slate-400 pt-1">
+          <a href="#" onclick="location.reload(); return false;" class="hover:text-slate-600 transition-colors">
+            ${lang === 'pl'
+              ? '✓ Ocena zakończona. Odśwież stronę aby ocenić inną firmę.'
+              : '✓ Assessment complete. Start a new session to assess another company.'}
+          </a>
+        </p>
       </div>
     </div>`);
 
@@ -342,8 +349,10 @@ function addComplete(data) {
   }
 
   document.getElementById('input').disabled = true;
-  document.getElementById('input').placeholder = 'Assessment complete.';
+  document.getElementById('input').placeholder = lang === 'pl' ? 'Ocena zakończona.' : 'Assessment complete.';
   document.getElementById('send-btn').disabled = true;
+  const demoBtn = document.getElementById('btn-demo');
+  if (demoBtn) demoBtn.style.display = 'none';
   scrollBottom();
 }
 

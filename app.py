@@ -108,18 +108,8 @@ def parse_after_json(text: str) -> tuple:
 
 
 async def stream_to_ws(client: AsyncAnthropic, system: str, messages: list, max_tokens: int, send, stage: str) -> str:
-    """Stream tokens to UI via send callback. Returns full collected text."""
-    full_text = ""
-    async with client.messages.stream(
-        model=MODEL,
-        max_tokens=max_tokens,
-        system=system,
-        messages=messages,
-    ) as stream:
-        async for token in stream.text_stream:
-            full_text += token
-            await send({"type": "stream_token", "text": token, "stage": stage})
-    return full_text
+    """Collect full response silently (WhatsApp style). Caller sends agent_message."""
+    return await stream_silent(client, system, messages, max_tokens)
 
 
 async def stream_silent(client: AsyncAnthropic, system: str, messages: list, max_tokens: int) -> str:
@@ -149,7 +139,7 @@ async def call_with_thinking(
     if session and session.get("demo_mode"):
         response = await client.messages.create(
             model=MODEL,
-            max_tokens=4096,
+            max_tokens=8192,
             system=system,
             messages=messages,
         )
@@ -320,15 +310,13 @@ async def _dispatch(client, session, reqs, user_text, send):
         try:
             parsed = extract_json(text)
             if "applies" in parsed:
-                # Streamed text was JSON — remove bubble before transitioning
-                await send({"type": "stream_abort"})
                 await _handle_qualifier_result(parsed, session, reqs, client, send)
             else:
-                await send({"type": "stream_end", "stage": "qualifier"})
+                await send({"type": "agent_message", "text": text, "stage": "qualifier"})
                 if session.get("demo_mode"):
                     await _do_demo_answer(client, session, reqs, text, send)
         except ValueError:
-            await send({"type": "stream_end", "stage": "qualifier"})
+            await send({"type": "agent_message", "text": text, "stage": "qualifier"})
             if session.get("demo_mode"):
                 await _do_demo_answer(client, session, reqs, text, send)
 
@@ -341,19 +329,15 @@ async def _dispatch(client, session, reqs, user_text, send):
         if COMPLETE_MARKER in text:
             idx = text.find(COMPLETE_MARKER)
             closing = text[:idx].strip()
-            # Replace bubble with just the closing message, stripping marker + JSON
             if closing:
-                await send({"type": "stream_replace", "text": closing, "stage": "interview"})
-            else:
-                await send({"type": "stream_abort"})
-            await send({"type": "stream_end", "stage": "interview"})
+                await send({"type": "agent_message", "text": closing, "stage": "interview"})
             try:
                 findings = extract_json(text[idx + len(COMPLETE_MARKER):].strip())
                 await _run_analysis_pipeline(findings, session, reqs, client, send)
             except ValueError:
                 await send({"type": "error", "text": "Could not parse interview results."})
         else:
-            await send({"type": "stream_end", "stage": "interview"})
+            await send({"type": "agent_message", "text": text, "stage": "interview"})
             session["last_question"] = text
             if session.get("demo_mode"):
                 await _do_demo_answer(client, session, reqs, text, send)
@@ -402,7 +386,7 @@ async def _handle_qualifier_result(parsed, session, reqs, client, send):
         q1 = await stream_to_ws(client, system, session["messages"], 2048, send, "interview")
         session["messages"].append({"role": "assistant", "content": q1})
         session["question_count"] = 1
-        await send({"type": "stream_end", "stage": "interview"})
+        await send({"type": "agent_message", "text": q1, "stage": "interview"})
         session["last_question"] = q1
         if session.get("demo_mode"):
             await _do_demo_answer(client, session, reqs, q1, send)
@@ -413,7 +397,11 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     lang = session["language"]
 
     await send({"type": "stage_change", "stage": "analyze", "label": "Analyzing"})
-    await send({"type": "agent_message", "text": "⏳ Analyzing your responses... this takes 30-60 seconds", "stage": "analyze"})
+    if lang == "pl":
+        analyzing_msg = "⏳ Analizuję Twoje odpowiedzi... to zajmie 30-60 sekund"
+    else:
+        analyzing_msg = "⏳ Analyzing your responses... this takes 30-60 seconds"
+    await send({"type": "agent_message", "text": analyzing_msg, "stage": "analyze"})
 
     system = build_analyzer_system_with_thinking(findings, reqs, lang)
     messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
@@ -421,7 +409,18 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     try:
         gaps = extract_json(text)
     except ValueError:
-        await send({"type": "error", "text": "Could not parse gap analysis."})
+        print(f"[analyzer] Could not parse gap analysis. Raw response:\n{text[:500]}")
+        await send({
+            "type": "analysis_result",
+            "data": {
+                "overall_risk": "high",
+                "headline": "Analysis could not be parsed — please try again",
+                "gaps": [],
+                "priority_3": [],
+                "good_news": "",
+                "board_summary": "",
+            },
+        })
         return
 
     # Reveal analyzer's reasoning before showing the gap analysis card
@@ -459,7 +458,14 @@ async def _run_drafter(session, client, send):
     session["drafter_result"] = policies
 
     # Threat Actor — extended thinking, model=claude-opus-4-7 (MODEL constant)
-    await send({"type": "agent_message", "text": "⏳ Mapping attack scenarios...", "stage": "threat"})
+    lang = session["language"]
+    if lang == "pl":
+        attack_msg = "⏳ Mapuję scenariusze ataków..."
+        board_msg = "⏳ Przygotowuję prezentację dla zarządu..."
+    else:
+        attack_msg = "⏳ Mapping attack scenarios..."
+        board_msg = "⏳ Preparing board presentation..."
+    await send({"type": "agent_message", "text": attack_msg, "stage": "threat"})
     system = build_threat_actor_system(
         session["gap_analysis"], session["qualifier_result"], session["language"]
     )
@@ -474,7 +480,7 @@ async def _run_drafter(session, client, send):
     session["threat_actor_result"] = threat_scenarios
 
     # Board Presenter — model=claude-opus-4-7 (MODEL constant)
-    await send({"type": "agent_message", "text": "⏳ Preparing board presentation...", "stage": "board"})
+    await send({"type": "agent_message", "text": board_msg, "stage": "board"})
     system = build_board_presenter_system(
         session["gap_analysis"],
         threat_scenarios,

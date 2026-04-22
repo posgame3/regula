@@ -77,8 +77,6 @@ let lang = 'en';
 let stage = 'qualifier';
 let busy = false;
 let conversationStarted = false;
-let streamBubble = null;
-let streamText = '';
 let demoRunning = false;
 
 const STAGES = [
@@ -213,45 +211,6 @@ function addThinking(text) {
       </button>
       <div id="${id}" class="hidden mt-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-500 italic leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">${esc(text)}</div>
     </div>`);
-}
-
-// ── Streaming helpers ──────────────────────────────────────────────────────
-function startOrAppendStream(text) {
-  if (!streamBubble) {
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `
-      <div class="flex items-end gap-2">
-        <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
-        <div class="stream-text max-w-[85%] bg-slate-100 rounded-2xl rounded-bl-none px-4 py-3 text-sm text-slate-800 leading-relaxed"></div>
-      </div>`;
-    document.getElementById('chat').appendChild(wrap);
-    streamBubble = wrap;
-    streamText = '';
-  }
-  streamText += text;
-  streamBubble.querySelector('.stream-text').innerHTML = fmt(streamText);
-  scrollBottom();
-}
-
-function finalizeStreamBubble() {
-  streamBubble = null;
-  streamText = '';
-  setProcessing(false);
-}
-
-function abortStreamBubble() {
-  if (streamBubble) {
-    streamBubble.remove();
-    streamBubble = null;
-    streamText = '';
-  }
-}
-
-function replaceStreamBubble(text) {
-  if (!streamBubble) return;
-  streamText = text;
-  streamBubble.querySelector('.stream-text').innerHTML = fmt(text);
-  scrollBottom();
 }
 
 function addAnalysis(data) {
@@ -530,6 +489,7 @@ function runDemo() {
 // ── UI helpers ─────────────────────────────────────────────────────────────
 function setProcessing(on) {
   busy = on;
+  document.getElementById('typing').classList.toggle('hidden', !on);
   document.getElementById('send-btn').disabled = on || demoRunning;
   if (!on && !demoRunning) setTimeout(() => document.getElementById('input').focus(), 50);
   scrollBottom();
@@ -617,15 +577,7 @@ function connect() {
 
   ws.onmessage = ({ data }) => {
     const msg = JSON.parse(data);
-    if (msg.type === 'stream_token') {
-      startOrAppendStream(msg.text);
-    } else if (msg.type === 'stream_end') {
-      finalizeStreamBubble();
-    } else if (msg.type === 'stream_abort') {
-      abortStreamBubble();
-    } else if (msg.type === 'stream_replace') {
-      replaceStreamBubble(msg.text);
-    } else if (msg.type === 'thinking_reveal') {
+    if (msg.type === 'thinking_reveal') {
       addThinking(msg.text);
     } else if (msg.type === 'agent_message') {
       setProcessing(false);

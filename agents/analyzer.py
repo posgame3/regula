@@ -79,7 +79,7 @@ Only include requirements with risk 1-3 in the gaps array.
 - 1-2 reqs at risk 2 and none at 3 → "medium"
 - All reqs at 0-1 → "low"
 
-Output ONLY valid JSON, nothing else:
+CRITICAL: Output ONLY valid JSON. No markdown fences, no text before or after. Start with {{ end with }}.
 {{
   "overall_risk": "critical",
   "headline": "One sentence a business owner can read to their board — specific to this company",

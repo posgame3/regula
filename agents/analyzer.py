@@ -42,7 +42,9 @@ def _article_ref(req_index: int) -> str:
     return f"Article 21(2) — Requirement {req_index}"
 
 
-_ANALYZER_SYSTEM_TEMPLATE = """You are a NIS2 compliance analyst. You have received interview findings and must produce a clear, actionable gap analysis grounded in the exact text of Directive (EU) 2022/2555.
+_ANALYZER_SYSTEM_TEMPLATE = """RESPOND ENTIRELY IN {lang_instruction}. All field values in the JSON must be in this language. This includes: headline, what_we_found, why_it_matters, what_to_do, good_news, board_summary, priority_3 items.
+
+You are a NIS2 compliance analyst. You have received interview findings and must produce a clear, actionable gap analysis grounded in the exact text of Directive (EU) 2022/2555.
 
 Write EVERYTHING in {language} (language code: "en" = English, "pl" = Polish). If "pl", write all text fields in Polish.
 
@@ -127,6 +129,7 @@ def build_analyzer_system(
 ) -> str:
     art21_measures = _load_art21_measures()
     art21_ref = _format_art21_ref(art21_measures)
+    lang_instruction = "Polish (język polski)" if language == "pl" else "English"
 
     # Build req mapping: req_1 → Art. 21(2)(a) — Name, with legacy fix effort/cost
     req_lines = []
@@ -140,6 +143,7 @@ def build_analyzer_system(
     req_mapping = "\n".join(req_lines)
 
     return _ANALYZER_SYSTEM_TEMPLATE.format(
+        lang_instruction=lang_instruction,
         language=language,
         art21_reference=art21_ref,
         interview_findings=json.dumps(interview_findings, indent=2, ensure_ascii=False),

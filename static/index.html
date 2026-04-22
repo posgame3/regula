@@ -354,18 +354,16 @@ function addThreatScenarios(data) {
 
 function addBoardPresentation(data) {
   const slides = data.slides || [];
-  const slide2 = slides.find(s => s.number === 2);
-  const score = typeof slide2?.score === 'number' ? slide2.score : null;
-  const scoreLabel = slide2?.score_label || '';
+  const scoreSlide = data.slides?.find(s => s.score !== undefined);
+  const score = scoreSlide?.score ?? 0;
+  const scoreLabel = scoreSlide?.score_label || '';
 
-  const gaugeColor = score === null ? '#94a3b8'
-                   : score < 40    ? '#ef4444'
-                   : score < 70    ? '#f97316'
-                                   : '#22c55e';
-  const scoreVal = score ?? 0;
-  const dash = Math.round(scoreVal);
+  const gaugeColor = score < 40 ? '#ef4444'
+                   : score < 70 ? '#f97316'
+                                : '#22c55e';
+  const dash = Math.round(score);
 
-  const gaugeHtml = score !== null ? `
+  const gaugeHtml = score ? `
     <div class="flex flex-col items-center my-4">
       <div class="relative w-24 h-24">
         <svg viewBox="0 0 36 36" class="w-24 h-24" style="transform:rotate(-90deg)">
@@ -378,7 +376,7 @@ function addBoardPresentation(data) {
         </div>
       </div>
       ${scoreLabel ? `<p class="text-xs text-slate-400 mt-1 text-center">${esc(scoreLabel)}</p>` : ''}
-    </div>` : '';
+    </div>` : `<div class="flex flex-col items-center my-4"><p class="text-slate-400 text-sm font-medium">N/A</p></div>`;
 
   const slideCards = slides.map(s => {
     const noteId = 'note-' + s.number;

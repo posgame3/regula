@@ -89,6 +89,28 @@ _MOCK_ANALYZER = json.dumps({
     "board_summary": "4 critical gaps found. Immediate action needed on incident response and training.",
 })
 
+_MOCK_ANALYZER_PL = json.dumps({
+    "overall_risk": "high",
+    "headline": "4 krytyczne luki wymagają natychmiastowego działania",
+    "gaps": [
+        {"req_id": "req_5", "name": "Plan reagowania na incydenty", "risk_level": "critical",
+         "business_impact": "Brak planu oznacza dni przestoju w razie ataku", "article": "Art. 21(2)(e)"},
+        {"req_id": "req_7", "name": "Szkolenie z cyberbezpieczeństwa", "risk_level": "critical",
+         "business_impact": "Pracownicy to najłatwiejszy punkt wejścia dla atakujących", "article": "Art. 21(2)(g)"},
+        {"req_id": "req_2", "name": "Ocena ryzyka", "risk_level": "high",
+         "business_impact": "Bez znajomości ryzyk nie można ustalić priorytetów", "article": "Art. 21(2)(b)"},
+        {"req_id": "req_10", "name": "Kontrola dostępu", "risk_level": "high",
+         "business_impact": "Jedno skradzione hasło daje pełny dostęp do systemów", "article": "Art. 21(2)(j)"},
+    ],
+    "priority_3": [
+        "Włącz MFA na wszystkich kontach firmowych",
+        "Napisz procedurę reagowania na incydenty",
+        "Przeprowadź szkolenie z cyberbezpieczeństwa dla pracowników",
+    ],
+    "good_news": "Umowy z klientami i zewnętrzny wykonawca IT — dobra baza do budowania.",
+    "board_summary": "Znaleziono 4 krytyczne luki. Pilne działanie wymagane w zakresie reagowania na incydenty i szkoleń.",
+})
+
 _MOCK_REDTEAM = json.dumps({
     "verdict": "FAIL",
     "overall_score": 2,
@@ -171,7 +193,7 @@ def _mock_response(system: str) -> str:
         count = int(m.group(1)) if m else 0
         return _MOCK_INTERVIEW_COMPLETE if count >= 1 else _MOCK_INTERVIEW_Q1
     if "NIS2 compliance analyst" in system:
-        return _MOCK_ANALYZER
+        return _MOCK_ANALYZER_PL if ("Polish" in system or "język polski" in system) else _MOCK_ANALYZER
     if "strict NIS2 compliance auditor" in system:
         return _MOCK_REDTEAM
     if "practical policy writer" in system:

@@ -1,7 +1,7 @@
 import json
 
 BOARD_PRESENTER_SYSTEM = """\
-CRITICAL: You must respond ONLY in {lang_instruction}. Every single word of your response must be in this language. This includes all questions, the verdict JSON field labels' values, and the preparation steps. Never switch to English.
+RESPOND ENTIRELY IN {lang_instruction}. All field values in the JSON must be in this language. This includes: slide titles, bullets, actions, recommendations, speaker_notes, score_label. Never switch to English.
 
 You generate a 5-slide executive presentation for a non-technical CEO/board.
 

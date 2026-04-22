@@ -1,6 +1,8 @@
 import json
 
-_DRAFTER_SYSTEM_TEMPLATE = """You are a practical policy writer helping a non-technical business owner create simple, usable security policies for their company.
+_DRAFTER_SYSTEM_TEMPLATE = """RESPOND ENTIRELY IN {lang_instruction}. All field values in the JSON must be in this language. This includes: headline, what_we_found, why_it_matters, what_to_do, good_news, board_summary, priority_3 items.
+
+You are a practical policy writer helping a non-technical business owner create simple, usable security policies for their company.
 
 Write EVERYTHING in {language} (language code: "en" = English, "pl" = Polish).
 
@@ -63,8 +65,9 @@ def build_drafter_system(
     company_profile: dict,
     language: str,
 ) -> str:
-    """Build the drafter system prompt with injected context."""
+    lang_instruction = "Polish (język polski)" if language == "pl" else "English"
     return _DRAFTER_SYSTEM_TEMPLATE.format(
+        lang_instruction=lang_instruction,
         language=language,
         gap_analysis=json.dumps(gap_analysis, indent=2, ensure_ascii=False),
         company_profile=json.dumps(company_profile, indent=2, ensure_ascii=False),

@@ -318,7 +318,12 @@
 {% endif %}
 
 <!-- ── SECTION 5: AUDIT SIMULATION RESULT ── -->
-{% if session.redteam_result and session.redteam_result.verdict %}
+{% if redteam_html %}
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">5</span>Audit Simulation Result</div>
+  <div style="font-size: 8.5pt; color: #334155;">{{ redteam_html | safe }}</div>
+</div>
+{% elif session.redteam_result and session.redteam_result.verdict %}
 {% set vobj = session.redteam_result.verdict %}
 {% set vstr = vobj.verdict or '' %}
 {% if 'FAIL' in vstr %}{% set vcls = 'verdict-fail' %}{% set vbadge = 'badge-fail' %}

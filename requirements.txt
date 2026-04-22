@@ -9,3 +9,4 @@ lxml
 pypdf
 weasyprint
 jinja2
+markdown

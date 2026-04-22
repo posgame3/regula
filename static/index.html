@@ -122,6 +122,39 @@ function renderProgress() {
   }).join('');
 }
 
+// ── Markdown renderer ─────────────────────────────────────────────────────
+function markdownToHtml(text) {
+  let html = esc(text);
+  // Headings
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-semibold text-sm text-slate-800 mt-3 mb-1">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-bold text-sm text-slate-800 mt-3 mb-1">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-base text-slate-900 mt-4 mb-2">$1</h1>');
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Tables — blocks of consecutive pipe-delimited lines
+  html = html.replace(/((?:\|[^\n]+\|\n?)+)/g, tableBlock => {
+    const rows = tableBlock.trim().split('\n')
+      .filter(r => !/^\|[\s\-:|]+\|$/.test(r.trim()))
+      .map(r => {
+        const cells = r.trim().replace(/^\||\|$/g, '').split('|')
+          .map(c => `<td class="border border-slate-200 px-2 py-1">${c.trim()}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+    return `<table class="w-full border-collapse text-xs my-2">${rows}</table>`;
+  });
+  // Unordered lists — group consecutive "- " lines
+  html = html.replace(/((?:^- .+$\n?)+)/gm, listBlock => {
+    const items = listBlock.trim().split('\n')
+      .map(l => `<li>${l.replace(/^- /, '')}</li>`).join('');
+    return `<ul class="list-disc pl-4 my-1 space-y-0.5 text-sm text-slate-700">${items}</ul>`;
+  });
+  // Paragraphs from double newlines
+  html = html.replace(/\n\n/g, '</p><p class="mb-2">');
+  // Single newlines
+  html = html.replace(/\n/g, '<br>');
+  return `<div class="p-4 border border-[#0A2540] rounded-xl my-2 text-sm text-slate-700"><p class="mb-2">${html}</p></div>`;
+}
+
 // ── Chat helpers ───────────────────────────────────────────────────────────
 function esc(t) {
   return String(t)
@@ -257,9 +290,13 @@ function addAnalysis(data) {
 }
 
 function addComplete(data) {
-  const verdict  = data.redteam_result?.verdict?.verdict || '';
-  const summary  = data.redteam_result?.verdict?.auditor_summary || '';
+  const rr = data.redteam_result;
+  const isStrRedteam = typeof rr === 'string' && rr;
+  const verdict  = isStrRedteam ? '' : (rr?.verdict?.verdict || '');
+  const summary  = isStrRedteam ? '' : (rr?.verdict?.auditor_summary || '');
   const policies = data.drafter_result?.policies?.length || 0;
+
+  if (isStrRedteam) append(markdownToHtml(rr));
 
   const vBg = verdict.includes('FAIL')       ? 'bg-red-50 border-red-300 text-red-800'
             : verdict.includes('CONDITIONS') ? 'bg-yellow-50 border-yellow-300 text-yellow-800'

@@ -142,8 +142,21 @@ async def call_with_thinking(
     messages: list,
     max_tokens: int = 16000,
     budget_tokens: int = 10000,
+    session: dict = None,
 ) -> tuple[str, str, list]:
-    """Call with extended thinking enabled. Returns (thinking_text, result_text, full_content_blocks)."""
+    """Call with extended thinking enabled. Returns (thinking_text, result_text, full_content_blocks).
+    In demo mode, skips extended thinking for speed."""
+    if session and session.get("demo_mode"):
+        response = await client.messages.create(
+            model=MODEL,
+            max_tokens=4096,
+            system=system,
+            messages=messages,
+        )
+        result_text = "".join(b.text for b in response.content if hasattr(b, "text"))
+        content_blocks = [b.model_dump() for b in response.content]
+        return "", result_text, content_blocks
+
     response = await client.messages.create(
         model=MODEL,
         max_tokens=max_tokens,
@@ -167,7 +180,7 @@ async def call_with_thinking(
 async def generate_demo_response(client: AsyncAnthropic, question: str, language: str) -> str:
     lang_name = "Polish" if language == "pl" else "English"
     response = await client.messages.create(
-        model=MODEL,
+        model="claude-sonnet-4-6",
         max_tokens=100,
         system=MAREK_PERSONA_SYSTEM.format(language=lang_name),
         messages=[{"role": "user", "content": f"The assessor just asked: {question}\nYour one-sentence answer:"}],
@@ -349,7 +362,7 @@ async def _dispatch(client, session, reqs, user_text, send):
         system = build_redteam_system(
             session["gap_analysis"], session["qualifier_result"], session["language"]
         )
-        thinking_text, text, content_blocks = await call_with_thinking(client, system, session["messages"])
+        thinking_text, text, content_blocks = await call_with_thinking(client, system, session["messages"], session=session)
         # Store full content blocks (with thinking) so conversation threading works
         session["messages"].append({"role": "assistant", "content": content_blocks})
 
@@ -400,10 +413,11 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     lang = session["language"]
 
     await send({"type": "stage_change", "stage": "analyze", "label": "Analyzing"})
+    await send({"type": "agent_message", "text": "⏳ Analyzing your responses... this takes 30-60 seconds", "stage": "analyze"})
 
     system = build_analyzer_system_with_thinking(findings, reqs, lang)
     messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
-    thinking_text, text, _ = await call_with_thinking(client, system, messages)
+    thinking_text, text, _ = await call_with_thinking(client, system, messages, session=session)
     try:
         gaps = extract_json(text)
     except ValueError:
@@ -421,7 +435,7 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     system = build_redteam_system(gaps, session["qualifier_result"], lang)
     seed = "I'm ready for the inspection."
     session["messages"] = [{"role": "user", "content": seed}]
-    thinking_text, q1, content_blocks = await call_with_thinking(client, system, session["messages"])
+    thinking_text, q1, content_blocks = await call_with_thinking(client, system, session["messages"], session=session)
     session["messages"].append({"role": "assistant", "content": content_blocks})
     await send({"type": "agent_message", "text": q1, "stage": "redteam"})
     session["last_question"] = q1
@@ -445,12 +459,13 @@ async def _run_drafter(session, client, send):
     session["drafter_result"] = policies
 
     # Threat Actor — extended thinking, model=claude-opus-4-7 (MODEL constant)
+    await send({"type": "agent_message", "text": "⏳ Mapping attack scenarios...", "stage": "threat"})
     system = build_threat_actor_system(
         session["gap_analysis"], session["qualifier_result"], session["language"]
     )
     messages = [{"role": "user", "content": "Analyze the company's gaps and show how a real attacker would exploit them."}]
     _, text, _ = await call_with_thinking(
-        client, system, messages, max_tokens=16000, budget_tokens=8000
+        client, system, messages, max_tokens=16000, budget_tokens=8000, session=session
     )
     try:
         threat_scenarios = extract_json(text)
@@ -459,6 +474,7 @@ async def _run_drafter(session, client, send):
     session["threat_actor_result"] = threat_scenarios
 
     # Board Presenter — model=claude-opus-4-7 (MODEL constant)
+    await send({"type": "agent_message", "text": "⏳ Preparing board presentation...", "stage": "board"})
     system = build_board_presenter_system(
         session["gap_analysis"],
         threat_scenarios,

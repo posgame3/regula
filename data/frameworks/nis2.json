@@ -1,4 +1,28 @@
 {
+  "sectors": {
+    "annex_1_essential": [
+      {"name": "Energy", "examples": ["electricity", "oil", "gas", "hydrogen"]},
+      {"name": "Transport", "examples": ["air", "rail", "water", "road freight", "logistics"]},
+      {"name": "Banking", "examples": ["credit institutions", "banks"]},
+      {"name": "Financial market infrastructure", "examples": ["trading venues", "CCPs"]},
+      {"name": "Health", "examples": ["hospitals", "labs", "pharma R&D", "medical devices"]},
+      {"name": "Drinking water", "examples": ["water supply", "distribution"]},
+      {"name": "Wastewater", "examples": ["sewage", "wastewater treatment"]},
+      {"name": "Digital infrastructure", "examples": ["internet exchange points", "DNS", "TLD registries", "cloud", "CDN", "data centres"]},
+      {"name": "ICT service management", "examples": ["managed service providers", "managed security services"]},
+      {"name": "Public administration", "examples": ["government agencies", "public bodies"]},
+      {"name": "Space", "examples": ["ground-based space infrastructure"]}
+    ],
+    "annex_2_important": [
+      {"name": "Postal and courier", "examples": ["postal services", "parcel delivery"]},
+      {"name": "Waste management", "examples": ["waste collection", "recycling"]},
+      {"name": "Chemicals", "examples": ["chemical manufacturing", "chemical distribution"]},
+      {"name": "Food", "examples": ["large food producers", "food distribution"]},
+      {"name": "Manufacturing", "examples": ["medical devices", "pharmaceuticals", "computers", "electronics", "machinery", "motor vehicles", "medical equipment"]},
+      {"name": "Digital providers", "examples": ["online marketplaces", "search engines", "social networks"]},
+      {"name": "Research", "examples": ["research organisations"]}
+    ]
+  },
   "directive": "NIS2 Directive (EU) 2022/2555",
   "article": "Article 21 — Cybersecurity Risk-Management Measures",
   "requirements": [

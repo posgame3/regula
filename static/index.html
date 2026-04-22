@@ -325,9 +325,10 @@ function addComplete(data) {
       <div class="bg-white px-5 py-4 space-y-3">
         ${policies ? `<p class="text-sm text-slate-600"><span class="font-semibold">${policies} policy draft${policies > 1 ? 's' : ''}</span> generated for your critical and high-risk gaps.</p>` : ''}
         <p class="text-xs text-slate-400 italic leading-relaxed">Draft starting point for legal review — not a final compliance document.</p>
-        <button disabled title="PDF export coming soon"
-          class="w-full border border-slate-200 bg-slate-50 text-slate-400 py-2.5 rounded-xl text-sm font-medium cursor-not-allowed select-none">
-          📄 Download Report — PDF coming soon
+        <button id="downloadBtn"
+          onclick="window.open('/report/${currentSessionId}', '_blank')"
+          class="w-full border border-[#0A2540] bg-[#0A2540] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-[#0e3566] active:bg-[#061929] transition-colors">
+          ${lang === 'pl' ? '⬇️ Pobierz raport PDF' : '⬇️ Download PDF Report'}
         </button>
       </div>
     </div>`);

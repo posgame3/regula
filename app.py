@@ -5,8 +5,8 @@ from pathlib import Path
 
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse, Response
 
 load_dotenv()
 
@@ -17,6 +17,7 @@ from agents.redteam import build_redteam_system
 from agents.drafter import build_drafter_system
 from agents.threat_actor import build_threat_actor_system
 from agents.board_presenter import build_board_presenter_system
+from utils.pdf import generate_report_pdf
 
 app = FastAPI()
 MODEL = "claude-opus-4-7"
@@ -144,6 +145,21 @@ async def index():
     return HTMLResponse(Path("static/index.html").read_text(encoding="utf-8"))
 
 
+@app.get("/report/{session_id}")
+async def download_report(session_id: str):
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session = sessions[session_id]
+    if session.get("stage") != "complete":
+        raise HTTPException(status_code=400, detail="Report not ready yet")
+    pdf_bytes = generate_report_pdf(session, session.get("language", "en"))
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=regula-report-{session_id[:8]}.pdf"},
+    )
+
+
 @app.websocket("/ws/{session_id}")
 async def ws_handler(websocket: WebSocket, session_id: str):
     await websocket.accept()
@@ -213,7 +229,8 @@ async def ws_handler(websocket: WebSocket, session_id: str):
     except WebSocketDisconnect:
         pass
     finally:
-        sessions.pop(session_id, None)
+        if sessions.get(session_id, {}).get("stage") != "complete":
+            sessions.pop(session_id, None)
 
 
 async def _dispatch(client, session, reqs, user_text, send):
@@ -389,3 +406,4 @@ async def _run_drafter(session, client, send):
             "language": session["language"],
         },
     })
+    session["stage"] = "complete"

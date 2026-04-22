@@ -7,3 +7,5 @@ requests
 beautifulsoup4
 lxml
 pypdf
+weasyprint
+jinja2

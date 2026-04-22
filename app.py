@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import re
@@ -23,6 +24,29 @@ app = FastAPI()
 MODEL = "claude-opus-4-7"
 COMPLETE_MARKER = "[INTERVIEW_COMPLETE]"
 sessions: dict = {}
+
+MAREK_PERSONA_SYSTEM = """\
+You are Marek, owner of a Polish road freight company (80 employees, \
+transport sector). You are being interviewed about your company's \
+cybersecurity. Your situation:
+- No written security policies — everything is informal
+- External IT contractor who comes when something breaks
+- Company Gmail accounts, no MFA or two-step verification
+- Backups set up by IT guy a year ago, never tested
+- No employee cybersecurity training ever
+- NDAs with clients but nothing specific about IT security
+- Laptops are standard consumer devices, no encryption
+- If systems went down, would need 2-3 days to recover
+- You are not technical — you don't know jargon
+
+Rules:
+- Answer in {language}
+- ONE sentence only — short, direct, realistic
+- Use natural business owner language, no technical terms
+- Be honest about gaps without being defensive
+- Never volunteer information you weren't asked about
+- If asked about something you don't have: say so simply
+"""
 
 GREETINGS = {
     "en": "Hello! I'm Regula, your NIS2 compliance advisor. Let's start by finding out if NIS2 applies to your company. What does your company do, and which industry or sector would you say you're in?",
@@ -140,6 +164,28 @@ async def call_with_thinking(
     return thinking_text, result_text, content_blocks
 
 
+async def generate_demo_response(client: AsyncAnthropic, question: str, language: str) -> str:
+    lang_name = "Polish" if language == "pl" else "English"
+    response = await client.messages.create(
+        model=MODEL,
+        max_tokens=100,
+        system=MAREK_PERSONA_SYSTEM.format(language=lang_name),
+        messages=[{"role": "user", "content": f"The assessor just asked: {question}\nYour one-sentence answer:"}],
+    )
+    return response.content[0].text.strip()
+
+
+async def _do_demo_answer(client: AsyncAnthropic, session: dict, reqs: list, question: str, send) -> None:
+    await asyncio.sleep(1.2)
+    lang = session.get("language", "en")
+    try:
+        answer = await generate_demo_response(client, question, lang)
+    except Exception:
+        return
+    await send({"type": "demo_answer", "text": answer})
+    await _dispatch(client, session, reqs, answer, send)
+
+
 @app.get("/")
 async def index():
     return HTMLResponse(Path("static/index.html").read_text(encoding="utf-8"))
@@ -181,6 +227,8 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         "question_count": 0,
         "busy": False,
         "greeted": False,
+        "demo_mode": False,
+        "last_question": None,
     }
     sessions[session_id] = session
 
@@ -203,7 +251,22 @@ async def ws_handler(websocket: WebSocket, session_id: str):
                         {"role": "user", "content": "Hello"},
                         {"role": "assistant", "content": greeting},
                     ]
+                    session["last_question"] = greeting
                     await send({"type": "agent_message", "text": greeting, "stage": "qualifier"})
+                continue
+
+            if data.get("type") == "demo_mode":
+                if data.get("enabled") and not session.get("demo_mode"):
+                    session["demo_mode"] = True
+                    lq = session.get("last_question")
+                    if lq and not session["busy"]:
+                        session["busy"] = True
+                        try:
+                            await _do_demo_answer(client, session, reqs, lq, send)
+                        except Exception as exc:
+                            await send({"type": "error", "text": str(exc)})
+                        finally:
+                            session["busy"] = False
                 continue
 
             if data.get("type") != "message":
@@ -240,6 +303,7 @@ async def _dispatch(client, session, reqs, user_text, send):
     if stage == "qualifier":
         text = await stream_to_ws(client, build_qualifier_system(session["language"]), session["messages"], 1024, send, "qualifier")
         session["messages"].append({"role": "assistant", "content": text})
+        session["last_question"] = text
         try:
             parsed = extract_json(text)
             if "applies" in parsed:
@@ -248,8 +312,12 @@ async def _dispatch(client, session, reqs, user_text, send):
                 await _handle_qualifier_result(parsed, session, reqs, client, send)
             else:
                 await send({"type": "stream_end", "stage": "qualifier"})
+                if session.get("demo_mode"):
+                    await _do_demo_answer(client, session, reqs, text, send)
         except ValueError:
             await send({"type": "stream_end", "stage": "qualifier"})
+            if session.get("demo_mode"):
+                await _do_demo_answer(client, session, reqs, text, send)
 
     elif stage == "interview":
         system = build_interview_system(session["qualifier_result"], reqs, session["question_count"], session["language"])
@@ -273,6 +341,9 @@ async def _dispatch(client, session, reqs, user_text, send):
                 await send({"type": "error", "text": "Could not parse interview results."})
         else:
             await send({"type": "stream_end", "stage": "interview"})
+            session["last_question"] = text
+            if session.get("demo_mode"):
+                await _do_demo_answer(client, session, reqs, text, send)
 
     elif stage == "redteam":
         system = build_redteam_system(
@@ -294,6 +365,9 @@ async def _dispatch(client, session, reqs, user_text, send):
             await _run_drafter(session, client, send)
         else:
             await send({"type": "agent_message", "text": text, "stage": "redteam"})
+            session["last_question"] = text
+            if session.get("demo_mode"):
+                await _do_demo_answer(client, session, reqs, text, send)
 
 
 async def _handle_qualifier_result(parsed, session, reqs, client, send):
@@ -316,6 +390,9 @@ async def _handle_qualifier_result(parsed, session, reqs, client, send):
         session["messages"].append({"role": "assistant", "content": q1})
         session["question_count"] = 1
         await send({"type": "stream_end", "stage": "interview"})
+        session["last_question"] = q1
+        if session.get("demo_mode"):
+            await _do_demo_answer(client, session, reqs, q1, send)
 
 
 async def _run_analysis_pipeline(findings, session, reqs, client, send):
@@ -347,6 +424,9 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     thinking_text, q1, content_blocks = await call_with_thinking(client, system, session["messages"])
     session["messages"].append({"role": "assistant", "content": content_blocks})
     await send({"type": "agent_message", "text": q1, "stage": "redteam"})
+    session["last_question"] = q1
+    if session.get("demo_mode"):
+        await _do_demo_answer(client, session, reqs, q1, send)
 
 
 async def _run_drafter(session, client, send):

@@ -80,9 +80,6 @@ let conversationStarted = false;
 let streamBubble = null;
 let streamText = '';
 let demoRunning = false;
-let demoExhausted = false;
-let demoIndex = 0;
-let demoScript = [];
 
 const STAGES = [
   { key: 'qualifier', en: 'Qualify',   pl: 'Kwalifikacja' },
@@ -92,55 +89,6 @@ const STAGES = [
   { key: 'draft',     en: 'Report',    pl: 'Raport'        },
 ];
 const STAGE_IDX = { qualifier:0, interview:1, analyze:2, redteam:3, draft:4, complete:4 };
-
-const DEMO_SCRIPTS = {
-  pl: [
-    "Prowadzę firmę transportu drogowego, przewozimy towary po Polsce i do Niemiec. Sektor transportu.",
-    "Zatrudniamy około 80 osób — kierowcy, dyspozytor, biuro.",
-    "Tak, kilku naszych klientów to duże firmy produkcyjne, które zależą od naszych dostaw.",
-    "Nie, nie mamy pisemnych polityk bezpieczeństwa. Wszystko jest nieformalne.",
-    "Mamy zewnętrznego informatyka, który przychodzi jak coś się psuje.",
-    "Chyba mamy backupy, informatyk to ustawił, ale szczerze mówiąc nie sprawdzałem czy działają.",
-    "Używamy Gmaila firmowego. Każdy ma swoje konto, ale nie ma żadnego dodatkowego logowania.",
-    "Pracownicy nie mieli żadnych szkoleń z cyberbezpieczeństwa.",
-    "Jak ktoś odchodzi z firmy, to informatyk usuwa konto, ale czasem trwa to kilka dni.",
-    "Nie, nigdy nie testowaliśmy systemu pod kątem bezpieczeństwa.",
-    "Tak, mamy umowy NDA z kontrahentami, ale nic specjalnego o bezpieczeństwie IT.",
-    "Nie wiem co to szyfrowanie dysku. Laptopy są zwykłe, kupione w Media Markt.",
-    "Jeśli systemy by padły, myślę że potrzebowalibyśmy 2-3 dni żeby wrócić do normalnej pracy.",
-    "Tak, to prawda, warto to sprawdzić.",
-    "Nie, nie mam takiego dokumentu. Nie wiedzieliśmy że trzeba.",
-    "Informatyk ustawił backupy rok temu. Nie testowaliśmy odtwarzania.",
-    "Nie mamy procedury. Zadzwonilibyśmy do informatyka.",
-    "Nie, pracownicy nie przechodzili żadnych szkoleń.",
-    "Każdy ma osobne hasło do Gmaila. Nie ma dwuetapowej weryfikacji.",
-    "Nie mamy takiej listy. Wiemy mniej więcej co mamy.",
-    "Umowy NDA, ale nic o wymaganiach bezpieczeństwa IT."
-  ],
-  en: [
-    "We run a road freight company, transporting goods across Poland and into Germany. Transport sector.",
-    "We have about 80 people — drivers, dispatchers, office staff.",
-    "Yes, several of our clients are large manufacturing companies that depend on our deliveries.",
-    "No, we don't have written security policies. Everything is informal.",
-    "We have an external IT person who comes in when something breaks.",
-    "I think we have backups, our IT guy set it up, but honestly I've never checked if they actually work.",
-    "We use Gmail for business. Everyone has their own account but no additional login step.",
-    "Employees haven't had any cybersecurity training.",
-    "When someone leaves, the IT guy removes their account, but sometimes it takes a few days.",
-    "No, we've never had any security testing done.",
-    "Yes, we have NDAs with our contractors, but nothing specific about IT security.",
-    "I don't know what disk encryption is. Laptops are regular ones, bought at a consumer store.",
-    "If systems went down, I think we'd need 2-3 days to get back to normal.",
-    "Yes, that's a fair point, worth checking.",
-    "No, I don't have that document. We didn't know it was required.",
-    "The IT guy set up backups a year ago. We haven't tested restoration.",
-    "We don't have a procedure. We'd call our IT person.",
-    "No, employees haven't received any security training.",
-    "Everyone has their own Gmail password. No two-step verification.",
-    "We don't have such a list. We roughly know what we have.",
-    "NDAs with contractors but nothing about IT security requirements."
-  ]
-};
 
 const RISK_COLORS = {
   critical: { badge:'bg-red-500 text-white',         tag:'bg-red-100 text-red-700'        },
@@ -509,74 +457,44 @@ function updateDemoButton() {
   btn.style.display = (conversationStarted || demoRunning) ? 'none' : '';
 }
 
-function waitUntilReady() {
-  return new Promise(resolve => {
-    const check = () => {
-      if (!busy && ws && ws.readyState === WebSocket.OPEN) { resolve(); return; }
-      setTimeout(check, 200);
-    };
-    check();
-  });
-}
-
-function sendNextDemoAnswer() {
-  if (!demoRunning || demoExhausted) return;
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-  if (demoIndex >= demoScript.length) {
-    demoExhausted = true;
-    demoRunning = false;
-    const inp = document.getElementById('input');
-    inp.disabled = false;
-    inp.placeholder = lang === 'pl' ? 'Wpisz odpowiedź…' : 'Type your answer…';
-    document.getElementById('send-btn').disabled = false;
-    append(`
-      <div class="flex justify-center my-1">
-        <span class="px-3 py-1 bg-amber-50 text-amber-700 text-xs rounded-full font-medium border border-amber-200">
-          ${lang === 'pl'
-            ? 'Odpowiedzi demo skończyły się — możesz kontynuować samodzielnie'
-            : 'Demo answers exhausted — you can continue manually'}
-        </span>
-      </div>`);
-    return;
-  }
-
-  const answer = demoScript[demoIndex++];
-  conversationStarted = true;
-  document.getElementById('lang-confirm')?.remove();
-  addUser(answer);
-  ws.send(JSON.stringify({ type: 'message', text: answer, language: lang }));
-  setProcessing(true);
+function addDemoAnswer(text) {
+  append(`
+    <div class="flex justify-end">
+      <div class="flex flex-col items-end gap-1">
+        <span class="text-[10px] text-slate-400 font-medium mr-1">🤖 Marek</span>
+        <div class="max-w-[80%] bg-[#0A2540] rounded-2xl rounded-br-none px-4 py-3 text-sm text-white leading-relaxed">${fmt(text)}</div>
+      </div>
+    </div>`);
+  scrollBottom();
 }
 
 function runDemo() {
   if (demoRunning || conversationStarted) return;
   demoRunning = true;
-  demoExhausted = false;
-  demoIndex = 0;
-  demoScript = DEMO_SCRIPTS[lang];
 
   document.getElementById('btn-demo').style.display = 'none';
   const inp = document.getElementById('input');
   inp.disabled = true;
-  inp.placeholder = lang === 'pl' ? 'Tryb demo…' : 'Demo mode…';
+  inp.placeholder = lang === 'pl' ? 'Tryb demo — Marek AI odpowiada…' : 'Demo mode — Marek AI is responding…';
   document.getElementById('send-btn').disabled = true;
 
   append(`
     <div class="flex justify-center my-1">
       <span class="px-3 py-1 bg-slate-100 text-slate-500 text-xs rounded-full font-medium border border-slate-200">
-        🎬 ${lang === 'pl' ? 'Tryb demo — Historia Marka' : 'Demo mode — Marek\'s story'}
+        🎬 ${lang === 'pl' ? 'Tryb demo — Marek AI odpowiada' : 'Demo mode — Marek AI is responding'}
       </span>
     </div>`);
 
-  waitUntilReady().then(() => sendNextDemoAnswer());
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'demo_mode', enabled: true }));
+  }
 }
 
 // ── UI helpers ─────────────────────────────────────────────────────────────
 function setProcessing(on) {
   busy = on;
-  document.getElementById('send-btn').disabled = on;
-  if (!on) setTimeout(() => document.getElementById('input').focus(), 50);
+  document.getElementById('send-btn').disabled = on || demoRunning;
+  if (!on && !demoRunning) setTimeout(() => document.getElementById('input').focus(), 50);
   scrollBottom();
 }
 
@@ -600,9 +518,6 @@ function resetSession() {
   stage = 'qualifier';
   conversationStarted = false;
   demoRunning = false;
-  demoExhausted = false;
-  demoIndex = 0;
-  demoScript = [];
   busy = false;
   document.getElementById('chat').innerHTML = '';
   document.getElementById('input').disabled = false;
@@ -669,9 +584,6 @@ function connect() {
       startOrAppendStream(msg.text);
     } else if (msg.type === 'stream_end') {
       finalizeStreamBubble();
-      if (demoRunning && !demoExhausted) {
-        setTimeout(sendNextDemoAnswer, 1000);
-      }
     } else if (msg.type === 'stream_abort') {
       abortStreamBubble();
     } else if (msg.type === 'stream_replace') {
@@ -681,9 +593,8 @@ function connect() {
     } else if (msg.type === 'agent_message') {
       setProcessing(false);
       addAgent(msg.text);
-      if (demoRunning && !demoExhausted) {
-        setTimeout(sendNextDemoAnswer, 1000);
-      }
+    } else if (msg.type === 'demo_answer') {
+      addDemoAnswer(msg.text);
     } else if (msg.type === 'stage_change') {
       stage = msg.stage;
       renderProgress();

@@ -105,7 +105,14 @@ const DEMO_SCRIPTS = {
     "Tak, mamy umowy NDA z kontrahentami, ale nic specjalnego o bezpieczeństwie IT.",
     "Nie wiem co to szyfrowanie dysku. Laptopy są zwykłe, kupione w Media Markt.",
     "Jeśli systemy by padły, myślę że potrzebowalibyśmy 2-3 dni żeby wrócić do normalnej pracy.",
-    "Tak, to prawda, warto to sprawdzić."
+    "Tak, to prawda, warto to sprawdzić.",
+    "Nie, nie mam takiego dokumentu. Nie wiedzieliśmy że trzeba.",
+    "Informatyk ustawił backupy rok temu. Nie testowaliśmy odtwarzania.",
+    "Nie mamy procedury. Zadzwonilibyśmy do informatyka.",
+    "Nie, pracownicy nie przechodzili żadnych szkoleń.",
+    "Każdy ma osobne hasło do Gmaila. Nie ma dwuetapowej weryfikacji.",
+    "Nie mamy takiej listy. Wiemy mniej więcej co mamy.",
+    "Umowy NDA, ale nic o wymaganiach bezpieczeństwa IT."
   ],
   en: [
     "We run a road freight company, transporting goods across Poland and into Germany. Transport sector.",
@@ -121,7 +128,14 @@ const DEMO_SCRIPTS = {
     "Yes, we have NDAs with our contractors, but nothing specific about IT security.",
     "I don't know what disk encryption is. Laptops are regular ones, bought at a consumer store.",
     "If systems went down, I think we'd need 2-3 days to get back to normal.",
-    "Yes, that's a fair point, worth checking."
+    "Yes, that's a fair point, worth checking.",
+    "No, I don't have that document. We didn't know it was required.",
+    "The IT guy set up backups a year ago. We haven't tested restoration.",
+    "We don't have a procedure. We'd call our IT person.",
+    "No, employees haven't received any security training.",
+    "Everyone has their own Gmail password. No two-step verification.",
+    "We don't have such a list. We roughly know what we have.",
+    "NDAs with contractors but nothing about IT security requirements."
   ]
 };
 
@@ -509,16 +523,20 @@ async function runDemo() {
       </span>
     </div>`);
   const script = DEMO_SCRIPTS[lang];
-  for (const answer of script) {
+  for (let i = 0; i < script.length; i++) {
     await waitUntilReady();
     await sleep(1500);
     if (!demoRunning) break;
     conversationStarted = true;
     document.getElementById('lang-confirm')?.remove();
-    addUser(answer);
-    ws.send(JSON.stringify({ type: 'message', text: answer, language: lang }));
+    addUser(script[i]);
+    ws.send(JSON.stringify({ type: 'message', text: script[i], language: lang }));
     setProcessing(true);
   }
+  await waitUntilReady();
+  document.getElementById('input').disabled = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('input').placeholder = lang === 'pl' ? 'Wpisz odpowiedź…' : 'Type your answer…';
 }
 
 // ── UI helpers ─────────────────────────────────────────────────────────────

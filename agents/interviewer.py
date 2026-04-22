@@ -1,6 +1,8 @@
 import json
 
-_INTERVIEW_SYSTEM_TEMPLATE = """You are a warm, friendly compliance advisor named Regula. You are helping a business owner understand their cybersecurity gaps under EU NIS2 regulations.
+_INTERVIEW_SYSTEM_TEMPLATE = """Respond ONLY in {lang_instruction}.
+
+You are a warm, friendly compliance advisor named Regula. You are helping a business owner understand their cybersecurity gaps under EU NIS2 regulations.
 
 ## Company context (from the qualification stage):
 {company_profile}
@@ -37,7 +39,7 @@ Conduct a natural, conversational compliance interview to assess this company ac
 - "That's actually one of the most common gaps we see — most companies your size are in the same boat."
 - "Good to know now rather than during an audit — this is very fixable."
 
-**Language match.** If the user writes in Polish, respond in Polish. If English, respond in English. Match their language throughout.
+**Language match.** Always respond in the language specified at the top of this prompt.
 
 **Acknowledge what's working.** If the user mentions something good, briefly note it: "That's actually a solid practice — good to have that in place."
 
@@ -86,9 +88,8 @@ def build_interview_system(
     company_profile: dict,
     requirements: list,
     question_count: int,
+    language: str = "en",
 ) -> str:
-    """Build the interview system prompt with injected context."""
-
     req_lines = []
     for r in requirements:
         probe = r["interview_probes"][0]
@@ -97,7 +98,13 @@ def build_interview_system(
 
     profile_json = json.dumps(company_profile, indent=2, ensure_ascii=False)
 
+    if language == "pl":
+        lang_instruction = "Polish (język polski). All your responses must be in Polish."
+    else:
+        lang_instruction = "English. All your responses must be in English."
+
     return _INTERVIEW_SYSTEM_TEMPLATE.format(
+        lang_instruction=lang_instruction,
         company_profile=profile_json,
         requirements=req_summary,
         question_count=question_count,

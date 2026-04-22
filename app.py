@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 
 load_dotenv()
 
-from agents.qualifier import QUALIFIER_SYSTEM
+from agents.qualifier import build_qualifier_system
 from agents.interviewer import build_interview_system
 from agents.analyzer import build_analyzer_system
 from agents.redteam import build_redteam_system
@@ -98,7 +98,7 @@ async def ws_handler(websocket: WebSocket, session_id: str):
     try:
         seed = "Hello, I'd like to find out if NIS2 applies to my company."
         session["messages"] = [{"role": "user", "content": seed}]
-        text = await call_claude(client, QUALIFIER_SYSTEM, session["messages"], max_tokens=1024)
+        text = await call_claude(client, build_qualifier_system(session["language"]), session["messages"], max_tokens=1024)
         session["messages"].append({"role": "assistant", "content": text})
 
         parsed = extract_json(text)
@@ -110,14 +110,27 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         await send({"type": "error", "text": str(exc)})
         return
 
+    _PL_CHARS = set("ąęóśźżćńłĄĘÓŚŹŻĆŃŁ")
+
     try:
         while True:
             data = await websocket.receive_json()
+
+            if data.get("type") == "set_language":
+                session["language"] = data.get("language", "en")
+                continue
+
             if data.get("type") != "message":
                 continue
+
             user_text = data.get("text", "").strip()
             if not user_text or session["busy"]:
                 continue
+
+            if "language" in data:
+                session["language"] = data["language"]
+            elif any(c in _PL_CHARS for c in user_text):
+                session["language"] = "pl"
 
             session["busy"] = True
             try:
@@ -138,7 +151,7 @@ async def _dispatch(client, session, reqs, user_text, send):
     session["messages"].append({"role": "user", "content": user_text})
 
     if stage == "qualifier":
-        text = await call_claude(client, QUALIFIER_SYSTEM, session["messages"], max_tokens=1024)
+        text = await call_claude(client, build_qualifier_system(session["language"]), session["messages"], max_tokens=1024)
         session["messages"].append({"role": "assistant", "content": text})
         parsed = extract_json(text)
         if parsed and "applies" in parsed:
@@ -147,7 +160,7 @@ async def _dispatch(client, session, reqs, user_text, send):
             await send({"type": "agent_message", "text": text, "stage": "qualifier"})
 
     elif stage == "interview":
-        system = build_interview_system(session["qualifier_result"], reqs, session["question_count"])
+        system = build_interview_system(session["qualifier_result"], reqs, session["question_count"], session["language"])
         text = await call_claude(client, system, session["messages"], max_tokens=2048)
         session["messages"].append({"role": "assistant", "content": text})
         session["question_count"] += 1
@@ -197,7 +210,7 @@ async def _handle_qualifier_result(parsed, session, reqs, client, send):
 
         seed = "Hi, I'm ready for the interview."
         session["messages"] = [{"role": "user", "content": seed}]
-        system = build_interview_system(parsed, reqs, 0)
+        system = build_interview_system(parsed, reqs, 0, session["language"])
         q1 = await call_claude(client, system, session["messages"], max_tokens=2048)
         session["messages"].append({"role": "assistant", "content": q1})
         session["question_count"] = 1
@@ -206,8 +219,7 @@ async def _handle_qualifier_result(parsed, session, reqs, client, send):
 
 async def _run_analysis_pipeline(findings, session, reqs, client, send):
     session["interview_findings"] = findings
-    lang = findings.get("language", "en")
-    session["language"] = lang
+    lang = session["language"]
 
     await send({"type": "stage_change", "stage": "analyze", "label": "Analyzing"})
 

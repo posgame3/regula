@@ -252,6 +252,9 @@ function setLang(l) {
   document.getElementById('btn-en').className = l === 'en' ? active : inactive;
   document.getElementById('btn-pl').className = l === 'pl' ? active : inactive;
   renderProgress();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'set_language', language: l }));
+  }
 }
 
 // ── WebSocket ──────────────────────────────────────────────────────────────
@@ -295,7 +298,7 @@ function sendMessage() {
   const text = inp.value.trim();
   if (!text || busy || !ws || ws.readyState !== WebSocket.OPEN) return;
   addUser(text);
-  ws.send(JSON.stringify({ type: 'message', text }));
+  ws.send(JSON.stringify({ type: 'message', text, language: lang }));
   inp.value = '';
   setProcessing(true);
 }

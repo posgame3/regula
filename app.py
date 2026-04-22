@@ -21,6 +21,11 @@ MODEL = "claude-opus-4-7"
 COMPLETE_MARKER = "[INTERVIEW_COMPLETE]"
 sessions: dict = {}
 
+GREETINGS = {
+    "en": "Hello! I'm Regula, your NIS2 compliance advisor. Let's start by finding out if NIS2 applies to your company. What does your company do, and which industry or sector would you say you're in?",
+    "pl": "Cześć! Jestem Regula, Twój doradca ds. zgodności z NIS2. Zacznijmy od sprawdzenia, czy NIS2 w ogóle dotyczy Twojej firmy. Czym zajmuje się Twoja firma i w jakiej branży działacie?",
+}
+
 
 def load_nis2_requirements() -> list:
     base = os.path.dirname(os.path.abspath(__file__))
@@ -108,30 +113,12 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         "language": "en",
         "question_count": 0,
         "busy": False,
+        "greeted": False,
     }
     sessions[session_id] = session
 
     async def send(msg: dict):
         await websocket.send_json(msg)
-
-    # Seed qualifier with standard opening and get first question
-    try:
-        seed = "Hello, I'd like to find out if NIS2 applies to my company."
-        session["messages"] = [{"role": "user", "content": seed}]
-        text = await call_claude(client, build_qualifier_system(session["language"]), session["messages"], max_tokens=1024)
-        session["messages"].append({"role": "assistant", "content": text})
-
-        try:
-            parsed = extract_json(text)
-            if "applies" in parsed:
-                await _handle_qualifier_result(parsed, session, reqs, client, send)
-            else:
-                await send({"type": "agent_message", "text": text, "stage": "qualifier"})
-        except ValueError:
-            await send({"type": "agent_message", "text": text, "stage": "qualifier"})
-    except Exception as exc:
-        await send({"type": "error", "text": str(exc)})
-        return
 
     _PL_CHARS = set("ąęóśźżćńłĄĘÓŚŹŻĆŃŁ")
 
@@ -140,7 +127,16 @@ async def ws_handler(websocket: WebSocket, session_id: str):
             data = await websocket.receive_json()
 
             if data.get("type") == "set_language":
-                session["language"] = data.get("language", "en")
+                new_lang = data.get("language", "en")
+                session["language"] = new_lang
+                if not session["greeted"]:
+                    session["greeted"] = True
+                    greeting = GREETINGS.get(new_lang, GREETINGS["en"])
+                    session["messages"] = [
+                        {"role": "user", "content": "Hello"},
+                        {"role": "assistant", "content": greeting},
+                    ]
+                    await send({"type": "agent_message", "text": greeting, "stage": "qualifier"})
                 continue
 
             if data.get("type") != "message":

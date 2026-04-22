@@ -24,12 +24,8 @@
       <span class="text-xs text-slate-400 hidden sm:inline">NIS2 Compliance Assessment</span>
     </div>
     <div class="flex items-center gap-1 bg-[#061929] rounded-lg p-1">
-      <button id="btn-pl"
-        class="px-3 py-1 rounded text-sm font-semibold text-slate-400 hover:text-white transition-colors"
-        onclick="setLang('pl')">PL</button>
-      <button id="btn-en"
-        class="px-3 py-1 rounded text-sm font-semibold bg-white text-[#0A2540] transition-colors"
-        onclick="setLang('en')">EN</button>
+      <button id="btn-pl" onclick="setLang('pl')">PL</button>
+      <button id="btn-en" onclick="setLang('en')">EN</button>
     </div>
   </header>
 
@@ -69,11 +65,12 @@
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-const sessionId = crypto.randomUUID();
+let currentSessionId = crypto.randomUUID();
 let ws = null;
 let lang = 'en';
 let stage = 'qualifier';
 let busy = false;
+let conversationStarted = false;
 
 const STAGES = [
   { key: 'qualifier', en: 'Qualify',   pl: 'Kwalifikacja' },
@@ -245,24 +242,77 @@ function scrollBottom() {
 }
 
 // ── Language toggle ────────────────────────────────────────────────────────
-function setLang(l) {
-  lang = l;
+function updateLangButtons() {
   const active   = 'px-3 py-1 rounded text-sm font-semibold bg-white text-[#0A2540] transition-colors';
   const inactive = 'px-3 py-1 rounded text-sm font-semibold text-slate-400 hover:text-white transition-colors';
-  document.getElementById('btn-en').className = l === 'en' ? active : inactive;
-  document.getElementById('btn-pl').className = l === 'pl' ? active : inactive;
+  document.getElementById('btn-en').className = lang === 'en' ? active : inactive;
+  document.getElementById('btn-pl').className = lang === 'pl' ? active : inactive;
+}
+
+function resetSession() {
+  if (ws) { try { ws.close(); } catch (_) {} ws = null; }
+  currentSessionId = crypto.randomUUID();
+  stage = 'qualifier';
+  conversationStarted = false;
+  busy = false;
+  document.getElementById('chat').innerHTML = '';
+  document.getElementById('input').disabled = false;
+  document.getElementById('input').placeholder = 'Type your answer…';
+  document.getElementById('send-btn').disabled = false;
   renderProgress();
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'set_language', language: l }));
+  connect();
+}
+
+function setLang(l) {
+  if (l === lang) return;
+  if (!conversationStarted) {
+    lang = l;
+    updateLangButtons();
+    renderProgress();
+    resetSession();
+  } else {
+    showLangConfirm(l);
   }
+}
+
+function showLangConfirm(newLang) {
+  document.getElementById('lang-confirm')?.remove();
+  const langName = newLang === 'pl' ? 'Polish' : 'English';
+  const div = document.createElement('div');
+  div.id = 'lang-confirm';
+  div.innerHTML = `
+    <div class="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-slate-700">
+      <span class="flex-1">Restart conversation in ${langName}?</span>
+      <button onclick="confirmLangChange('${newLang}')"
+        class="px-3 py-1 bg-[#0A2540] text-white rounded-lg text-xs font-semibold hover:bg-[#0e3566] active:bg-[#061929] transition-colors">Yes</button>
+      <button onclick="cancelLangChange()"
+        class="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300 transition-colors">No</button>
+    </div>`;
+  document.getElementById('chat').appendChild(div);
+  scrollBottom();
+}
+
+function confirmLangChange(newLang) {
+  document.getElementById('lang-confirm')?.remove();
+  lang = newLang;
+  updateLangButtons();
+  renderProgress();
+  resetSession();
+}
+
+function cancelLangChange() {
+  document.getElementById('lang-confirm')?.remove();
 }
 
 // ── WebSocket ──────────────────────────────────────────────────────────────
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws/${sessionId}`);
+  ws = new WebSocket(`${proto}://${location.host}/ws/${currentSessionId}`);
 
-  ws.onopen = () => setProcessing(true);
+  ws.onopen = () => {
+    setProcessing(true);
+    ws.send(JSON.stringify({ type: 'set_language', language: lang }));
+  };
 
   ws.onmessage = ({ data }) => {
     const msg = JSON.parse(data);
@@ -297,6 +347,8 @@ function sendMessage() {
   const inp  = document.getElementById('input');
   const text = inp.value.trim();
   if (!text || busy || !ws || ws.readyState !== WebSocket.OPEN) return;
+  conversationStarted = true;
+  document.getElementById('lang-confirm')?.remove();
   addUser(text);
   ws.send(JSON.stringify({ type: 'message', text, language: lang }));
   inp.value = '';
@@ -304,6 +356,7 @@ function sendMessage() {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
+updateLangButtons();
 renderProgress();
 connect();
 </script>

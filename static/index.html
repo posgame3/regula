@@ -80,13 +80,20 @@ let conversationStarted = false;
 let demoRunning = false;
 
 const STAGES = [
-  { key: 'qualifier', en: 'Qualify',   pl: 'Kwalifikacja' },
-  { key: 'interview', en: 'Interview', pl: 'Wywiad'        },
-  { key: 'analyze',   en: 'Analyze',   pl: 'Analiza'       },
-  { key: 'redteam',   en: 'Audit',     pl: 'Audyt'         },
-  { key: 'draft',     en: 'Report',    pl: 'Raport'        },
+  { key: 'qualifier',   en: 'Qualify',      pl: 'Kwalifikacja' },
+  { key: 'interview',   en: 'Interview',    pl: 'Wywiad'        },
+  { key: 'analyze',     en: 'Analyze',      pl: 'Analiza'       },
+  { key: 'redteam',     en: 'Audit',        pl: 'Audyt'         },
+  { key: 'draft',       en: 'Report',       pl: 'Raport'        },
+  { key: 'remediation', en: 'Remediation',  pl: 'Remediacja'    },
 ];
-const STAGE_IDX = { qualifier:0, interview:1, analyze:2, redteam:3, draft:4, complete:4 };
+const STAGE_IDX = { qualifier:0, interview:1, analyze:2, redteam:3, draft:4, remediation:5, complete:5 };
+
+const TOOL_DISPLAY = {
+  generate_security_policy:       { pl: 'Polityka bezpieczeństwa',           en: 'Security Policy'          },
+  generate_incident_plan:         { pl: 'Procedura reagowania na incydenty',  en: 'Incident Response Plan'   },
+  generate_remediation_checklist: { pl: 'Plan remediacji NIS2',              en: 'NIS2 Remediation Plan'    },
+};
 
 const RISK_COLORS = {
   critical: { badge:'bg-red-500 text-white',         tag:'bg-red-100 text-red-700'        },
@@ -443,6 +450,48 @@ function copySlide(payloadJson) {
   navigator.clipboard?.writeText(lines.join('\n')).catch(() => {});
 }
 
+// ── Remediation tool cards ────────────────────────────────────────────────
+function addToolGenerating(toolName) {
+  const display = (TOOL_DISPLAY[toolName] || {})[lang] || toolName;
+  const wrap = document.createElement('div');
+  wrap.id = 'tool-wrap-' + toolName;
+  wrap.innerHTML = `
+    <div class="flex items-end gap-2">
+      <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
+      <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl rounded-bl-none px-4 py-2.5 text-sm text-amber-700">
+        <div class="flex gap-1">
+          <div class="dot w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+          <div class="dot w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+          <div class="dot w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+        </div>
+        <span class="font-medium">${esc(display)}</span>
+        <span class="text-amber-500 text-xs ml-1">${lang === 'pl' ? 'Generowanie...' : 'Generating...'}</span>
+      </div>
+    </div>`;
+  document.getElementById('chat').appendChild(wrap);
+  scrollBottom();
+}
+
+function updateToolReady(toolName, url, label) {
+  const wrap = document.getElementById('tool-wrap-' + toolName);
+  const html = `
+    <div class="flex items-end gap-2">
+      <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
+      <a href="${esc(url)}" target="_blank"
+        class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-2xl rounded-bl-none px-4 py-2.5 text-sm font-semibold transition-colors no-underline">
+        ⬇️ <span>${esc(label)}</span>
+      </a>
+    </div>`;
+  if (wrap) {
+    wrap.innerHTML = html;
+  } else {
+    const newWrap = document.createElement('div');
+    newWrap.innerHTML = html;
+    document.getElementById('chat').appendChild(newWrap);
+  }
+  scrollBottom();
+}
+
 // ── Demo mode ─────────────────────────────────────────────────────────────
 function updateDemoButton() {
   const btn = document.getElementById('btn-demo');
@@ -589,6 +638,10 @@ function connect() {
       setProcessing(true);
     } else if (msg.type === 'analysis_result') {
       addAnalysis(msg.data);
+    } else if (msg.type === 'tool_generating') {
+      addToolGenerating(msg.tool);
+    } else if (msg.type === 'tool_ready') {
+      updateToolReady(msg.tool, msg.url, msg.label);
     } else if (msg.type === 'complete') {
       setProcessing(false);
       demoRunning = false;

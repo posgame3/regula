@@ -394,15 +394,67 @@ async def download_report(session_id: str):
 
 
 _TOOL_GENERATORS = {
-    "policy": generate_security_policy,
-    "incident": generate_incident_plan,
-    "checklist": generate_remediation_checklist,
+    "generate_security_policy": generate_security_policy,
+    "generate_incident_plan": generate_incident_plan,
+    "generate_remediation_checklist": generate_remediation_checklist,
 }
 
 _TOOL_FILENAMES = {
-    "policy": "polityka-bezpieczenstwa",
-    "incident": "procedura-incydentow",
-    "checklist": "plan-remediacji",
+    "generate_security_policy": "polityka-bezpieczenstwa",
+    "generate_incident_plan": "procedura-incydentow",
+    "generate_remediation_checklist": "plan-remediacji",
+}
+
+REMEDIATION_TOOLS = [
+    {
+        "name": "generate_security_policy",
+        "description": "Generate a ready-to-sign security policy document for the company",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "company_name": {"type": "string"},
+                "reason": {"type": "string", "description": "Why this tool is needed based on audit"},
+            },
+            "required": ["company_name", "reason"],
+        },
+    },
+    {
+        "name": "generate_incident_plan",
+        "description": "Generate a one-page incident response plan",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "company_name": {"type": "string"},
+                "reason": {"type": "string"},
+            },
+            "required": ["company_name", "reason"],
+        },
+    },
+    {
+        "name": "generate_remediation_checklist",
+        "description": "Generate a prioritized remediation checklist with deadlines",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "company_name": {"type": "string"},
+                "reason": {"type": "string"},
+            },
+            "required": ["company_name", "reason"],
+        },
+    },
+]
+
+_REMEDIATION_LABELS = {
+    "pl": {
+        "generate_security_policy": "Pobierz politykę bezpieczeństwa",
+        "generate_incident_plan": "Pobierz procedurę reagowania na incydenty",
+        "generate_remediation_checklist": "Pobierz plan remediacji",
+    },
+    "en": {
+        "generate_security_policy": "Download Security Policy",
+        "generate_incident_plan": "Download Incident Response Plan",
+        "generate_remediation_checklist": "Download Remediation Checklist",
+    },
 }
 
 
@@ -413,6 +465,20 @@ async def download_tool_pdf(session_id: str, tool_name: str):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     session = sessions[session_id]
+
+    # Serve pre-generated file if the remediation agent already built it
+    cached_path = session.get("generated_files", {}).get(tool_name)
+    if cached_path and os.path.exists(cached_path):
+        with open(cached_path, "rb") as f:
+            pdf_bytes = f.read()
+        filename = f"regula-{_TOOL_FILENAMES[tool_name]}-{session_id[:8]}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    # Fallback: regenerate on-demand (pipeline must be complete)
     if session.get("stage") != "complete":
         raise HTTPException(status_code=400, detail="Report not ready — pipeline still running")
 
@@ -450,6 +516,7 @@ async def ws_handler(websocket: WebSocket, session_id: str):
 
     session = {
         "stage": "qualifier",
+        "session_id": session_id,
         "messages": [],
         "qualifier_result": None,
         "interview_findings": None,
@@ -458,6 +525,7 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         "drafter_result": None,
         "threat_actor_result": None,
         "board_slides": None,
+        "generated_files": {},
         "language": "en",
         "question_count": 0,
         "busy": False,
@@ -739,6 +807,96 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
         await _do_demo_answer(client, session, reqs, q1, send)
 
 
+async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> None:
+    lang = session.get("language", "pl")
+    session_id = session.get("session_id", "unknown")
+    findings = session.get("interview_findings") or {}
+    gaps_data = session.get("gap_analysis") or {}
+    labels = _REMEDIATION_LABELS.get(lang, _REMEDIATION_LABELS["en"])
+
+    stage_label = "Generowanie dokumentów" if lang == "pl" else "Generating Documents"
+    await send({"type": "stage_change", "stage": "remediation", "label": stage_label})
+
+    session_data = {
+        "session_id": session_id[:8],
+        "company_name": findings.get("company_name", ""),
+        "sector": findings.get("sector", ""),
+        "gaps": gaps_data.get("gaps", []),
+        "priority_actions": gaps_data.get("priority_3", []),
+        "language": lang,
+        "it_contact": findings.get("it_contact", ""),
+    }
+
+    async def _execute_tool(tool_name: str) -> None:
+        await send({"type": "tool_generating", "tool": tool_name})
+        try:
+            file_path = _TOOL_GENERATORS[tool_name](session_data)
+            session["generated_files"][tool_name] = file_path
+            await send({
+                "type": "tool_ready",
+                "tool": tool_name,
+                "url": f"/download/{session_id}/{tool_name}",
+                "label": labels.get(tool_name, tool_name),
+            })
+        except Exception as exc:
+            print(f"[remediation] tool {tool_name} failed: {exc}")
+
+    if MOCK_MODE:
+        for tool_name in _TOOL_GENERATORS:
+            await _execute_tool(tool_name)
+        mock_msg = (
+            "Wygenerowałem trzy dokumenty startowe na podstawie wyników audytu: "
+            "politykę bezpieczeństwa, procedurę reagowania na incydenty oraz plan remediacji."
+            if lang == "pl" else
+            "I generated three starter documents based on the audit results: "
+            "a security policy, an incident response plan, and a remediation checklist."
+        )
+        await send({"type": "agent_message", "text": mock_msg, "stage": "remediation"})
+        return
+
+    company_name = findings.get("company_name", "the company")
+    gaps_summary = "\n".join(
+        f"- {g.get('name', '')} ({(g.get('risk_level') or '').upper()}) — {g.get('article', '')}"
+        for g in gaps_data.get("gaps", [])
+    )
+    user_content = (
+        f"Company: {company_name}\n"
+        f"Sector: {findings.get('sector', 'unknown')}\n"
+        f"NIS2 audit gaps:\n{gaps_summary}\n\n"
+        "Generate all relevant remediation documents for this company."
+    )
+    system = (
+        "You are a remediation assistant. Based on the audit results, "
+        "decide which documents to generate for this company. "
+        "Use ALL relevant tools. Explain briefly why each document is needed."
+    )
+
+    try:
+        response = await client.messages.create(
+            model=MODEL,
+            max_tokens=1024,
+            system=system,
+            tools=REMEDIATION_TOOLS,
+            tool_choice={"type": "auto"},
+            messages=[{"role": "user", "content": user_content}],
+        )
+    except Exception as exc:
+        print(f"[remediation] API call failed: {exc}")
+        return
+
+    explanation_parts = []
+    for block in response.content:
+        if block.type == "text":
+            explanation_parts.append(block.text)
+        elif block.type == "tool_use":
+            if block.name in _TOOL_GENERATORS:
+                await _execute_tool(block.name)
+
+    explanation = "\n\n".join(explanation_parts).strip()
+    if explanation:
+        await send({"type": "agent_message", "text": explanation, "stage": "remediation"})
+
+
 async def _run_drafter(session, client, send):
     await send({"type": "stage_change", "stage": "draft", "label": "Report"})
 
@@ -803,6 +961,9 @@ async def _run_drafter(session, client, send):
         print(f"[board_presenter] parse error. Raw: {text[:200]}")
         board_slides = {"slides": []}
     session["board_slides"] = board_slides
+
+    # Remediation Agent — generates policy docs via tool_use
+    await run_remediation_agent(session, client, send)
 
     await send({
         "type": "complete",

@@ -350,17 +350,24 @@ async def _dispatch(client, session, reqs, user_text, send):
         # Store full content blocks (with thinking) so conversation threading works
         session["messages"].append({"role": "assistant", "content": content_blocks})
 
-        verdict, prep = parse_after_json(text)
-        if verdict and "verdict" in verdict:
+        try:
+            result = extract_json(text)
+        except ValueError:
+            result = None
+
+        if result and "verdict" in result:
             # Show auditor's reasoning before the verdict — most interesting thinking to reveal
             if thinking_text:
                 await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
             pre_json = text[:text.find("{")].strip() if "{" in text else ""
             if pre_json:
                 await send({"type": "agent_message", "text": pre_json, "stage": "redteam"})
-            session["redteam_result"] = {"verdict": verdict, "preparation": prep}
+            prep = text[text.rfind("}") + 1:].strip() if "}" in text else ""
+            session["redteam_result"] = {"verdict": result, "preparation": prep}
             await _run_drafter(session, client, send)
         else:
+            if result:
+                print(f"[redteam] unexpected JSON (no verdict key). Raw: {text[:200]}")
             await send({"type": "agent_message", "text": text, "stage": "redteam"})
             session["last_question"] = text
             if session.get("demo_mode"):
@@ -408,8 +415,11 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     thinking_text, text, _ = await call_with_thinking(client, system, messages, session=session)
     try:
         gaps = extract_json(text)
+        if "gaps" not in gaps:
+            print(f"[analyzer] unexpected JSON (no gaps key). Raw: {text[:200]}")
+            raise ValueError("no gaps key")
     except ValueError:
-        print(f"[analyzer] Could not parse gap analysis. Raw response:\n{text[:500]}")
+        print(f"[analyzer] parse error. Raw: {text[:200]}")
         await send({
             "type": "analysis_result",
             "data": {
@@ -436,6 +446,15 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     session["messages"] = [{"role": "user", "content": seed}]
     thinking_text, q1, content_blocks = await call_with_thinking(client, system, session["messages"], session=session)
     session["messages"].append({"role": "assistant", "content": content_blocks})
+    # Check if initial response already contains verdict (edge case)
+    try:
+        result = extract_json(q1)
+        if "verdict" in result:
+            session["redteam_result"] = {"verdict": result, "preparation": ""}
+            await _run_drafter(session, client, send)
+            return
+    except ValueError:
+        pass
     await send({"type": "agent_message", "text": q1, "stage": "redteam"})
     session["last_question"] = q1
     if session.get("demo_mode"):
@@ -452,7 +471,11 @@ async def _run_drafter(session, client, send):
     text = await stream_silent(client, system, messages, 4096)
     try:
         policies = extract_json(text)
+        if "policies" not in policies:
+            print(f"[drafter] unexpected JSON (no policies key). Raw: {text[:200]}")
+            raise ValueError("no policies key")
     except ValueError:
+        print(f"[drafter] parse error. Raw: {text[:200]}")
         await send({"type": "error", "text": "Could not generate policy drafts."})
         return
     session["drafter_result"] = policies
@@ -475,7 +498,11 @@ async def _run_drafter(session, client, send):
     )
     try:
         threat_scenarios = extract_json(text)
+        if "scenarios" not in threat_scenarios:
+            print(f"[threat_actor] unexpected JSON (no scenarios key). Raw: {text[:200]}")
+            threat_scenarios = {"scenarios": [], "summary": ""}
     except ValueError:
+        print(f"[threat_actor] parse error. Raw: {text[:200]}")
         threat_scenarios = {"scenarios": [], "summary": ""}
     session["threat_actor_result"] = threat_scenarios
 
@@ -491,7 +518,11 @@ async def _run_drafter(session, client, send):
     text = await stream_silent(client, system, messages, 4096)
     try:
         board_slides = extract_json(text)
+        if "slides" not in board_slides:
+            print(f"[board_presenter] unexpected JSON (no slides key). Raw: {text[:200]}")
+            board_slides = {"slides": []}
     except ValueError:
+        print(f"[board_presenter] parse error. Raw: {text[:200]}")
         board_slides = {"slides": []}
     session["board_slides"] = board_slides
 

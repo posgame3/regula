@@ -285,6 +285,12 @@ def run_redteam(
     messages.append({"role": "assistant", "content": text})
 
     obj, rest = parse_after_json(text)
+    if obj is None:
+        try:
+            obj = extract_json(text)
+            rest = text[text.rfind("}") + 1:].strip() if "}" in text else ""
+        except ValueError:
+            pass
     if obj and "verdict" in obj:
         return obj, rest
 
@@ -307,8 +313,14 @@ def run_redteam(
         messages.append({"role": "assistant", "content": text})
 
         obj, rest = parse_after_json(text)
+        if obj is None:
+            try:
+                obj = extract_json(text)
+                rest = text[text.rfind("}") + 1:].strip() if "}" in text else ""
+            except ValueError:
+                print(f"[redteam] parse error. Raw: {text[:200]}")
         if obj and "verdict" in obj:
-            pre_json = text[:text.find("{")].strip()
+            pre_json = text[:text.find("{")].strip() if "{" in text else ""
             if pre_json:
                 print(f"\nAuditor: {pre_json}\n")
             return obj, rest

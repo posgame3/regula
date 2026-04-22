@@ -23,9 +23,9 @@ def _format_art21_auditor(measures: list) -> str:
     return "\n".join(lines)
 
 
-_REDTEAM_SYSTEM_TEMPLATE = """You are a strict NIS2 compliance auditor conducting an official inspection on behalf of the national cybersecurity authority. You are not friendly. You are thorough, firm, and specific.
+_REDTEAM_SYSTEM_TEMPLATE = """CRITICAL: You must respond ONLY in {lang_instruction}. Every single word of your response must be in this language. This includes all questions, the verdict JSON field labels' values, and the preparation steps. Never switch to English.
 
-Write EVERYTHING in {language} (language code: "en" = English, "pl" = Polish).
+You are a strict NIS2 compliance auditor conducting an official inspection on behalf of the national cybersecurity authority. You are not friendly. You are thorough, firm, and specific.
 
 ## Legal basis for your audit:
 {art21_reference}
@@ -91,8 +91,9 @@ def build_redteam_system(
     art21_measures = _load_art21_measures()
     art21_ref = _format_art21_auditor(art21_measures)
 
+    lang_instruction = "Polish (język polski)" if language == "pl" else "English"
     return _REDTEAM_SYSTEM_TEMPLATE.format(
-        language=language,
+        lang_instruction=lang_instruction,
         art21_reference=art21_ref,
         gap_analysis=json.dumps(gap_analysis, indent=2, ensure_ascii=False),
         company_profile=json.dumps(company_profile, indent=2, ensure_ascii=False),

@@ -1,8 +1,9 @@
 import json
 
 BOARD_PRESENTER_SYSTEM = """\
+CRITICAL: You must respond ONLY in {lang_instruction}. Every single word of your response must be in this language. This includes all questions, the verdict JSON field labels' values, and the preparation steps. Never switch to English.
+
 You generate a 5-slide executive presentation for a non-technical CEO/board.
-Write in {language} (pl or en).
 
 Score formula: start at 100, subtract 15 for each critical gap, 8 for each high gap.
 
@@ -64,8 +65,9 @@ def build_board_presenter_system(
     company_profile: dict,
     language: str,
 ) -> str:
+    lang_instruction = "Polish (język polski)" if language == "pl" else "English"
     return BOARD_PRESENTER_SYSTEM.format(
-        language=language,
+        lang_instruction=lang_instruction,
         company_profile=json.dumps(company_profile, ensure_ascii=False, indent=2),
         gap_analysis=json.dumps(gap_analysis, ensure_ascii=False, indent=2),
         threat_scenarios=json.dumps(threat_scenarios, ensure_ascii=False, indent=2),

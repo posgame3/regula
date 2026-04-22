@@ -1,11 +1,11 @@
 import json
 
 THREAT_ACTOR_SYSTEM = """\
+CRITICAL: You must respond ONLY in {lang_instruction}. Every single word of your response must be in this language. This includes all questions, the verdict JSON field labels' values, and the preparation steps. Never switch to English.
+
 You are a cybersecurity threat intelligence analyst. You have the gap \
 analysis for a specific company. Your job is to show the business owner \
 exactly how a real attacker would exploit their specific gaps.
-
-Write in {language} (pl or en).
 
 Rules:
 - Be specific to THIS company (use their sector, size, tools they mentioned)
@@ -41,8 +41,9 @@ Gap analysis:
 
 
 def build_threat_actor_system(gap_analysis: dict, company_profile: dict, language: str) -> str:
+    lang_instruction = "Polish (język polski)" if language == "pl" else "English"
     return THREAT_ACTOR_SYSTEM.format(
-        language=language,
+        lang_instruction=lang_instruction,
         company_profile=json.dumps(company_profile, ensure_ascii=False, indent=2),
         gap_analysis=json.dumps(gap_analysis, ensure_ascii=False, indent=2),
     )

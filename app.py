@@ -276,11 +276,12 @@ async def _dispatch(client, session, reqs, user_text, send):
 
 async def _handle_qualifier_result(parsed, session, reqs, client, send):
     session["qualifier_result"] = parsed
-    if not parsed.get("applies"):
+    should_proceed = parsed.get("proceed", parsed.get("applies", False))
+    if not should_proceed:
         msg = parsed.get("reasoning", "NIS2 does not appear to apply to your organization.")
         await send({"type": "agent_message", "text": msg, "stage": "qualifier"})
         await send({"type": "stage_change", "stage": "complete", "label": "Complete"})
-        await send({"type": "complete", "data": {"applies": False, "reason": msg}})
+        await send({"type": "complete", "data": {"applies": False, "scope": parsed.get("scope"), "reason": msg}})
     else:
         await send({"type": "stage_change", "stage": "interview", "label": "Interview"})
         session["stage"] = "interview"

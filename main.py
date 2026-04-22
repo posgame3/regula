@@ -433,13 +433,17 @@ def main():
     _section("QUALIFIER RESULT")
     print(json.dumps(qualifier_result, indent=2, ensure_ascii=False))
 
-    if not qualifier_result.get("applies", False):
+    if not qualifier_result.get("proceed", qualifier_result.get("applies", False)):
         print("\nNIS2 does NOT appear to apply to your company.")
         print(f"Reason: {qualifier_result.get('reasoning', '')}")
         print("\nDisclaimer: This is a preliminary assessment only — consult a legal advisor.")
         return
 
-    print(f"\nNIS2 APPLIES — {qualifier_result.get('scope', 'unknown')} entity.")
+    scope = qualifier_result.get("scope", "unknown")
+    if scope == "supply_chain_indirect":
+        print(f"\nNIS2 does not directly apply — but supply chain pressure is likely.")
+    else:
+        print(f"\nNIS2 APPLIES — {scope} entity.")
     print(f"Reason: {qualifier_result.get('reasoning', '')}\n")
 
     # ── Stage 2: Interviewer ────────────────────────────────────────────────

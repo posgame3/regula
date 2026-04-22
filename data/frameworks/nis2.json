@@ -1,0 +1,146 @@
+{
+  "directive": "NIS2 Directive (EU) 2022/2555",
+  "article": "Article 21 — Cybersecurity Risk-Management Measures",
+  "requirements": [
+    {
+      "id": "NIS2-01",
+      "name": "Policies on risk analysis and information system security",
+      "plain_language": "You must have a written policy that explains how you identify risks to your IT systems and how you decide what to protect. Think of it as a map of what could go wrong and your plan to prevent it.",
+      "interview_probes": [
+        "Do you have a written document that lists what your main IT risks are?",
+        "Who in your company decides which risks are serious enough to act on?",
+        "When did you last review or update your risk assessment?"
+      ],
+      "audit_attack": "Show me your risk register right now — specifically, how you calculated the risk score for your three most critical systems and what controls you put in place based on that score.",
+      "risk_if_missing": "Regulators will immediately flag you as non-compliant. Without a risk policy, every other control is guesswork — you cannot prove your security decisions were deliberate.",
+      "fix_effort": "Medium — 2–4 weeks to document existing practices and fill gaps",
+      "fix_cost_estimate": "€2,000–8,000 for a consultant to draft; €0–2,000 DIY with templates"
+    },
+    {
+      "id": "NIS2-02",
+      "name": "Incident handling",
+      "plain_language": "You must have a clear plan for what to do when something goes wrong — a cyberattack, a data breach, or a system outage. This includes who calls whom, how you contain the damage, and how you report it to authorities within 24 hours.",
+      "interview_probes": [
+        "If your main system went down tonight, who is the first person you would call?",
+        "Do you have a written step-by-step plan for handling a cyberattack or data breach?",
+        "Have you ever actually tested or practised your incident response plan?"
+      ],
+      "audit_attack": "Walk me through your last security incident — what happened, who was notified and when, what your containment steps were, and whether you reported it to the national authority within 24 hours as required.",
+      "risk_if_missing": "A breach without an incident plan means chaos, delayed reporting, and regulatory fines up to €10M or 2% of global turnover. Slow response also dramatically increases damage to customers.",
+      "fix_effort": "Medium — 3–6 weeks to create and test a basic incident response plan",
+      "fix_cost_estimate": "€3,000–12,000 with external help; €1,000–3,000 using free ENISA templates"
+    },
+    {
+      "id": "NIS2-03",
+      "name": "Business continuity and crisis management",
+      "plain_language": "You need a plan to keep your business running during a serious attack or disaster — including backups, how to restore systems, and how to communicate with customers when things break.",
+      "interview_probes": [
+        "How often do you back up your critical business data, and have you ever tested restoring from a backup?",
+        "If your office or main server was completely destroyed tomorrow, how would you keep serving customers?",
+        "Do you have a written plan for keeping the business running during a major IT crisis?"
+      ],
+      "audit_attack": "Your primary datacenter is offline right now. Show me your recovery time objective (RTO), your last successful backup restore test with date and results, and how long it actually took versus your target.",
+      "risk_if_missing": "A ransomware attack or hardware failure without a continuity plan can shut down your business for days or weeks. For essential service providers, this can trigger regulatory investigation even if no data is stolen.",
+      "fix_effort": "High — 1–3 months to implement proper backup, test procedures, and document plans",
+      "fix_cost_estimate": "€5,000–25,000 depending on infrastructure complexity; ongoing backup costs €500–3,000/month"
+    },
+    {
+      "id": "NIS2-04",
+      "name": "Supply chain security",
+      "plain_language": "You are responsible for the security of your suppliers and software vendors too. If a supplier gets hacked and it affects your systems or customers, NIS2 holds you accountable. You must know who your critical suppliers are and check their security.",
+      "interview_probes": [
+        "Can you name the three software tools or cloud services your business absolutely cannot operate without?",
+        "Do you check the security practices of your key software vendors or IT suppliers?",
+        "What would happen to your business if your main cloud provider or software vendor was hacked tomorrow?"
+      ],
+      "audit_attack": "Give me the security assessment you conducted on your top three critical suppliers in the last 12 months — what specific security questions did you ask them, what evidence did they provide, and what action did you take based on their answers?",
+      "risk_if_missing": "The SolarWinds and MOVEit attacks showed that suppliers are the most common attack vector. Without supply chain checks, you inherit your vendors' vulnerabilities — and regulators will hold you responsible.",
+      "fix_effort": "Medium — 4–8 weeks to map suppliers, send questionnaires, and review responses",
+      "fix_cost_estimate": "€2,000–10,000 for a formal supplier risk programme; free starter templates available from ENISA"
+    },
+    {
+      "id": "NIS2-05",
+      "name": "Security in network and information systems acquisition, development and maintenance",
+      "plain_language": "When you buy, build, or update software and IT systems, security must be built in from the start — not added on as an afterthought. This includes how you install updates and patches.",
+      "interview_probes": [
+        "How quickly do you typically install security updates on your computers, phones, and servers?",
+        "If your company builds or customises software, does someone review it for security issues before it goes live?",
+        "Do you have a list of all software and systems in use across your company, including cloud services?"
+      ],
+      "audit_attack": "Show me the patch status of your ten most critical systems right now — specifically, which critical security patches are outstanding, for how long, and what your approved exception process is for any that are overdue.",
+      "risk_if_missing": "Unpatched systems are the number-one way attackers get in. Missing this control means you are knowingly running with known vulnerabilities. Regulators treat delayed patching as negligence.",
+      "fix_effort": "Low-Medium — 2–4 weeks to establish a patch management process; ongoing discipline required",
+      "fix_cost_estimate": "€1,000–5,000 for tooling and process setup; many free tools available for SMEs"
+    },
+    {
+      "id": "NIS2-06",
+      "name": "Policies and procedures to assess effectiveness of cybersecurity measures",
+      "plain_language": "You must regularly check whether your security measures actually work — not just assume they do. This means testing, audits, and measuring results.",
+      "interview_probes": [
+        "Have you ever had an external company test your cybersecurity defences — for example, a penetration test or security audit?",
+        "How do you know if your current security measures are actually working?",
+        "Do you track any security metrics — for example, how many phishing emails were caught, or how fast you detect problems?"
+      ],
+      "audit_attack": "Provide the results of your most recent penetration test or independent security audit — including who conducted it, what findings they raised, and the current remediation status of every finding they flagged.",
+      "risk_if_missing": "Security measures that are never tested create a false sense of safety. Regulators look for evidence of effectiveness — 'we have a firewall' is not enough without proof it is correctly configured and tested.",
+      "fix_effort": "Medium — annual penetration test takes 1–2 weeks to scope and execute",
+      "fix_cost_estimate": "€3,000–15,000 per penetration test depending on scope; free self-assessment tools from ENISA"
+    },
+    {
+      "id": "NIS2-07",
+      "name": "Basic cyber hygiene practices and cybersecurity training",
+      "plain_language": "Every employee must receive basic cybersecurity training — how to spot phishing emails, use strong passwords, and avoid common mistakes. Leadership must also understand cyber risks, not just the IT team.",
+      "interview_probes": [
+        "Do all your employees receive any cybersecurity training — even basic awareness about phishing or password safety?",
+        "When did your leadership team last receive training or a briefing on cybersecurity risks?",
+        "Do you use multi-factor authentication (where you need both a password and a code from your phone) to log in to your main business systems?"
+      ],
+      "audit_attack": "Show me your training completion records for the last 12 months — specifically what training each employee completed, on what date, and how you handle employees who did not complete required training.",
+      "risk_if_missing": "Human error causes over 80% of breaches. Untrained staff are your biggest vulnerability. Regulators will ask for training records — 'we told people verbally' is not acceptable evidence.",
+      "fix_effort": "Low — 2–4 weeks to roll out basic awareness training using existing platforms",
+      "fix_cost_estimate": "€500–3,000/year for a training platform; free options available from national cybersecurity agencies"
+    },
+    {
+      "id": "NIS2-08",
+      "name": "Policies and procedures regarding the use of cryptography and encryption",
+      "plain_language": "Sensitive data — customer records, financial information, passwords — must be encrypted both when stored and when sent over the internet. You need a policy that says what gets encrypted and how.",
+      "interview_probes": [
+        "Is sensitive customer or business data encrypted when it is stored on your servers or in the cloud?",
+        "When your employees send sensitive files or data, do you have a standard way to do this securely?",
+        "Do you have written rules about when and how encryption must be used in your company?"
+      ],
+      "audit_attack": "Walk me through exactly how a customer's personal data is encrypted from the moment they submit it on your website to where it rests in your database — including the encryption standard used, who manages the keys, and where the keys are stored.",
+      "risk_if_missing": "Unencrypted data means a single breach exposes everything. Under GDPR and NIS2, you can face dual fines — and 'the data was not encrypted' is an aggravating factor that increases penalties significantly.",
+      "fix_effort": "Medium — 3–6 weeks to audit current encryption state and implement gaps",
+      "fix_cost_estimate": "€2,000–10,000 depending on infrastructure; most cloud providers include encryption at no extra cost"
+    },
+    {
+      "id": "NIS2-09",
+      "name": "Human resources security, access control policies and asset management",
+      "plain_language": "You must control who has access to what in your systems. Employees should only access what they need for their job. When someone leaves, their access must be removed immediately. You also need to know what IT assets you have.",
+      "interview_probes": [
+        "When an employee leaves your company, how quickly is their access to systems and email removed?",
+        "Do employees have access only to the systems and data they need for their specific job?",
+        "Do you have a list of all devices, systems, and accounts used in your business?"
+      ],
+      "audit_attack": "List the last five employees who left your company and show me the access revocation records for each — specifically the exact time their accounts were disabled relative to their last working day, and who approved and executed each revocation.",
+      "risk_if_missing": "Former employee accounts are a top attack vector. Excessive access rights mean a single compromised account can reach all your data. Both are consistently cited in breach investigations and regulatory findings.",
+      "fix_effort": "Low-Medium — 2–4 weeks to audit access rights and implement offboarding process",
+      "fix_cost_estimate": "€1,000–5,000 for process and tooling; many identity management tools included in Microsoft 365 or Google Workspace"
+    },
+    {
+      "id": "NIS2-10",
+      "name": "Multi-factor authentication and secured communications",
+      "plain_language": "All important systems — email, company accounts, remote access — must require a second verification step beyond just a password. Sensitive internal communications must use secure channels.",
+      "interview_probes": [
+        "Do you use two-factor authentication (a password plus a code from your phone) to access your company email and main business systems?",
+        "When your team works remotely, do they connect through a secure VPN or similar protected connection?",
+        "Are there any critical systems in your company that still use only a username and password to log in?"
+      ],
+      "audit_attack": "Show me which of your systems have MFA enabled and which do not — I want a complete list. For any system without MFA, explain the compensating control you have in place and your timeline to enable it.",
+      "risk_if_missing": "Passwords alone are not sufficient security. Over 90% of account takeovers are prevented by MFA. Regulators consider absent MFA on critical systems as a fundamental control failure requiring immediate remediation.",
+      "fix_effort": "Low — 1–2 weeks to enable MFA across standard business systems",
+      "fix_cost_estimate": "€0–500 for most businesses — MFA is included in Microsoft 365, Google Workspace, and most modern SaaS tools"
+    }
+  ]
+}

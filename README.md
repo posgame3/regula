@@ -60,67 +60,38 @@ uvicorn app:app --reload
 # Open http://localhost:8000
 ```
 
-## Testing
-
 ```bash
-# Unit tests
+# Unit tests (no server needed)
 python -m pytest tests/ -v
 
-# Mock pipeline — full run in ~5 seconds, no API calls
-MOCK_MODE=1 python tests/mock_pipeline.py --serve
-
-# Mock mode with browser
+# Mock pipeline — full pipeline in 5 seconds, no API calls
 MOCK_MODE=1 uvicorn app:app --reload
-# Open http://localhost:8000 → click "Historia Marka" / "Watch Marek's story"
+# then click "Historia Marka" / "Watch Marek's story"
+
+# Automated smoke test
+MOCK_MODE=1 python tests/mock_pipeline.py --serve
 ```
 
-## Project structure
+## Architecture
 
 ```
-regula/
-├── app.py                         # FastAPI app, WebSocket handler, pipeline orchestration
-├── agents/
-│   ├── qualifier.py               # NIS2 applicability check (Annex I/II + supply chain)
-│   ├── interviewer.py             # 10-14 question compliance interview
-│   ├── analyzer.py                # Gap analysis with Extended Thinking
-│   ├── redteam.py                 # Simulated NIS2 auditor (PASS/FAIL verdict)
-│   ├── threat_actor.py            # Attack scenarios with Extended Thinking
-│   ├── board_presenter.py         # 5-slide executive deck + compliance score
-│   └── drafter.py                 # Policy outline generator
-├── utils/
-│   ├── pdf.py                     # Full compliance report PDF (WeasyPrint + Jinja2)
-│   └── tools.py                   # Remediation tool functions (policy, incident, checklist)
-├── templates/
-│   ├── report.html                # 7-section PDF compliance report template
-│   └── tools/
-│       ├── policy.html            # Security policy (A4, 3 pages)
-│       ├── incident.html          # Incident response plan (A4, 1-2 pages)
-│       └── checklist.html         # Remediation checklist table (A4, 1 page)
-├── data/frameworks/nis2.json      # 10 NIS2 Art. 21(2) requirements (hardcoded, never hallucinated)
-├── static/index.html              # Single-page frontend (Tailwind CSS, vanilla JS)
-├── tests/
-│   ├── test_parsing.py            # Unit tests for JSON extraction
-│   └── mock_pipeline.py           # End-to-end smoke test via WebSocket
-└── requirements.txt
+User → WebSocket → Qualifier → Interviewer → Analyzer (🧠)
+     → Red Team → Threat Actor (🧠) → Board Presenter
+     → Drafter → Remediation Agent (🔧) → PDF Report
+
+🧠 = Extended Thinking  |  🔧 = tool_use
 ```
 
-## Output
+## Disclaimer
 
-For each company, Regula produces:
+Regula output is a draft starting point for legal review —
+not a final compliance document. Always consult a qualified
+legal or cybersecurity professional before implementing.
 
-- **Qualification result** — applies yes/no, entity type (essential/important), supply chain flag
-- **Gap analysis card** — risk level per NIS2 requirement, top 3 priority actions
-- **Audit simulation** — PASS / FAIL / CONDITIONS verdict, critical failures cited by article
-- **Threat scenarios** — real attack chains mapped to the company's specific gaps
-- **Board deck** — 5 slides with compliance score gauge, cost of action vs. inaction
-- **Policy drafts** — plain-language outlines for critical/high gaps
-- **Remediation documents** (PDF download):
-  - Information Security Policy (A4, 3 pages)
-  - Incident Response Plan with CSIRT NASK contacts and 24h notification template
-  - NIS2 Remediation Checklist with deadlines by risk level
-- **Full PDF report** — all of the above in one downloadable document
+## License
+
+MIT — open source, self-hostable. Your answers never leave your server.
 
 ---
 
-> Regula output is a draft starting point for legal review — not a final compliance document.
-> MIT License — see [LICENSE](LICENSE)
+Built with Claude Opus 4.7 | Cerebral Valley Hackathon 2026

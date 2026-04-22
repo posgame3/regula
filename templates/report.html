@@ -32,6 +32,7 @@
     }
     .header-logo { font-size: 20pt; font-weight: bold; letter-spacing: 5px; }
     .header-title { font-size: 11pt; opacity: 0.8; margin-top: 3px; }
+    .header-sim { font-size: 7pt; font-variant: small-caps; color: #94a3b8; text-align: center; margin-top: 6px; letter-spacing: 0.5px; }
     .header-meta { font-size: 8pt; opacity: 0.65; margin-top: 8px; }
 
     /* ── Sections ── */
@@ -188,6 +189,7 @@
 <div class="header">
   <div class="header-logo">REGULA</div>
   <div class="header-title">NIS2 Compliance Assessment Report</div>
+  <div class="header-sim">{% if is_pl %}DOKUMENT SYMULACYJNY — nie jest to oficjalny protokół kontrolny{% else %}SIMULATION DOCUMENT — this is not an official audit report{% endif %}</div>
   <div class="header-meta">
     Date: {{ date }}
     {% if session.interview_findings and session.interview_findings.company_name and session.interview_findings.company_name != 'Unknown' %}

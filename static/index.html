@@ -274,6 +274,7 @@ function addComplete(data) {
       <div class="border-b ${vBg} px-5 py-4">
         <p class="text-xs font-semibold uppercase tracking-widest mb-1.5 opacity-60">Audit Simulation Verdict</p>
         <p class="font-bold text-sm">${esc(verdict)}</p>
+        <p class="text-xs mt-1 text-gray-500 italic">${lang === 'pl' ? 'Wynik symulacji — nie jest to oficjalna decyzja organu nadzorczego' : 'Simulation result — this is not an official supervisory decision'}</p>
         ${summary ? `<p class="text-xs mt-2 opacity-80 leading-relaxed">${esc(summary)}</p>` : ''}
       </div>` : ''}
       <div class="bg-white px-5 py-4 space-y-3">
@@ -448,6 +449,17 @@ function copySlide(payloadJson) {
   if (p.recommendation) lines.push(`\nRecommendation: ${p.recommendation}`);
   if (p.speaker_note) lines.push(`\nSpeaker note: ${p.speaker_note}`);
   navigator.clipboard?.writeText(lines.join('\n')).catch(() => {});
+}
+
+// ── Audit simulation disclaimer banner ───────────────────────────────────
+function addRedteamDisclaimer() {
+  const text = lang === 'pl'
+    ? '⚠️ Symulacja audytu — Regula wciela się w rolę inspektora NIS2. To ćwiczenie przygotowawcze, nie oficjalna kontrola.'
+    : '⚠️ Audit simulation — Regula plays the role of a NIS2 inspector. This is a preparation exercise, not an official audit.';
+  append(`
+    <div class="rounded-xl bg-amber-50 border border-amber-300 px-4 py-3 text-sm text-amber-900 font-medium leading-relaxed">
+      ${esc(text)}
+    </div>`);
 }
 
 // ── Remediation tool cards ────────────────────────────────────────────────
@@ -635,6 +647,7 @@ function connect() {
       stage = msg.stage;
       renderProgress();
       addDivider(msg.label || msg.stage);
+      if (msg.stage === 'redteam') addRedteamDisclaimer();
       setProcessing(true);
     } else if (msg.type === 'analysis_result') {
       addAnalysis(msg.data);

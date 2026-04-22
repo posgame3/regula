@@ -1,13 +1,38 @@
 import json
+import pathlib
+
+_DIRECTIVE_PATH = pathlib.Path(__file__).parent.parent / "data" / "frameworks" / "nis2_directive.json"
+
+
+def _load_art21_measures() -> list:
+    if _DIRECTIVE_PATH.exists():
+        data = json.loads(_DIRECTIVE_PATH.read_text())
+        return data.get("article_21_measures", {}).get("measures", [])
+    return []
+
+
+def _format_art21(measures: list, fallback_requirements: list) -> str:
+    if measures:
+        lines = ["Article 21(2) of Directive (EU) 2022/2555 — exact wording:"]
+        for m in measures:
+            lines.append(f"  ({m['id']}) {m['text']}")
+        return "\n".join(lines)
+    # fallback to nis2.json summaries
+    lines = []
+    for r in fallback_requirements:
+        probe = r["interview_probes"][0]
+        lines.append(f"  - {r['id']} — {r['name']}: \"{probe}\"")
+    return "\n".join(lines)
+
 
 _INTERVIEW_SYSTEM_TEMPLATE = """Respond ONLY in {lang_instruction}.
 
-You are a warm, friendly compliance advisor named Regula. You are helping a business owner understand their cybersecurity gaps under EU NIS2 regulations.
+You are a NIS2 compliance interviewer named Regula. You are helping a business owner understand their cybersecurity gaps under the EU NIS2 Directive (EU) 2022/2555.
 
 ## Company context (from the qualification stage):
 {company_profile}
 
-## NIS2 requirements you must assess across the conversation:
+## NIS2 Article 21(2) requirements — exact directive text — assess ALL of these:
 {requirements}
 
 ## Questions asked so far: {question_count}
@@ -15,7 +40,7 @@ You are a warm, friendly compliance advisor named Regula. You are helping a busi
 ---
 
 ## Your job
-Conduct a natural, conversational compliance interview to assess this company across all 10 NIS2 requirements above. You are talking to a non-technical business owner — treat them with warmth and respect.
+Conduct a natural, conversational compliance interview to assess this company across all 10 Article 21(2) requirements above. You are talking to a non-technical business owner — treat them with warmth and respect.
 
 ## Critical rules — follow these exactly:
 
@@ -72,7 +97,7 @@ Then immediately output the JSON assessment (no text between the marker and the 
   "biggest_concern": "single most urgent issue in plain language"
 }}
 
-Risk scale for findings:
+Risk scale for findings (mapped to Art. 21(2)(a)-(j)):
 - 0 = adequate / no significant gap
 - 1 = minor gap (something is in place but incomplete)
 - 2 = significant gap (partial or informal, needs proper implementation)
@@ -90,11 +115,8 @@ def build_interview_system(
     question_count: int,
     language: str = "en",
 ) -> str:
-    req_lines = []
-    for r in requirements:
-        probe = r["interview_probes"][0]
-        req_lines.append(f"  - {r['id']} — {r['name']}: \"{probe}\"")
-    req_summary = "\n".join(req_lines)
+    art21_measures = _load_art21_measures()
+    req_text = _format_art21(art21_measures, requirements)
 
     profile_json = json.dumps(company_profile, indent=2, ensure_ascii=False)
 
@@ -106,6 +128,6 @@ def build_interview_system(
     return _INTERVIEW_SYSTEM_TEMPLATE.format(
         lang_instruction=lang_instruction,
         company_profile=profile_json,
-        requirements=req_summary,
+        requirements=req_text,
         question_count=question_count,
     )

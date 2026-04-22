@@ -1,0 +1,233 @@
+{
+  "source": "EUR-Lex CELEX:32022L2555 — Directive (EU) 2022/2555 (NIS2)",
+  "fetched_from": "https://www.europarl.europa.eu/doceo/document/TC1-COD-2020-0359_EN.pdf",
+  "fetched_at": "2026-04-22",
+  "note": "Text extracted from European Parliament TC1-COD-2020-0359 (agreed first-reading text = final directive). ▌ redaction markers removed; page numbers stripped.",
+  "article_2_scope": "Article 2\nScope \n1. This Directive applies to public or private entities of a type referred to in Annex I \nor II which qualify as medium-sized enterprises under Article 2 of the Annex to \nRecommendation 2003/361/EC, or exceed the ceilings for medium-sized \nenterprises provided for in paragraph 1 of that Article, and which provide their \nservices or carry out their activities within the Union. \nArticle 3(4) of the Annex to that Recommendation shall not apply for the purposes \nof this Directive.\n2.Regardless of their size, this Directive also applies to entities of a type referred to in \nAnnex I or II , where:\n(a) services are provided by :\n(i)providers of public electronic communications networks or of publicly \navailable electronic communications services;\n(ii) trust service providers;\n(iii) top–level domain name registries and domain name system service \nproviders;\n\n(b) the entity is the sole provider in a Member State of a service which is essential \nfor the maintenance of critical societal or economic activities;\n(c)disruption of the service provided by the entity could have a significant \nimpact on public safety, public security or public health; \n(d)disruption of the service provided by the entity could induce a significant \nsystemic risk, in particular for sectors where such disruption could have a \ncross-border impact; \n(e) the entity is critical because of its specific importance at national or regional \nlevel for the particular sector or type of service, or for other interdependent \nsectors in the Member State;\n\n(f) the entity is a public administration entity: \n(i) of central government as defined by a Member State in accordance \nwith national law; or \n(ii) at regional level as defined by a Member State in accordance with \nnational law that, following a risk-based assessment, provides services \nthe disruption of which could have a significant impact on critical \nsocietal or economic activities.\n3. Regardless of their size, this Directive applies to entities identified as critical entities \nunder Directive (EU) .../...+.\n4. Regardless of their size, this Directive applies to entities providing domain name \nregistration services.\n+ OJ: Please insert in the text the number of the Directive contained in document PE-\nCONS 51/22 (2020/0365(COD)).\n5. Member States may provide for this Directive to apply to:\n(a) public administration entities at local level;\n(b) education institutions, in particular where they carry out critical research \nactivities.\n6. This Directive is without prejudice to the Member States' responsibility for \nsafeguarding national security and their power to safeguard other essential State \nfunctions, including ensuring the territorial integrity of the State and maintaining \nlaw and order.\n7. This Directive does not apply to public administration entities that carry out their \nactivities in the areas of national security, public security, defence or law \nenforcement, including the prevention, investigation, detection and prosecution of \ncriminal offences.\n8. Member States may exempt specific entities which carry out activities in the areas \nof national security, public security, defence or law enforcement, including the \nprevention, investigation, detection and prosecution of criminal offences, or which \nprovide services exclusively to the public administration entities referred to in \nparagraph 7 of this Article, from the obligations laid down in Article 21 or 23 with \nregard to those activities or services. In such cases, the supervisory and \nenforcement measures referred to in Chapter VII shall not apply in relation to \nthose specific activities or services. Where the entities carry out activities or provide \nservices exclusively of the type referred to in this paragraph, Member States may \ndecide also to exempt those entities from the obligations laid down in Articles 3 \nand 27.\n9. Paragraphs 7 and 8 shall not apply where an entity acts as a trust service provider.\n10. This Directive does not apply to entities which Member States have exempted from \nthe scope of Regulation (EU) .../...+ in accordance with Article 2(4) of that \nRegulation.\n11. The obligations laid down in this Directive shall not entail the supply of \ninformation the disclosure of which would be contrary to the essential interests of \nMember States’ national security, public security or defence.\n+ OJ: Please insert in the text the number of the Regulation contained in document PE-\nCONS 41/22 (2020/0266(COD)).\n12. This Directive applies without prejudice to Regulation (EU) 2016/679, Directive \n2002/58/EC, Directives 2011/93/EU1 and 2013/40/EU2 of the European Parliament \nand of the Council and Directive .../...+.\n13. Without prejudice to Article 346 TFEU, information that is confidential pursuant to \nUnion or national rules, such as rules on business confidentiality, shall be exchanged \nwith the Commission and other relevant authorities in accordance with this \nDirective only where that exchange is necessary for the application of this Directive. \nThe information exchanged shall be limited to that which is relevant and \nproportionate to the purpose of that exchange. The exchange of information shall \npreserve the confidentiality of that information and protect the security and \ncommercial interests of entities concerned.\n\n14. Entities, the competent authorities, the single points of contact and the CSIRTs \nshall process personal data to the extent necessary for the purposes of this \nDirective and in accordance with Regulation (EU) 2016/679, in particular such \nprocessing shall rely on Article 6 thereof. \nThe processing of personal data pursuant to this Directive by providers of public \nelectronic communications networks or providers of publicly available electronic \ncommunications services shall be carried out in accordance with Union data \nprotection law and Union privacy law, in particular Directive 2002/58/EC. \n1 Directive 2011/93/EU of the European Parliament and of the Council of 13 December \n2011 on combating the sexual abuse and sexual exploitation of children and child \npornography, and replacing Council Framework Decision 2004/68/JHA (OJ L 335, \n17.12.2011, p. 1).\n2 Directive 2013/40/EU of the European Parliament and of the Council of 12 August \n2013 on attacks against information systems and replacing Council Framework \nDecision 2005/222/JHA (OJ L 218, 14.8.2013, p. 8).\n+ OJ: Please insert in the text the number of the Directive contained in document PE-\nCONS 51/22 (2020/0365(COD)).",
+  "article_3_entities": "Article 3\nEssential and important entities\n1. For the purposes of this Directive, the following entities shall be considered to be \nessential entities:\n(a) entities of a type referred to in Annex I which exceed the ceilings for \nmedium-sized enterprises provided for in Article 2(1) of the Annex to \nRecommendation 2003/361/EC;\n(b) qualified trust service providers and top-level domain name registries as well \nas DNS service providers, regardless of their size;\n(c) providers of public electronic communications networks or of publicly \navailable electronic communications services which qualify as medium-sized \nenterprises under Article 2 of the Annex to Recommendation 2003/361/EC;\n(d) public administration entities referred to in Article 2(2), point (f)(i); \n(e) any other entities of a type referred to in Annex I or II that are identified by a \nMember State as essential entities pursuant to Article 2(2), points (b) to (e);\n(f) entities identified as critical entities under Directive (EU) .../... +, referred to in \nArticle 2(3) of this Directive;\n(g) if the Member State so provides, entities which that Member State identified \nbefore ... [the date of entry into force of this Directive] as operators of \nessential services in accordance with Directive (EU) 2016/1148 or national \nlaw.\n2. For the purposes of this Directive, entities of a type referred to in Annex I or II \nwhich do not qualify as essential entities pursuant to paragraph 1 of this Article \nshall be considered to be important entities. This includes entities identified by \nMember States as important entities pursuant to Article 2(2), points (b) to (e).\n+ OJ: Please insert in the text the number of the Directive contained in document PE-\nCONS 51/22 (2020/0365(COD)).\n3. By ... [27 months after the date of entry into force of this Directive], Member States \nshall establish a list of essential and important entities as well as entities providing \ndomain name registration services. Member States shall review and, where \nappropriate, update that list on a regular basis and at least every two years \nthereafter.\n4. For the purpose of establishing the list referred to in paragraph 3, Member States \nshall require the entities referred to in that paragraph to submit at least the \nfollowing information to the competent authorities: \n(a) the name of the entity; \n(b) the address and up-to-date contact details, including email addresses, IP \nranges and telephone numbers; \n(c) where applicable, the relevant sector and subsector referred to in Annex I or \nII; and\n(d) where applicable, a list of the Member States where they provide services \nfalling within the scope of this Directive. \nThe entities referred to in paragraph 3 shall notify any changes to the details \nsubmitted pursuant to the first subparagraph of this paragraph without delay, and, \nin any event, within two weeks of the date of the change. \nThe Commission, with the assistance of the European Union Agency for \nCybersecurity (ENISA), shall without undue delay provide guidelines and \ntemplates regarding the obligations laid down in this paragraph.\nMember States may establish national mechanisms for entities to register \nthemselves.\n5. By ... [27 months after the date of entry into force of this Directive] and every two \nyears thereafter, the competent authorities shall notify: \n(a) the Commission and the Cooperation Group of the number of essential and \nimportant entities listed pursuant to paragraph 3 for each sector and \nsubsector referred to in Annex I or II; and \n(b) the Commission of relevant information about the number of essential and \nimportant entities identified pursuant to Article 2(2), points (b) to (e), the \nsector and subsector referred to in Annex I or II to which they belong, the \ntype of service that they provide, and the provision, from among those laid \ndown in Article 2(2), points (b) to (e), pursuant to which they were identified.\n6. Until ... [27 months after the date of entry into force of this Directive] and upon \nrequest of the Commission, Member States may notify the Commission of the \nnames of the essential and important entities referred to in paragraph 5, point (b).",
+  "article_21_measures": {
+    "intro": "2. The measures referred to in paragraph 1 shall be based on an all-hazards approach \nthat aims to protect network and information systems and the physical \nenvironment of those systems from incidents, and shall include at least the \nfollowing:",
+    "measures": [
+      {
+        "id": "a",
+        "text": "policies on risk analysis and information system security"
+      },
+      {
+        "id": "b",
+        "text": "incident handling "
+      },
+      {
+        "id": "c",
+        "text": "business continuity, such as backup management and disaster recovery, and \ncrisis management"
+      },
+      {
+        "id": "d",
+        "text": "supply chain security, including security-related aspects concerning the \nrelationships between each entity and its direct suppliers or service providers \n"
+      },
+      {
+        "id": "e",
+        "text": "security in network and information systems acquisition, development and \nmaintenance, including vulnerability handling and disclosure"
+      },
+      {
+        "id": "f",
+        "text": "policies and procedures to assess the effectiveness of cybersecurity risk-\nmanagement measures"
+      },
+      {
+        "id": "g",
+        "text": "basic cyber hygiene practices and cybersecurity training"
+      },
+      {
+        "id": "h",
+        "text": "policies and procedures regarding the use of cryptography and, where \nappropriate, encryption"
+      },
+      {
+        "id": "i",
+        "text": "human resources security, access control policies and asset management"
+      },
+      {
+        "id": "j",
+        "text": "the use of multi-factor authentication or continuous authentication \nsolutions, secured voice, video and text communications and secured \nemergency communication systems within the entity, where appropriate"
+      }
+    ]
+  },
+  "annex_1": [
+    {
+      "sector": "Energy",
+      "subsectors": [
+        "Electricity",
+        "District heating and cooling",
+        "Oil",
+        "Gas",
+        "Hydrogen"
+      ],
+      "entity_types": [
+        "Electricity undertakings carrying out supply, distribution, transmission",
+        "Producers and nominated electricity market operators",
+        "Operators of recharging points",
+        "Operators of district heating or cooling",
+        "Operators of oil transmission pipelines, refining and storage facilities, central stockholding entities",
+        "Gas supply undertakings, distribution/transmission/storage system operators, LNG operators",
+        "Operators of hydrogen production, storage and transmission"
+      ]
+    },
+    {
+      "sector": "Transport",
+      "subsectors": [
+        "Air",
+        "Rail",
+        "Water",
+        "Road"
+      ],
+      "entity_types": [
+        "Air carriers used for commercial purposes",
+        "Airport managing bodies and entities operating ancillary airport installations",
+        "Traffic management control operators providing ATC services",
+        "Infrastructure managers as defined in Directive 2012/34/EU",
+        "Railway undertakings including rail service facility operators",
+        "Inland, sea and coastal passenger and freight water transport companies",
+        "Port managing bodies, vessel traffic services operators",
+        "Road authorities responsible for traffic management",
+        "Intelligent transport systems operators"
+      ]
+    },
+    {
+      "sector": "Banking",
+      "subsectors": [],
+      "entity_types": [
+        "Credit institutions as defined in Article 4(1)(1) of Regulation (EU) No 575/2013"
+      ]
+    },
+    {
+      "sector": "Financial market infrastructure",
+      "subsectors": [],
+      "entity_types": [
+        "Operators of trading venues as defined in Article 4(1)(24) of Directive 2014/65/EU",
+        "Central counterparties (CCPs) as defined in Article 2(1) of Regulation (EU) No 648/2012"
+      ]
+    },
+    {
+      "sector": "Health",
+      "subsectors": [],
+      "entity_types": [
+        "Healthcare providers as defined in Article 3(g) of Directive 2011/24/EU",
+        "EU reference laboratories",
+        "Entities carrying out research and development activities of medicinal products",
+        "Entities manufacturing basic pharmaceutical products and pharmaceutical preparations (NACE division 21)",
+        "Entities manufacturing medical devices considered critical during a public health emergency"
+      ]
+    },
+    {
+      "sector": "Drinking water",
+      "subsectors": [],
+      "entity_types": [
+        "Suppliers and distributors of water intended for human consumption, excluding distributors for whom this is not a principal activity"
+      ]
+    },
+    {
+      "sector": "Wastewater",
+      "subsectors": [],
+      "entity_types": [
+        "Undertakings collecting, disposing of or treating urban or industrial waste water, excluding undertakings for whom this is not a principal activity"
+      ]
+    },
+    {
+      "sector": "Digital infrastructure",
+      "subsectors": [],
+      "entity_types": [
+        "Internet exchange point (IXP) providers",
+        "DNS service providers (excluding root name server operators)",
+        "Top-level domain (TLD) name registries",
+        "Cloud computing service providers",
+        "Data centre service providers",
+        "Content delivery network (CDN) providers",
+        "Trust service providers",
+        "Providers of public electronic communications networks",
+        "Providers of publicly available electronic communications services"
+      ]
+    },
+    {
+      "sector": "ICT service management (B2B)",
+      "subsectors": [],
+      "entity_types": [
+        "Managed service providers (MSPs)",
+        "Managed security service providers (MSSPs)"
+      ]
+    },
+    {
+      "sector": "Public administration",
+      "subsectors": [],
+      "entity_types": [
+        "Public administration entities of central government",
+        "Public administration entities at regional level (where risk assessment shows significant societal/economic impact)"
+      ]
+    },
+    {
+      "sector": "Space",
+      "subsectors": [],
+      "entity_types": [
+        "Operators of ground-based infrastructure (owned, managed and operated by Member States or private parties) that supports space-based services"
+      ]
+    }
+  ],
+  "annex_2": [
+    {
+      "sector": "Postal and courier services",
+      "subsectors": [],
+      "entity_types": [
+        "Postal service providers as defined in Directive 97/67/EC, including providers of courier services"
+      ]
+    },
+    {
+      "sector": "Waste management",
+      "subsectors": [],
+      "entity_types": [
+        "Undertakings carrying out waste management as defined in Directive 2008/98/EC, excluding those for whom waste management is not their principal economic activity"
+      ]
+    },
+    {
+      "sector": "Manufacture, production and distribution of chemicals",
+      "subsectors": [],
+      "entity_types": [
+        "Undertakings manufacturing substances and distributing substances or mixtures, and undertakings producing articles from substances or mixtures (as per REACH Regulation)"
+      ]
+    },
+    {
+      "sector": "Production, processing and distribution of food",
+      "subsectors": [],
+      "entity_types": [
+        "Food businesses as defined in Regulation (EC) No 178/2002 engaged in wholesale distribution and industrial production and processing"
+      ]
+    },
+    {
+      "sector": "Manufacturing",
+      "subsectors": [
+        "Medical devices and in vitro diagnostic medical devices",
+        "Computer, electronic and optical products (NACE C div. 26)",
+        "Electrical equipment (NACE C div. 27)",
+        "Machinery and equipment n.e.c. (NACE C div. 28)",
+        "Motor vehicles, trailers and semi-trailers (NACE C div. 29)",
+        "Other transport equipment (NACE C div. 30)"
+      ],
+      "entity_types": [
+        "Manufacturers of medical devices (Regulation (EU) 2017/745) and in vitro diagnostic medical devices (Regulation (EU) 2017/746)",
+        "Undertakings carrying out economic activities in NACE Rev. 2 section C divisions 26–30"
+      ]
+    },
+    {
+      "sector": "Digital providers",
+      "subsectors": [],
+      "entity_types": [
+        "Providers of online marketplaces",
+        "Providers of online search engines",
+        "Providers of social networking services platforms"
+      ]
+    },
+    {
+      "sector": "Research",
+      "subsectors": [],
+      "entity_types": [
+        "Research organisations (as defined by each Member State)"
+      ]
+    }
+  ]
+}

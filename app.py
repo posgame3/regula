@@ -22,7 +22,8 @@ from utils.pdf import generate_report_pdf
 from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist
 
 app = FastAPI()
-MODEL = "claude-opus-4-7"
+TEST_MODE = bool(os.getenv("TEST_MODE"))
+MODEL = "claude-sonnet-4-6" if TEST_MODE else "claude-opus-4-7"
 COMPLETE_MARKER = "[INTERVIEW_COMPLETE]"
 MOCK_MODE = bool(os.getenv("MOCK_MODE"))
 sessions: dict = {}
@@ -320,10 +321,10 @@ async def call_with_thinking(
     In demo mode, skips extended thinking for speed."""
     if MOCK_MODE:
         return "", _mock_response(system), []
-    if session and session.get("demo_mode"):
+    if TEST_MODE or (session and session.get("demo_mode")):
         response = await client.messages.create(
             model=MODEL,
-            max_tokens=8192,
+            max_tokens=4096,
             system=system,
             messages=messages,
         )

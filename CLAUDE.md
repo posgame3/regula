@@ -38,8 +38,13 @@ regula/
 4. Red Team: simulates real NIS2 auditor attacking company's gaps → JSON {verdict, critical_failures}
 5. Drafter: plain-language policy outlines for top gaps → JSON {policies[]}
 
+## Run modes
+- `uvicorn app:app --reload` — production (Opus 4.7, Extended Thinking on)
+- `TEST_MODE=1 uvicorn app:app --reload` — fast/cheap (Sonnet 4.6, no Extended Thinking)
+- `MOCK_MODE=1 uvicorn app:app --reload` — no API calls at all (instant mock responses)
+
 ## Key rules
-- Model: claude-opus-4-7 for ALL agents
+- Model: claude-opus-4-7 for ALL agents (Sonnet 4.6 when TEST_MODE=1)
 - Language: user picks PL or EN at start, entire pipeline responds in that language
 - NIS2 requirements HARDCODED in nis2.json (10 requirements from Art.21) — never hallucinate
 - Interviewer asks ONE question at a time

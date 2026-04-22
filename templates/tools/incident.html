@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 1.5cm 1.2cm 2.2cm 1.2cm;
+    @bottom-center {
+      content: "Wygenerowano przez Regula | Punkt startowy — wymaga przeglądu prawnego | Dyrektywa (EU) 2022/2555 Art. 23";
+      font-size: 6.5pt;
+      color: #9ca3af;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #1e293b; line-height: 1.5; }
+
+  .header { background: #0A2540; color: white; padding: 16px 20px; margin-bottom: 14px; }
+  .header-logo { font-size: 17pt; font-weight: bold; letter-spacing: 5px; }
+  .header-title { font-size: 10.5pt; opacity: 0.85; margin-top: 3px; }
+  .header-meta { font-size: 7.5pt; opacity: 0.65; margin-top: 7px; }
+
+  .section { margin-bottom: 13px; }
+  .section-title {
+    font-size: 9pt; font-weight: bold; color: #0A2540;
+    border-bottom: 2px solid #0A2540; padding-bottom: 3px; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .section-num {
+    display: inline-block; background: #0A2540; color: white;
+    width: 16px; height: 16px; border-radius: 50%; text-align: center;
+    line-height: 16px; font-size: 7.5pt; font-weight: bold; margin-right: 5px;
+  }
+
+  table.contacts { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  table.contacts th { background: #0A2540; color: white; padding: 5px 8px; text-align: left; font-size: 8pt; }
+  table.contacts td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  table.contacts .label { font-weight: bold; background: #f8fafc; width: 28%; }
+
+  table.classify { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  table.classify th { background: #0A2540; color: white; padding: 5px 8px; text-align: left; font-size: 8pt; }
+  table.classify td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 8px; font-size: 7pt; font-weight: bold; text-transform: uppercase; }
+  .badge-critical { background: #ef4444; color: white; }
+  .badge-high     { background: #f97316; color: white; }
+  .badge-medium   { background: #eab308; color: #1a1a2e; }
+  .badge-low      { background: #22c55e; color: white; }
+
+  .step-row { display: table; width: 100%; margin-bottom: 6px; }
+  .step-num {
+    display: table-cell; width: 24px; height: 24px;
+    background: #0A2540; color: white; border-radius: 50%;
+    text-align: center; vertical-align: middle;
+    font-weight: bold; font-size: 9pt; line-height: 24px;
+  }
+  .step-content { display: table-cell; padding-left: 10px; vertical-align: middle; }
+  .step-title { font-weight: bold; font-size: 9pt; }
+  .step-detail { font-size: 8pt; color: #475569; margin-top: 2px; }
+
+  .template-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; padding: 10px 12px; }
+  .template-field { margin-bottom: 7px; font-size: 8.5pt; }
+  .template-field label { font-weight: bold; color: #0A2540; display: block; margin-bottom: 2px; }
+  .template-field .blank { border-bottom: 1px solid #94a3b8; min-height: 14px; display: block; }
+
+  .alert-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 5px; padding: 10px 12px; }
+  .alert-title { font-weight: bold; font-size: 9.5pt; color: #dc2626; margin-bottom: 4px; }
+  .alert-text { font-size: 9pt; color: #7f1d1d; }
+
+  .no-break { page-break-inside: avoid; }
+  .break-before { page-break-before: always; }
+  p { margin-bottom: 5px; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">REGULA</div>
+  <div class="header-title">
+    {% if language == 'pl' %}Procedura Reagowania na Incydenty Cyberbezpieczeństwa{% else %}Cybersecurity Incident Response Plan{% endif %}
+  </div>
+  <div class="header-meta">
+    {% if language == 'pl' %}Data:{% else %}Date:{% endif %} {{ date }}
+    {% if company_name %} &nbsp;·&nbsp; {{ company_name }}{% endif %}
+    &nbsp;·&nbsp; Art. 23 Dyrektywy (EU) 2022/2555
+  </div>
+</div>
+
+<!-- SECTION 1: Contacts -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">1</span>
+    {% if language == 'pl' %}Kontakty kryzysowe{% else %}Emergency Contacts{% endif %}
+  </div>
+  <table class="contacts">
+    <thead>
+      <tr>
+        <th>{% if language == 'pl' %}Rola{% else %}Role{% endif %}</th>
+        <th>{% if language == 'pl' %}Osoba / Organizacja{% else %}Person / Organisation{% endif %}</th>
+        <th>{% if language == 'pl' %}Kontakt{% else %}Contact{% endif %}</th>
+        <th>{% if language == 'pl' %}Kiedy dzwonić{% else %}When to call{% endif %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="label">{% if language == 'pl' %}IT-owiec / Podwykonawca IT{% else %}IT person / IT contractor{% endif %}</td>
+        <td>{{ it_contact if it_contact else '[_________________________]' }}</td>
+        <td>[tel. / e-mail]</td>
+        <td>{% if language == 'pl' %}Każdy incydent techniczny{% else %}Any technical incident{% endif %}</td>
+      </tr>
+      <tr>
+        <td class="label">CSIRT NASK</td>
+        <td>CSIRT NASK (cert.pl)</td>
+        <td>cert@cert.pl&nbsp;/ +48 22 38 00 300</td>
+        <td>{% if language == 'pl' %}Znaczący incydent (patrz art. 23 NIS2){% else %}Significant incident (see Art. 23 NIS2){% endif %}</td>
+      </tr>
+      <tr>
+        <td class="label">{% if language == 'pl' %}Zarząd / Właściciel{% else %}Management / Owner{% endif %}</td>
+        <td>[_________________________]</td>
+        <td>[tel. / e-mail]</td>
+        <td>{% if language == 'pl' %}Każdy znaczący incydent{% else %}Every significant incident{% endif %}</td>
+      </tr>
+      <tr>
+        <td class="label">{% if language == 'pl' %}Prawnik / DPO{% else %}Legal / DPO{% endif %}</td>
+        <td>[_________________________]</td>
+        <td>[tel. / e-mail]</td>
+        <td>{% if language == 'pl' %}Naruszenie danych osobowych (RODO){% else %}Personal data breach (GDPR){% endif %}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- SECTION 2: Classification -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">2</span>
+    {% if language == 'pl' %}Klasyfikacja incydentu{% else %}Incident Classification{% endif %}
+  </div>
+  <table class="classify">
+    <thead>
+      <tr>
+        <th style="width: 14%;">{% if language == 'pl' %}Poziom{% else %}Level{% endif %}</th>
+        <th style="width: 30%;">{% if language == 'pl' %}Przykłady{% else %}Examples{% endif %}</th>
+        <th style="width: 28%;">{% if language == 'pl' %}Czas reakcji{% else %}Response time{% endif %}</th>
+        <th style="width: 28%;">{% if language == 'pl' %}Zgłoszenie CSIRT{% else %}CSIRT report{% endif %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="background: #fef2f2;">
+        <td><span class="badge badge-critical">{% if language == 'pl' %}KRYTYCZNY{% else %}CRITICAL{% endif %}</span></td>
+        <td>{% if language == 'pl' %}Ransomware, wyciek danych klientów, kompromitacja systemów kluczowych{% else %}Ransomware, customer data leak, key system compromise{% endif %}</td>
+        <td>{% if language == 'pl' %}Natychmiast — max. 1h{% else %}Immediately — max. 1h{% endif %}</td>
+        <td>{% if language == 'pl' %}TAK — 24h{% else %}YES — 24h{% endif %}</td>
+      </tr>
+      <tr style="background: #fff7ed;">
+        <td><span class="badge badge-high">{% if language == 'pl' %}WYSOKI{% else %}HIGH{% endif %}</span></td>
+        <td>{% if language == 'pl' %}Nieautoryzowany dostęp, infekcja malware, utrata urządzenia z danymi{% else %}Unauthorised access, malware infection, device with data lost{% endif %}</td>
+        <td>{% if language == 'pl' %}Max. 4h{% else %}Max. 4h{% endif %}</td>
+        <td>{% if language == 'pl' %}TAK — 24h{% else %}YES — 24h{% endif %}</td>
+      </tr>
+      <tr style="background: #fefce8;">
+        <td><span class="badge badge-medium">{% if language == 'pl' %}ŚREDNI{% else %}MEDIUM{% endif %}</span></td>
+        <td>{% if language == 'pl' %}Podejrzana aktywność, phishing bez skutku, awaria systemu{% else %}Suspicious activity, failed phishing, system failure{% endif %}</td>
+        <td>{% if language == 'pl' %}Następny dzień roboczy{% else %}Next business day{% endif %}</td>
+        <td>{% if language == 'pl' %}Ocena — może być wymagane{% else %}Assess — may be required{% endif %}</td>
+      </tr>
+      <tr style="background: #f0fdf4;">
+        <td><span class="badge badge-low">{% if language == 'pl' %}NISKI{% else %}LOW{% endif %}</span></td>
+        <td>{% if language == 'pl' %}Błędna konfiguracja, spam, zapomniane hasło{% else %}Misconfiguration, spam, forgotten password{% endif %}</td>
+        <td>{% if language == 'pl' %}W ciągu tygodnia{% else %}Within a week{% endif %}</td>
+        <td>{% if language == 'pl' %}NIE{% else %}NO{% endif %}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- SECTION 3: Response steps -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">3</span>
+    {% if language == 'pl' %}Kroki reakcji na incydent{% else %}Incident Response Steps{% endif %}
+  </div>
+
+  {% if language == 'pl' %}
+  <div class="step-row">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">Wykryj i zgłoś</div>
+      <div class="step-detail">Każdy pracownik zgłasza podejrzenie incydentu do IT-owca (tel./e-mail). Nie próbuj samodzielnie naprawiać sytuacji.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">Oceń i sklasyfikuj</div>
+      <div class="step-detail">IT-owiec ocenia skalę (tabela powyżej). Powiadom zarząd jeśli poziom WYSOKI lub KRYTYCZNY.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">Zawieś i izoluj</div>
+      <div class="step-detail">Odizoluj dotknięte urządzenia od sieci (odłącz kabel LAN / wyłącz Wi-Fi). Nie wyłączaj komputerów — zachowaj dowody.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <div class="step-title">Zgłoś do CSIRT NASK (jeśli wymagane)</div>
+      <div class="step-detail">Przy incydentach KRYTYCZNYCH / WYSOKICH — wyślij wstępne powiadomienie do CSIRT NASK w ciągu 24 godzin. Użyj szablonu z sekcji 4.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <div class="step-title">Usuń zagrożenie i przywróć działanie</div>
+      <div class="step-detail">IT-owiec usuwa złośliwe oprogramowanie, przywraca systemy z kopii zapasowej, resetuje hasła. Dokumentuj każdy krok.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <div class="step-title">Udokumentuj i wyciągnij wnioski</div>
+      <div class="step-detail">Uzupełnij rejestr incydentów. W ciągu 30 dni przeprowadź retrospektywę i wdróż środki zaradcze. Dokumentacja przez min. 5 lat.</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="step-row">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">Detect and report</div>
+      <div class="step-detail">Any employee reports a suspected incident to the IT person (phone/email). Do not attempt to fix the situation yourself.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">Assess and classify</div>
+      <div class="step-detail">The IT person assesses the scale (table above). Notify management for HIGH or CRITICAL level incidents.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">Contain and isolate</div>
+      <div class="step-detail">Isolate affected devices from the network (unplug LAN / disable Wi-Fi). Do not turn off computers — preserve evidence.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <div class="step-title">Report to CSIRT (if required)</div>
+      <div class="step-detail">For CRITICAL / HIGH incidents — send preliminary notification to CSIRT NASK within 24 hours. Use the template in section 4.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <div class="step-title">Remove threat and restore operations</div>
+      <div class="step-detail">IT person removes malware, restores systems from backup, resets passwords. Document every step.</div>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <div class="step-title">Document and learn</div>
+      <div class="step-detail">Complete the incident register. Within 30 days, conduct a retrospective and implement corrective measures. Retain documentation for min. 5 years.</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- PAGE BREAK for form section -->
+<div class="break-before"></div>
+
+<!-- SECTION 4: CSIRT notification template -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">4</span>
+    {% if language == 'pl' %}Szablon zgłoszenia do CSIRT NASK{% else %}CSIRT NASK Notification Template{% endif %}
+  </div>
+  <p style="font-size: 8.5pt; color: #475569; margin-bottom: 8px;">
+    {% if language == 'pl' %}
+    Wyślij na: <strong>cert@cert.pl</strong> | Temat: „NIS2 — zgłoszenie incydentu — {{ company_name }}"
+    {% else %}
+    Send to: <strong>cert@cert.pl</strong> | Subject: "NIS2 — incident notification — {{ company_name }}"
+    {% endif %}
+  </p>
+  <div class="template-box">
+    <div class="template-field">
+      <label>{% if language == 'pl' %}Organizacja zgłaszająca{% else %}Reporting organisation{% endif %}</label>
+      <span class="blank">{{ company_name }}</span>
+    </div>
+    <div class="template-field">
+      <label>{% if language == 'pl' %}Sektor / Rodzaj podmiotu{% else %}Sector / Entity type{% endif %}</label>
+      <span class="blank">{{ sector if sector else '' }}</span>
+    </div>
+    <div class="template-field">
+      <label>{% if language == 'pl' %}Data i godzina wykrycia incydentu{% else %}Date and time of detection{% endif %}</label>
+      <span class="blank">&nbsp;</span>
+    </div>
+    <div class="template-field">
+      <label>{% if language == 'pl' %}Opis incydentu (co się stało, jakie systemy dotknięte){% else %}Incident description (what happened, which systems affected){% endif %}</label>
+      <span class="blank">&nbsp;</span>
+      <span class="blank" style="margin-top: 4px;">&nbsp;</span>
+    </div>
+    <div class="template-field">
+      <label>{% if language == 'pl' %}Szacowana skala (liczba użytkowników / systemów){% else %}Estimated scale (users / systems affected){% endif %}</label>
+      <span class="blank">&nbsp;</span>
+    </div>
+    <div class="template-field">
+      <label>{% if language == 'pl' %}Podjęte działania zaradcze{% else %}Remediation steps taken{% endif %}</label>
+      <span class="blank">&nbsp;</span>
+    </div>
+    <div class="template-field">
+      <label>{% if language == 'pl' %}Osoba kontaktowa (imię, nazwisko, tel.){% else %}Contact person (name, phone){% endif %}</label>
+      <span class="blank">&nbsp;</span>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5: 24h obligation -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">5</span>
+    {% if language == 'pl' %}Obowiązek 24-godzinnego zgłoszenia (NIS2 Art. 23){% else %}24-hour Notification Obligation (NIS2 Art. 23){% endif %}
+  </div>
+  <div class="alert-box">
+    <div class="alert-title">
+      {% if language == 'pl' %}Ważne: Terminy prawne{% else %}Important: Legal deadlines{% endif %}
+    </div>
+    <div class="alert-text">
+      {% if language == 'pl' %}
+      <ul style="padding-left: 16px; margin-top: 4px;">
+        <li><strong>24 godziny:</strong> wstępne powiadomienie do CSIRT NASK od chwili wykrycia znaczącego incydentu</li>
+        <li><strong>72 godziny:</strong> pośredni raport o incydencie z aktualizacją oceny i działań</li>
+        <li><strong>1 miesiąc:</strong> końcowy raport z pełną analizą przyczyn i środkami zaradczymi</li>
+        <li><strong>Kara za brak zgłoszenia:</strong> do 10 000 000 EUR lub 2% rocznych przychodów (podmiot istotny)</li>
+      </ul>
+      <p style="margin-top: 6px; font-size: 8pt;">Incydent jest „znaczący" jeśli spowodował lub może spowodować poważne zakłócenie usług lub straty finansowe.</p>
+      {% else %}
+      <ul style="padding-left: 16px; margin-top: 4px;">
+        <li><strong>24 hours:</strong> preliminary notification to CSIRT from the moment of detecting a significant incident</li>
+        <li><strong>72 hours:</strong> intermediate incident report with updated assessment and actions</li>
+        <li><strong>1 month:</strong> final report with full root-cause analysis and corrective measures</li>
+        <li><strong>Penalty for non-reporting:</strong> up to €10,000,000 or 2% of annual revenue (essential entity)</li>
+      </ul>
+      <p style="margin-top: 6px; font-size: 8pt;">An incident is "significant" if it has caused or may cause serious disruption to services or financial loss.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

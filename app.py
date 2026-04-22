@@ -19,6 +19,7 @@ from agents.drafter import build_drafter_system
 from agents.threat_actor import build_threat_actor_system
 from agents.board_presenter import build_board_presenter_system
 from utils.pdf import generate_report_pdf
+from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist
 
 app = FastAPI()
 MODEL = "claude-opus-4-7"
@@ -389,6 +390,54 @@ async def download_report(session_id: str):
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=regula-report-{session_id[:8]}.pdf"},
+    )
+
+
+_TOOL_GENERATORS = {
+    "policy": generate_security_policy,
+    "incident": generate_incident_plan,
+    "checklist": generate_remediation_checklist,
+}
+
+_TOOL_FILENAMES = {
+    "policy": "polityka-bezpieczenstwa",
+    "incident": "procedura-incydentow",
+    "checklist": "plan-remediacji",
+}
+
+
+@app.get("/download/{session_id}/{tool_name}")
+async def download_tool_pdf(session_id: str, tool_name: str):
+    if tool_name not in _TOOL_GENERATORS:
+        raise HTTPException(status_code=400, detail=f"Unknown tool: {tool_name}. Valid: {list(_TOOL_GENERATORS)}")
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session = sessions[session_id]
+    if session.get("stage") != "complete":
+        raise HTTPException(status_code=400, detail="Report not ready — pipeline still running")
+
+    findings = session.get("interview_findings") or {}
+    gaps_data = session.get("gap_analysis") or {}
+
+    session_data = {
+        "session_id": session_id[:8],
+        "company_name": findings.get("company_name", ""),
+        "sector": findings.get("sector", ""),
+        "gaps": gaps_data.get("gaps", []),
+        "priority_actions": gaps_data.get("priority_3", []),
+        "language": session.get("language", "pl"),
+        "it_contact": findings.get("it_contact", ""),
+    }
+
+    pdf_path = _TOOL_GENERATORS[tool_name](session_data)
+    with open(pdf_path, "rb") as f:
+        pdf_bytes = f.read()
+
+    filename = f"regula-{_TOOL_FILENAMES[tool_name]}-{session_id[:8]}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 

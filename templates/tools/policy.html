@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 1.5cm 1.2cm 2.2cm 1.2cm;
+    @bottom-center {
+      content: "Wygenerowano przez Regula | Punkt startowy — wymaga przeglądu prawnego | Dyrektywa (EU) 2022/2555";
+      font-size: 6.5pt;
+      color: #9ca3af;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #1e293b; line-height: 1.5; }
+
+  .header { background: #0A2540; color: white; padding: 16px 20px; margin-bottom: 14px; }
+  .header-logo { font-size: 17pt; font-weight: bold; letter-spacing: 5px; }
+  .header-title { font-size: 10.5pt; opacity: 0.85; margin-top: 3px; }
+  .header-meta { font-size: 7.5pt; opacity: 0.65; margin-top: 7px; }
+
+  .section { margin-bottom: 14px; }
+  .section-title {
+    font-size: 9pt; font-weight: bold; color: #0A2540;
+    border-bottom: 2px solid #0A2540; padding-bottom: 3px; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .section-num {
+    display: inline-block; background: #0A2540; color: white;
+    width: 16px; height: 16px; border-radius: 50%; text-align: center;
+    line-height: 16px; font-size: 7.5pt; font-weight: bold; margin-right: 5px;
+  }
+  p { margin-bottom: 5px; font-size: 9pt; }
+  ul, ol { padding-left: 18px; margin-bottom: 5px; }
+  li { margin-bottom: 3px; font-size: 9pt; }
+
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 7pt; font-weight: bold; text-transform: uppercase; }
+  .badge-critical { background: #ef4444; color: white; }
+  .badge-high     { background: #f97316; color: white; }
+  .badge-medium   { background: #eab308; color: #1a1a2e; }
+  .badge-low      { background: #22c55e; color: white; }
+
+  .gaps-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 5px; padding: 10px 12px; margin-bottom: 14px; }
+  .gaps-box-title { font-weight: bold; font-size: 9pt; color: #dc2626; margin-bottom: 6px; }
+  .gap-row { display: table; width: 100%; margin-bottom: 4px; }
+  .gap-badge-cell { display: table-cell; width: 65px; vertical-align: top; }
+  .gap-text-cell  { display: table-cell; font-size: 8.5pt; vertical-align: top; padding-left: 6px; }
+
+  .attention-box { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 6px 10px; margin-top: 6px; font-size: 8pt; color: #92400e; }
+  .no-break { page-break-inside: avoid; }
+  .break-before { page-break-before: always; }
+
+  table.sign-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.sign-table td { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 8.5pt; vertical-align: top; }
+  table.sign-table .label { font-weight: bold; color: #475569; background: #f8fafc; width: 30%; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">REGULA</div>
+  <div class="header-title">
+    {% if language == 'pl' %}Polityka Bezpieczeństwa Informacji — NIS2{% else %}Information Security Policy — NIS2{% endif %}
+  </div>
+  <div class="header-meta">
+    {% if language == 'pl' %}Data:{% else %}Date:{% endif %} {{ date }}
+    {% if company_name %} &nbsp;·&nbsp; {{ company_name }}{% endif %}
+    {% if sector %} &nbsp;·&nbsp; {% if language == 'pl' %}Sektor:{% else %}Sector:{% endif %} {{ sector }}{% endif %}
+    &nbsp;·&nbsp; Art. 21 Dyrektywy (EU) 2022/2555
+  </div>
+</div>
+
+<!-- Gaps found summary -->
+{% set critical_gaps = gaps | selectattr('risk_level', 'equalto', 'critical') | list %}
+{% set high_gaps = gaps | selectattr('risk_level', 'equalto', 'high') | list %}
+{% if critical_gaps or high_gaps %}
+<div class="gaps-box no-break">
+  <div class="gaps-box-title">
+    {% if language == 'pl' %}Luki zidentyfikowane podczas oceny — wymagają pilnego uzupełnienia{% else %}Gaps identified during assessment — require immediate attention{% endif %}
+  </div>
+  {% for gap in critical_gaps %}
+  <div class="gap-row">
+    <div class="gap-badge-cell"><span class="badge badge-critical">{% if language == 'pl' %}KRYTYCZNE{% else %}CRITICAL{% endif %}</span></div>
+    <div class="gap-text-cell">{{ gap.name }}{% if gap.article %} — {{ gap.article }}{% endif %}</div>
+  </div>
+  {% endfor %}
+  {% for gap in high_gaps %}
+  <div class="gap-row">
+    <div class="gap-badge-cell"><span class="badge badge-high">{% if language == 'pl' %}WYSOKIE{% else %}HIGH{% endif %}</span></div>
+    <div class="gap-text-cell">{{ gap.name }}{% if gap.article %} — {{ gap.article }}{% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- SECTION 1 -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">1</span>{% if language == 'pl' %}Wprowadzenie{% else %}Introduction{% endif %}</div>
+  {% if language == 'pl' %}
+  <p>Niniejsza Polityka Bezpieczeństwa Informacji (dalej: Polityka) określa zasady ochrony informacji
+  {% if company_name %}w organizacji <strong>{{ company_name }}</strong>{% else %}w organizacji{% endif %}
+  zgodnie z wymogami Dyrektywy (EU) 2022/2555 (NIS2), implementowanej do prawa polskiego ustawą o krajowym systemie cyberbezpieczeństwa.</p>
+  <p>Polityka obowiązuje wszystkich pracowników, współpracowników oraz podwykonawców, którzy mają dostęp do systemów informatycznych i danych organizacji.
+  Niniejszy dokument stanowi punkt startowy — przed wdrożeniem wymaga przeglądu prawnego i dostosowania do specyfiki organizacji.</p>
+  {% else %}
+  <p>This Information Security Policy sets out the rules for protecting information
+  {% if company_name %}at <strong>{{ company_name }}</strong>{% else %}within the organization{% endif %}
+  in accordance with Directive (EU) 2022/2555 (NIS2) requirements.</p>
+  <p>This Policy applies to all employees, contractors, and subcontractors with access to the organisation's IT systems and data.
+  This document is a starting point — legal review and tailoring to the organisation's specifics are required before implementation.</p>
+  {% endif %}
+</div>
+
+<!-- SECTION 2 -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">2</span>{% if language == 'pl' %}Zakres{% else %}Scope{% endif %}</div>
+  {% if language == 'pl' %}
+  <p>Polityka obejmuje:</p>
+  <ul>
+    <li>Wszystkie systemy informatyczne i urządzenia końcowe (komputery, laptopy, telefony służbowe)</li>
+    <li>Konta e-mail, systemy chmurowe i aplikacje biznesowe</li>
+    <li>Dane klientów, pracowników i partnerów biznesowych</li>
+    <li>Infrastrukturę sieciową (router, Wi-Fi, VPN)</li>
+    {% if sector %}<li>Systemy operacyjne specyficzne dla sektora: {{ sector }}</li>{% endif %}
+  </ul>
+  {% else %}
+  <p>This Policy covers:</p>
+  <ul>
+    <li>All IT systems and end-user devices (computers, laptops, company phones)</li>
+    <li>Email accounts, cloud systems, and business applications</li>
+    <li>Customer, employee, and business partner data</li>
+    <li>Network infrastructure (router, Wi-Fi, VPN)</li>
+    {% if sector %}<li>Sector-specific operational systems: {{ sector }}</li>{% endif %}
+  </ul>
+  {% endif %}
+</div>
+
+<!-- SECTION 3 -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">3</span>{% if language == 'pl' %}Odpowiedzialności{% else %}Responsibilities{% endif %}</div>
+  {% if language == 'pl' %}
+  <ul>
+    <li><strong>Właściciel / Zarząd:</strong> Zatwierdza Politykę, zapewnia zasoby, odpowiada za zgodność z NIS2</li>
+    <li><strong>Osoba odpowiedzialna za IT:</strong> Wdraża środki techniczne, zarządza dostępami, prowadzi przeglądy</li>
+    <li><strong>Wszyscy pracownicy:</strong> Przestrzegają zasad Polityki, zgłaszają incydenty i podejrzane zdarzenia</li>
+    <li><strong>Podwykonawcy IT:</strong> Zobowiązani umową do przestrzegania standardów bezpieczeństwa organizacji</li>
+  </ul>
+  {% else %}
+  <ul>
+    <li><strong>Owner / Management:</strong> Approves this Policy, provides resources, accountable for NIS2 compliance</li>
+    <li><strong>IT responsible person:</strong> Implements technical controls, manages access, conducts reviews</li>
+    <li><strong>All employees:</strong> Comply with Policy rules, report incidents and suspicious activity</li>
+    <li><strong>IT subcontractors:</strong> Contractually bound to follow the organisation's security standards</li>
+  </ul>
+  {% endif %}
+</div>
+
+<!-- PAGE BREAK -->
+<div class="break-before"></div>
+
+<!-- SECTION 4 -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">4</span>{% if language == 'pl' %}Klasyfikacja aktywów{% else %}Asset Classification{% endif %}</div>
+  {% if language == 'pl' %}
+  <p>Wszystkie aktywa informacyjne klasyfikowane są według wrażliwości:</p>
+  <ul>
+    <li><strong>Poufne:</strong> dane klientów, umowy, dane finansowe, dane osobowe — dostęp ograniczony, szyfrowanie wymagane</li>
+    <li><strong>Wewnętrzne:</strong> procedury, korespondencja wewnętrzna — dostęp tylko dla pracowników</li>
+    <li><strong>Publiczne:</strong> materiały marketingowe, dane kontaktowe — bez ograniczeń</li>
+  </ul>
+  <p>Inwentarz aktywów jest aktualizowany co roku lub po każdej istotnej zmianie infrastruktury.</p>
+  {% else %}
+  <p>All information assets are classified by sensitivity level:</p>
+  <ul>
+    <li><strong>Confidential:</strong> customer data, contracts, financial data, personal data — restricted access, encryption required</li>
+    <li><strong>Internal:</strong> procedures, internal correspondence — employee access only</li>
+    <li><strong>Public:</strong> marketing materials, contact information — unrestricted</li>
+  </ul>
+  <p>The asset inventory is updated annually or after any significant infrastructure change.</p>
+  {% endif %}
+</div>
+
+<!-- SECTION 5 -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">5</span>
+    {% if language == 'pl' %}Kontrola dostępu (MFA i hasła){% else %}Access Control (MFA &amp; Passwords){% endif %}
+  </div>
+  {% set access_gap = gaps | selectattr('req_id', 'in', ['req_10', 'req_4']) | first | default(None) %}
+  {% if access_gap and access_gap.risk_level in ['critical', 'high'] %}
+  <div class="attention-box">
+    {% if language == 'pl' %}PILNE: Ocena wykazała lukę w kontroli dostępu ({{ access_gap.risk_level | upper }}). Poniższe zasady wymagają natychmiastowego wdrożenia.{% else %}URGENT: Assessment found an access control gap ({{ access_gap.risk_level | upper }}). Rules below require immediate implementation.{% endif %}
+  </div>
+  {% endif %}
+  {% if language == 'pl' %}
+  <ul style="margin-top: 6px;">
+    <li><strong>MFA (uwierzytelnianie dwuskładnikowe):</strong> obowiązkowe na wszystkich kontach e-mail, VPN, systemach chmurowych i panelach administracyjnych</li>
+    <li><strong>Hasła:</strong> minimum 12 znaków, kombinacja liter, cyfr i znaków specjalnych; zmiana co 12 miesięcy lub natychmiast po incydencie</li>
+    <li><strong>Zasada minimalnych uprawnień:</strong> każdy pracownik ma dostęp wyłącznie do zasobów niezbędnych do pracy</li>
+    <li><strong>Konta administratorów:</strong> oddzielne od kont codziennego użytku; logowanie działań jest wymagane</li>
+    <li><strong>Odejście pracownika:</strong> konta dezaktywowane w dniu zakończenia współpracy</li>
+  </ul>
+  {% else %}
+  <ul style="margin-top: 6px;">
+    <li><strong>MFA (multi-factor authentication):</strong> mandatory on all email accounts, VPN, cloud systems, and admin panels</li>
+    <li><strong>Passwords:</strong> minimum 12 characters, mix of letters, digits, and special characters; changed every 12 months or immediately after an incident</li>
+    <li><strong>Least-privilege principle:</strong> each employee has access only to resources needed for their role</li>
+    <li><strong>Admin accounts:</strong> separate from daily-use accounts; activity logging required</li>
+    <li><strong>Employee departure:</strong> accounts deactivated on the last day of employment</li>
+  </ul>
+  {% endif %}
+</div>
+
+<!-- SECTION 6 -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">6</span>{% if language == 'pl' %}Kopie zapasowe{% else %}Backup Policy{% endif %}</div>
+  {% set backup_gap = gaps | selectattr('req_id', 'equalto', 'req_9') | first | default(None) %}
+  {% if backup_gap and backup_gap.risk_level in ['critical', 'high'] %}
+  <div class="attention-box">
+    {% if language == 'pl' %}PILNE: Ocena wykazała lukę w obszarze kopii zapasowych ({{ backup_gap.risk_level | upper }}). Zasady poniżej wymagają natychmiastowego wdrożenia i pierwszego testu.{% else %}URGENT: Assessment found a backup gap ({{ backup_gap.risk_level | upper }}). Rules below require immediate implementation and first test.{% endif %}
+  </div>
+  {% endif %}
+  {% if language == 'pl' %}
+  <ul style="margin-top: 6px;">
+    <li><strong>Częstotliwość:</strong> kopia pełna — co tydzień; kopia różnicowa — codziennie dla danych krytycznych</li>
+    <li><strong>Reguła 3-2-1:</strong> 3 kopie, na 2 różnych nośnikach, 1 poza siedzibą firmy (chmura lub fizyczna lokalizacja)</li>
+    <li><strong>Szyfrowanie:</strong> wszystkie kopie zapasowe muszą być zaszyfrowane</li>
+    <li><strong>Test odtworzenia:</strong> przeprowadzany co kwartał; wyniki dokumentowane i przechowywane przez 12 miesięcy</li>
+    <li><strong>Odpowiedzialny:</strong> osoba ds. IT lub wyznaczony podwykonawca</li>
+  </ul>
+  {% else %}
+  <ul style="margin-top: 6px;">
+    <li><strong>Frequency:</strong> full backup — weekly; differential backup — daily for critical data</li>
+    <li><strong>3-2-1 rule:</strong> 3 copies, on 2 different media, 1 offsite (cloud or physical location)</li>
+    <li><strong>Encryption:</strong> all backups must be encrypted</li>
+    <li><strong>Restore test:</strong> conducted quarterly; results documented and retained for 12 months</li>
+    <li><strong>Responsible:</strong> IT person or designated subcontractor</li>
+  </ul>
+  {% endif %}
+</div>
+
+<!-- PAGE BREAK -->
+<div class="break-before"></div>
+
+<!-- SECTION 7 -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">7</span>{% if language == 'pl' %}Reagowanie na incydenty{% else %}Incident Response{% endif %}</div>
+  {% set ir_gap = gaps | selectattr('req_id', 'equalto', 'req_5') | first | default(None) %}
+  {% if ir_gap and ir_gap.risk_level in ['critical', 'high'] %}
+  <div class="attention-box">
+    {% if language == 'pl' %}PILNE: Ocena wykazała brak procedury reagowania na incydenty ({{ ir_gap.risk_level | upper }}). Szczegółowy plan zawiera dokument „Procedura reagowania na incydenty".{% else %}URGENT: Assessment found no incident response procedure ({{ ir_gap.risk_level | upper }}). See the "Incident Response Plan" document for details.{% endif %}
+  </div>
+  {% endif %}
+  {% if language == 'pl' %}
+  <ul style="margin-top: 6px;">
+    <li><strong>Definicja incydentu:</strong> każde zdarzenie naruszające lub mogące naruszyć bezpieczeństwo systemów (atak ransomware, wyciek danych, nieautoryzowany dostęp, utrata urządzenia)</li>
+    <li><strong>Zgłaszanie:</strong> każdy pracownik zgłasza podejrzenie incydentu bezpośrednio do osoby odpowiedzialnej za IT — niezwłocznie, nie później niż w ciągu 4 godzin</li>
+    <li><strong>Obowiązek NIS2:</strong> znaczące incydenty muszą być zgłoszone do CSIRT NASK w ciągu 24 godzin od wykrycia (wstępne powiadomienie), finalna ocena — 72 godziny</li>
+    <li><strong>Dokumentacja:</strong> każdy incydent dokumentowany w rejestrze incydentów; przechowywany przez minimum 5 lat</li>
+    <li><strong>Szczegółowa procedura:</strong> zawarta w odrębnym dokumencie „Procedura reagowania na incydenty"</li>
+  </ul>
+  {% else %}
+  <ul style="margin-top: 6px;">
+    <li><strong>Incident definition:</strong> any event breaching or potentially breaching system security (ransomware, data leak, unauthorised access, lost device)</li>
+    <li><strong>Reporting:</strong> every employee reports suspected incidents to the IT responsible person immediately, within 4 hours at the latest</li>
+    <li><strong>NIS2 obligation:</strong> significant incidents must be reported to the competent CSIRT within 24 hours of detection (preliminary notification), final assessment — 72 hours</li>
+    <li><strong>Documentation:</strong> every incident logged in the incident register; retained for a minimum of 5 years</li>
+    <li><strong>Detailed procedure:</strong> see the separate "Incident Response Plan" document</li>
+  </ul>
+  {% endif %}
+</div>
+
+<!-- SECTION 8 -->
+<div class="section no-break">
+  <div class="section-title"><span class="section-num">8</span>{% if language == 'pl' %}Przegląd roczny{% else %}Annual Review{% endif %}</div>
+  {% if language == 'pl' %}
+  <p>Niniejsza Polityka podlega przeglądowi co najmniej raz w roku lub po każdym znaczącym incydencie bezpieczeństwa, zmianie struktury organizacyjnej lub istotnej zmianie w infrastrukturze IT. Osoba odpowiedzialna za IT przygotowuje raport z przeglądu; zarząd zatwierdza zmiany.</p>
+  {% else %}
+  <p>This Policy is reviewed at least once a year, or after any significant security incident, organisational change, or major change to IT infrastructure. The IT responsible person prepares the review report; management approves changes.</p>
+  {% endif %}
+
+  <table class="sign-table" style="margin-top: 12px;">
+    <tr>
+      <td class="label">{% if language == 'pl' %}Zatwierdził / Data{% else %}Approved by / Date{% endif %}</td>
+      <td style="height: 28px;"></td>
+      <td class="label">{% if language == 'pl' %}Podpis{% else %}Signature{% endif %}</td>
+      <td style="height: 28px;"></td>
+    </tr>
+    <tr>
+      <td class="label">{% if language == 'pl' %}Następny przegląd{% else %}Next review{% endif %}</td>
+      <td></td>
+      <td class="label">{% if language == 'pl' %}Wersja dokumentu{% else %}Document version{% endif %}</td>
+      <td>1.0</td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>

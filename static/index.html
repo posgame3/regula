@@ -80,6 +80,9 @@ let conversationStarted = false;
 let streamBubble = null;
 let streamText = '';
 let demoRunning = false;
+let demoExhausted = false;
+let demoIndex = 0;
+let demoScript = [];
 
 const STAGES = [
   { key: 'qualifier', en: 'Qualify',   pl: 'Kwalifikacja' },
@@ -506,8 +509,6 @@ function updateDemoButton() {
   btn.style.display = (conversationStarted || demoRunning) ? 'none' : '';
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 function waitUntilReady() {
   return new Promise(resolve => {
     const check = () => {
@@ -518,35 +519,57 @@ function waitUntilReady() {
   });
 }
 
-async function runDemo() {
+function sendNextDemoAnswer() {
+  if (!demoRunning || demoExhausted) return;
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  if (demoIndex >= demoScript.length) {
+    demoExhausted = true;
+    demoRunning = false;
+    const inp = document.getElementById('input');
+    inp.disabled = false;
+    inp.placeholder = lang === 'pl' ? 'Wpisz odpowiedź…' : 'Type your answer…';
+    document.getElementById('send-btn').disabled = false;
+    append(`
+      <div class="flex justify-center my-1">
+        <span class="px-3 py-1 bg-amber-50 text-amber-700 text-xs rounded-full font-medium border border-amber-200">
+          ${lang === 'pl'
+            ? 'Odpowiedzi demo skończyły się — możesz kontynuować samodzielnie'
+            : 'Demo answers exhausted — you can continue manually'}
+        </span>
+      </div>`);
+    return;
+  }
+
+  const answer = demoScript[demoIndex++];
+  conversationStarted = true;
+  document.getElementById('lang-confirm')?.remove();
+  addUser(answer);
+  ws.send(JSON.stringify({ type: 'message', text: answer, language: lang }));
+  setProcessing(true);
+}
+
+function runDemo() {
   if (demoRunning || conversationStarted) return;
   demoRunning = true;
+  demoExhausted = false;
+  demoIndex = 0;
+  demoScript = DEMO_SCRIPTS[lang];
+
   document.getElementById('btn-demo').style.display = 'none';
   const inp = document.getElementById('input');
   inp.disabled = true;
   inp.placeholder = lang === 'pl' ? 'Tryb demo…' : 'Demo mode…';
   document.getElementById('send-btn').disabled = true;
+
   append(`
     <div class="flex justify-center my-1">
       <span class="px-3 py-1 bg-slate-100 text-slate-500 text-xs rounded-full font-medium border border-slate-200">
         🎬 ${lang === 'pl' ? 'Tryb demo — Historia Marka' : 'Demo mode — Marek\'s story'}
       </span>
     </div>`);
-  const script = DEMO_SCRIPTS[lang];
-  for (let i = 0; i < script.length; i++) {
-    await waitUntilReady();
-    await sleep(1500);
-    if (!demoRunning) break;
-    conversationStarted = true;
-    document.getElementById('lang-confirm')?.remove();
-    addUser(script[i]);
-    ws.send(JSON.stringify({ type: 'message', text: script[i], language: lang }));
-    setProcessing(true);
-  }
-  await waitUntilReady();
-  document.getElementById('input').disabled = false;
-  document.getElementById('send-btn').disabled = false;
-  document.getElementById('input').placeholder = lang === 'pl' ? 'Wpisz odpowiedź…' : 'Type your answer…';
+
+  waitUntilReady().then(() => sendNextDemoAnswer());
 }
 
 // ── UI helpers ─────────────────────────────────────────────────────────────
@@ -577,6 +600,9 @@ function resetSession() {
   stage = 'qualifier';
   conversationStarted = false;
   demoRunning = false;
+  demoExhausted = false;
+  demoIndex = 0;
+  demoScript = [];
   busy = false;
   document.getElementById('chat').innerHTML = '';
   document.getElementById('input').disabled = false;
@@ -643,6 +669,9 @@ function connect() {
       startOrAppendStream(msg.text);
     } else if (msg.type === 'stream_end') {
       finalizeStreamBubble();
+      if (demoRunning && !demoExhausted) {
+        setTimeout(sendNextDemoAnswer, 1000);
+      }
     } else if (msg.type === 'stream_abort') {
       abortStreamBubble();
     } else if (msg.type === 'stream_replace') {
@@ -652,6 +681,9 @@ function connect() {
     } else if (msg.type === 'agent_message') {
       setProcessing(false);
       addAgent(msg.text);
+      if (demoRunning && !demoExhausted) {
+        setTimeout(sendNextDemoAnswer, 1000);
+      }
     } else if (msg.type === 'stage_change') {
       stage = msg.stage;
       renderProgress();
@@ -661,9 +693,11 @@ function connect() {
       addAnalysis(msg.data);
     } else if (msg.type === 'complete') {
       setProcessing(false);
+      demoRunning = false;
       addComplete(msg.data);
     } else if (msg.type === 'error') {
       setProcessing(false);
+      demoRunning = false;
       addError('Error: ' + msg.text);
     }
   };

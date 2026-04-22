@@ -1,0 +1,259 @@
+import json
+import os
+import re
+from pathlib import Path
+
+from anthropic import AsyncAnthropic
+from dotenv import load_dotenv
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse
+
+load_dotenv()
+
+from agents.qualifier import QUALIFIER_SYSTEM
+from agents.interviewer import build_interview_system
+from agents.analyzer import build_analyzer_system
+from agents.redteam import build_redteam_system
+from agents.drafter import build_drafter_system
+
+app = FastAPI()
+MODEL = "claude-opus-4-7"
+COMPLETE_MARKER = "[INTERVIEW_COMPLETE]"
+sessions: dict = {}
+
+
+def load_nis2_requirements() -> list:
+    base = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(base, "data", "frameworks", "nis2.json")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)["requirements"]
+
+
+def extract_json(text: str):
+    try:
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+    return None
+
+
+def parse_after_json(text: str) -> tuple:
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            obj = json.loads(match.group())
+            rest = text[match.end():].strip()
+            return obj, rest
+        except json.JSONDecodeError:
+            pass
+    return None, ""
+
+
+async def call_claude(client: AsyncAnthropic, system: str, messages: list, max_tokens: int = 1024) -> str:
+    resp = await client.messages.create(
+        model=MODEL,
+        max_tokens=max_tokens,
+        system=system,
+        messages=messages,
+    )
+    return resp.content[0].text
+
+
+@app.get("/")
+async def index():
+    return HTMLResponse(Path("static/index.html").read_text(encoding="utf-8"))
+
+
+@app.websocket("/ws/{session_id}")
+async def ws_handler(websocket: WebSocket, session_id: str):
+    await websocket.accept()
+
+    client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    reqs = load_nis2_requirements()
+
+    session = {
+        "stage": "qualifier",
+        "messages": [],
+        "qualifier_result": None,
+        "interview_findings": None,
+        "gap_analysis": None,
+        "redteam_result": None,
+        "drafter_result": None,
+        "language": "en",
+        "question_count": 0,
+        "busy": False,
+    }
+    sessions[session_id] = session
+
+    async def send(msg: dict):
+        await websocket.send_json(msg)
+
+    # Seed qualifier with standard opening and get first question
+    try:
+        seed = "Hello, I'd like to find out if NIS2 applies to my company."
+        session["messages"] = [{"role": "user", "content": seed}]
+        text = await call_claude(client, QUALIFIER_SYSTEM, session["messages"], max_tokens=1024)
+        session["messages"].append({"role": "assistant", "content": text})
+
+        parsed = extract_json(text)
+        if parsed and "applies" in parsed:
+            await _handle_qualifier_result(parsed, session, reqs, client, send)
+        else:
+            await send({"type": "agent_message", "text": text, "stage": "qualifier"})
+    except Exception as exc:
+        await send({"type": "error", "text": str(exc)})
+        return
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data.get("type") != "message":
+                continue
+            user_text = data.get("text", "").strip()
+            if not user_text or session["busy"]:
+                continue
+
+            session["busy"] = True
+            try:
+                await _dispatch(client, session, reqs, user_text, send)
+            except Exception as exc:
+                await send({"type": "error", "text": str(exc)})
+            finally:
+                session["busy"] = False
+
+    except WebSocketDisconnect:
+        pass
+    finally:
+        sessions.pop(session_id, None)
+
+
+async def _dispatch(client, session, reqs, user_text, send):
+    stage = session["stage"]
+    session["messages"].append({"role": "user", "content": user_text})
+
+    if stage == "qualifier":
+        text = await call_claude(client, QUALIFIER_SYSTEM, session["messages"], max_tokens=1024)
+        session["messages"].append({"role": "assistant", "content": text})
+        parsed = extract_json(text)
+        if parsed and "applies" in parsed:
+            await _handle_qualifier_result(parsed, session, reqs, client, send)
+        else:
+            await send({"type": "agent_message", "text": text, "stage": "qualifier"})
+
+    elif stage == "interview":
+        system = build_interview_system(session["qualifier_result"], reqs, session["question_count"])
+        text = await call_claude(client, system, session["messages"], max_tokens=2048)
+        session["messages"].append({"role": "assistant", "content": text})
+        session["question_count"] += 1
+
+        if COMPLETE_MARKER in text:
+            idx = text.find(COMPLETE_MARKER)
+            closing = text[:idx].strip()
+            if closing:
+                await send({"type": "agent_message", "text": closing, "stage": "interview"})
+            findings = extract_json(text[idx + len(COMPLETE_MARKER):].strip())
+            if findings:
+                await _run_analysis_pipeline(findings, session, reqs, client, send)
+            else:
+                await send({"type": "error", "text": "Could not parse interview results."})
+        else:
+            await send({"type": "agent_message", "text": text, "stage": "interview"})
+
+    elif stage == "redteam":
+        system = build_redteam_system(
+            session["gap_analysis"], session["qualifier_result"], session["language"]
+        )
+        text = await call_claude(client, system, session["messages"], max_tokens=4096)
+        session["messages"].append({"role": "assistant", "content": text})
+
+        verdict, prep = parse_after_json(text)
+        if verdict and "verdict" in verdict:
+            pre_json = text[:text.find("{")].strip() if "{" in text else ""
+            if pre_json:
+                await send({"type": "agent_message", "text": pre_json, "stage": "redteam"})
+            session["redteam_result"] = {"verdict": verdict, "preparation": prep}
+            await _run_drafter(session, client, send)
+        else:
+            await send({"type": "agent_message", "text": text, "stage": "redteam"})
+
+
+async def _handle_qualifier_result(parsed, session, reqs, client, send):
+    session["qualifier_result"] = parsed
+    if not parsed.get("applies"):
+        msg = parsed.get("reasoning", "NIS2 does not appear to apply to your organization.")
+        await send({"type": "agent_message", "text": msg, "stage": "qualifier"})
+        await send({"type": "stage_change", "stage": "complete", "label": "Complete"})
+        await send({"type": "complete", "data": {"applies": False, "reason": msg}})
+    else:
+        await send({"type": "stage_change", "stage": "interview", "label": "Interview"})
+        session["stage"] = "interview"
+        session["question_count"] = 0
+
+        seed = "Hi, I'm ready for the interview."
+        session["messages"] = [{"role": "user", "content": seed}]
+        system = build_interview_system(parsed, reqs, 0)
+        q1 = await call_claude(client, system, session["messages"], max_tokens=2048)
+        session["messages"].append({"role": "assistant", "content": q1})
+        session["question_count"] = 1
+        await send({"type": "agent_message", "text": q1, "stage": "interview"})
+
+
+async def _run_analysis_pipeline(findings, session, reqs, client, send):
+    session["interview_findings"] = findings
+    lang = findings.get("language", "en")
+    session["language"] = lang
+
+    await send({"type": "stage_change", "stage": "analyze", "label": "Analyzing"})
+
+    system = build_analyzer_system(findings, reqs, lang)
+    messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
+    text = await call_claude(client, system, messages, max_tokens=4096)
+    gaps = extract_json(text)
+    if not gaps:
+        await send({"type": "error", "text": "Could not parse gap analysis."})
+        return
+
+    session["gap_analysis"] = gaps
+    await send({"type": "analysis_result", "data": gaps})
+    await send({"type": "stage_change", "stage": "redteam", "label": "Audit Simulation"})
+    session["stage"] = "redteam"
+
+    system = build_redteam_system(gaps, session["qualifier_result"], lang)
+    seed = "I'm ready for the inspection."
+    session["messages"] = [{"role": "user", "content": seed}]
+    q1 = await call_claude(client, system, session["messages"], max_tokens=2048)
+    session["messages"].append({"role": "assistant", "content": q1})
+    await send({"type": "agent_message", "text": q1, "stage": "redteam"})
+
+
+async def _run_drafter(session, client, send):
+    await send({"type": "stage_change", "stage": "draft", "label": "Report"})
+
+    system = build_drafter_system(
+        session["gap_analysis"], session["qualifier_result"], session["language"]
+    )
+    messages = [{"role": "user", "content": "Please generate the policy outlines for the critical and high risk gaps."}]
+    text = await call_claude(client, system, messages, max_tokens=4096)
+    policies = extract_json(text)
+    if not policies:
+        await send({"type": "error", "text": "Could not generate policy drafts."})
+        return
+
+    session["drafter_result"] = policies
+    await send({
+        "type": "complete",
+        "data": {
+            "qualifier_result": session["qualifier_result"],
+            "interview_findings": session["interview_findings"],
+            "gap_analysis": session["gap_analysis"],
+            "redteam_result": session["redteam_result"],
+            "drafter_result": policies,
+            "language": session["language"],
+        },
+    })

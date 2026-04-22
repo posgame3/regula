@@ -584,7 +584,15 @@ async def _dispatch(client, session, reqs, user_text, send):
             if pre_json:
                 await send({"type": "agent_message", "text": pre_json, "stage": "redteam"})
             prep = text[text.rfind("}") + 1:].strip() if "}" in text else ""
+            if prep:
+                await send({"type": "agent_message", "text": prep, "stage": "redteam"})
+            await send({
+                "type": "agent_message",
+                "text": "─── Audit simulation complete. Preparing your full report... ───",
+                "stage": "redteam",
+            })
             session["redteam_result"] = {"verdict": result, "preparation": prep}
+            session["stage"] = "draft"
             await _run_drafter(session, client, send)
         else:
             if result:

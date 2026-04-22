@@ -80,14 +80,33 @@ def parse_after_json(text: str) -> tuple:
     return None, ""
 
 
-async def call_claude(client: AsyncAnthropic, system: str, messages: list, max_tokens: int = 1024) -> str:
-    resp = await client.messages.create(
+async def stream_to_ws(client: AsyncAnthropic, system: str, messages: list, max_tokens: int, send, stage: str) -> str:
+    """Stream tokens to UI via send callback. Returns full collected text."""
+    full_text = ""
+    async with client.messages.stream(
         model=MODEL,
         max_tokens=max_tokens,
         system=system,
         messages=messages,
-    )
-    return resp.content[0].text
+    ) as stream:
+        async for token in stream.text_stream:
+            full_text += token
+            await send({"type": "stream_token", "text": token, "stage": stage})
+    return full_text
+
+
+async def stream_silent(client: AsyncAnthropic, system: str, messages: list, max_tokens: int) -> str:
+    """Stream without sending tokens to UI. Returns full collected text."""
+    full_text = ""
+    async with client.messages.stream(
+        model=MODEL,
+        max_tokens=max_tokens,
+        system=system,
+        messages=messages,
+    ) as stream:
+        async for token in stream.text_stream:
+            full_text += token
+    return full_text
 
 
 @app.get("/")
@@ -170,52 +189,62 @@ async def _dispatch(client, session, reqs, user_text, send):
     session["messages"].append({"role": "user", "content": user_text})
 
     if stage == "qualifier":
-        text = await call_claude(client, build_qualifier_system(session["language"]), session["messages"], max_tokens=1024)
+        text = await stream_to_ws(client, build_qualifier_system(session["language"]), session["messages"], 1024, send, "qualifier")
         session["messages"].append({"role": "assistant", "content": text})
         try:
             parsed = extract_json(text)
             if "applies" in parsed:
+                # Streamed text was JSON — remove bubble before transitioning
+                await send({"type": "stream_abort"})
                 await _handle_qualifier_result(parsed, session, reqs, client, send)
             else:
-                await send({"type": "agent_message", "text": text, "stage": "qualifier"})
+                await send({"type": "stream_end", "stage": "qualifier"})
         except ValueError:
-            await send({"type": "agent_message", "text": text, "stage": "qualifier"})
+            await send({"type": "stream_end", "stage": "qualifier"})
 
     elif stage == "interview":
         system = build_interview_system(session["qualifier_result"], reqs, session["question_count"], session["language"])
-        text = await call_claude(client, system, session["messages"], max_tokens=2048)
+        text = await stream_to_ws(client, system, session["messages"], 2048, send, "interview")
         session["messages"].append({"role": "assistant", "content": text})
         session["question_count"] += 1
 
         if COMPLETE_MARKER in text:
             idx = text.find(COMPLETE_MARKER)
             closing = text[:idx].strip()
+            # Replace bubble with just the closing message, stripping marker + JSON
             if closing:
-                await send({"type": "agent_message", "text": closing, "stage": "interview"})
+                await send({"type": "stream_replace", "text": closing, "stage": "interview"})
+            else:
+                await send({"type": "stream_abort"})
+            await send({"type": "stream_end", "stage": "interview"})
             try:
                 findings = extract_json(text[idx + len(COMPLETE_MARKER):].strip())
                 await _run_analysis_pipeline(findings, session, reqs, client, send)
             except ValueError:
                 await send({"type": "error", "text": "Could not parse interview results."})
         else:
-            await send({"type": "agent_message", "text": text, "stage": "interview"})
+            await send({"type": "stream_end", "stage": "interview"})
 
     elif stage == "redteam":
         system = build_redteam_system(
             session["gap_analysis"], session["qualifier_result"], session["language"]
         )
-        text = await call_claude(client, system, session["messages"], max_tokens=4096)
+        text = await stream_to_ws(client, system, session["messages"], 4096, send, "redteam")
         session["messages"].append({"role": "assistant", "content": text})
 
         verdict, prep = parse_after_json(text)
         if verdict and "verdict" in verdict:
             pre_json = text[:text.find("{")].strip() if "{" in text else ""
+            # Replace bubble with only the pre-JSON narrative, strip the verdict JSON
             if pre_json:
-                await send({"type": "agent_message", "text": pre_json, "stage": "redteam"})
+                await send({"type": "stream_replace", "text": pre_json, "stage": "redteam"})
+            else:
+                await send({"type": "stream_abort"})
+            await send({"type": "stream_end", "stage": "redteam"})
             session["redteam_result"] = {"verdict": verdict, "preparation": prep}
             await _run_drafter(session, client, send)
         else:
-            await send({"type": "agent_message", "text": text, "stage": "redteam"})
+            await send({"type": "stream_end", "stage": "redteam"})
 
 
 async def _handle_qualifier_result(parsed, session, reqs, client, send):
@@ -233,10 +262,10 @@ async def _handle_qualifier_result(parsed, session, reqs, client, send):
         seed = "Hi, I'm ready for the interview."
         session["messages"] = [{"role": "user", "content": seed}]
         system = build_interview_system(parsed, reqs, 0, session["language"])
-        q1 = await call_claude(client, system, session["messages"], max_tokens=2048)
+        q1 = await stream_to_ws(client, system, session["messages"], 2048, send, "interview")
         session["messages"].append({"role": "assistant", "content": q1})
         session["question_count"] = 1
-        await send({"type": "agent_message", "text": q1, "stage": "interview"})
+        await send({"type": "stream_end", "stage": "interview"})
 
 
 async def _run_analysis_pipeline(findings, session, reqs, client, send):
@@ -247,7 +276,7 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
 
     system = build_analyzer_system(findings, reqs, lang)
     messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
-    text = await call_claude(client, system, messages, max_tokens=4096)
+    text = await stream_silent(client, system, messages, 4096)
     try:
         gaps = extract_json(text)
     except ValueError:
@@ -262,9 +291,9 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     system = build_redteam_system(gaps, session["qualifier_result"], lang)
     seed = "I'm ready for the inspection."
     session["messages"] = [{"role": "user", "content": seed}]
-    q1 = await call_claude(client, system, session["messages"], max_tokens=2048)
+    q1 = await stream_to_ws(client, system, session["messages"], 2048, send, "redteam")
     session["messages"].append({"role": "assistant", "content": q1})
-    await send({"type": "agent_message", "text": q1, "stage": "redteam"})
+    await send({"type": "stream_end", "stage": "redteam"})
 
 
 async def _run_drafter(session, client, send):
@@ -274,7 +303,7 @@ async def _run_drafter(session, client, send):
         session["gap_analysis"], session["qualifier_result"], session["language"]
     )
     messages = [{"role": "user", "content": "Please generate the policy outlines for the critical and high risk gaps."}]
-    text = await call_claude(client, system, messages, max_tokens=4096)
+    text = await stream_silent(client, system, messages, 4096)
     try:
         policies = extract_json(text)
     except ValueError:

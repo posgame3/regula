@@ -15,6 +15,8 @@ from agents.interviewer import build_interview_system
 from agents.analyzer import build_analyzer_system, build_analyzer_system_with_thinking
 from agents.redteam import build_redteam_system
 from agents.drafter import build_drafter_system
+from agents.threat_actor import build_threat_actor_system
+from agents.board_presenter import build_board_presenter_system
 
 app = FastAPI()
 MODEL = "claude-opus-4-7"
@@ -156,6 +158,8 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         "gap_analysis": None,
         "redteam_result": None,
         "drafter_result": None,
+        "threat_actor_result": None,
+        "board_slides": None,
         "language": "en",
         "question_count": 0,
         "busy": False,
@@ -340,8 +344,37 @@ async def _run_drafter(session, client, send):
     except ValueError:
         await send({"type": "error", "text": "Could not generate policy drafts."})
         return
-
     session["drafter_result"] = policies
+
+    # Threat Actor — extended thinking, model=claude-opus-4-7 (MODEL constant)
+    system = build_threat_actor_system(
+        session["gap_analysis"], session["qualifier_result"], session["language"]
+    )
+    messages = [{"role": "user", "content": "Analyze the company's gaps and show how a real attacker would exploit them."}]
+    _, text, _ = await call_with_thinking(
+        client, system, messages, max_tokens=16000, budget_tokens=8000
+    )
+    try:
+        threat_scenarios = extract_json(text)
+    except ValueError:
+        threat_scenarios = {"scenarios": [], "summary": ""}
+    session["threat_actor_result"] = threat_scenarios
+
+    # Board Presenter — model=claude-opus-4-7 (MODEL constant)
+    system = build_board_presenter_system(
+        session["gap_analysis"],
+        threat_scenarios,
+        session["qualifier_result"],
+        session["language"],
+    )
+    messages = [{"role": "user", "content": "Generate the 5-slide board presentation."}]
+    text = await stream_silent(client, system, messages, 4096)
+    try:
+        board_slides = extract_json(text)
+    except ValueError:
+        board_slides = {"slides": []}
+    session["board_slides"] = board_slides
+
     await send({
         "type": "complete",
         "data": {
@@ -350,6 +383,8 @@ async def _run_drafter(session, client, send):
             "gap_analysis": session["gap_analysis"],
             "redteam_result": session["redteam_result"],
             "drafter_result": policies,
+            "threat_actor_result": threat_scenarios,
+            "board_slides": board_slides,
             "language": session["language"],
         },
     })

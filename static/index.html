@@ -276,10 +276,160 @@ function addComplete(data) {
       </div>
     </div>`);
 
+  if (data.threat_actor_result?.scenarios?.length) {
+    addThreatScenarios(data.threat_actor_result);
+  }
+
+  if (data.board_slides?.slides?.length) {
+    addBoardPresentation(data.board_slides);
+  }
+
   document.getElementById('input').disabled = true;
   document.getElementById('input').placeholder = 'Assessment complete.';
   document.getElementById('send-btn').disabled = true;
   scrollBottom();
+}
+
+function addThreatScenarios(data) {
+  const scenarios = data.scenarios || [];
+  const PROB_COLORS = {
+    high:   'bg-red-500 text-white',
+    medium: 'bg-orange-400 text-white',
+    low:    'bg-yellow-400 text-slate-800',
+  };
+
+  const cards = scenarios.map((s, i) => {
+    const prob = (s.probability || 'medium').toLowerCase();
+    const probCls = PROB_COLORS[prob] || PROB_COLORS.medium;
+    const detailId = 'threat-detail-' + i;
+    return `
+      <div class="border-b border-red-100 last:border-0 px-5 py-4">
+        <div class="flex items-start justify-between gap-3 mb-1">
+          <p class="font-semibold text-sm text-slate-800">${esc(s.title || '')}</p>
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${probCls}">${esc(prob)}</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-2">${esc(s.gap_exploited || '')}</p>
+        <button onclick="document.getElementById('${detailId}').classList.toggle('hidden');this.textContent=this.textContent.includes('▸')?'▴ Hide details':'▸ See how the attack unfolds'"
+          class="text-xs text-slate-500 hover:text-slate-700 transition-colors">▸ See how the attack unfolds</button>
+        <div id="${detailId}" class="hidden mt-3 space-y-2">
+          <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
+            <span class="font-semibold text-slate-700">How it starts: </span>${esc(s.how_it_starts || '')}
+          </div>
+          <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
+            <span class="font-semibold text-slate-700">What happens: </span>${esc(s.what_happens || '')}
+          </div>
+          <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
+            <span class="font-semibold text-slate-700">Business impact: </span>${esc(s.business_impact || '')}
+          </div>
+        </div>
+        <div class="mt-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
+          <span class="font-semibold">Fix: </span>${esc(s.fix || '')}
+          ${s.fix_effort ? `<span class="text-green-500 ml-2">(${esc(s.fix_effort)})</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  append(`
+    <div class="rounded-2xl border-2 border-red-200 overflow-hidden shadow-sm my-3">
+      <div class="bg-red-50 px-5 py-4 border-b border-red-200">
+        <p class="text-sm font-bold text-red-800">⚠️ How attackers see your company</p>
+        ${data.summary ? `<p class="text-xs text-red-600 mt-1 leading-relaxed">${esc(data.summary)}</p>` : ''}
+      </div>
+      <div class="bg-white">${cards}</div>
+    </div>`);
+}
+
+function addBoardPresentation(data) {
+  const slides = data.slides || [];
+  const slide2 = slides.find(s => s.number === 2);
+  const score = typeof slide2?.score === 'number' ? slide2.score : null;
+  const scoreLabel = slide2?.score_label || '';
+
+  const gaugeColor = score === null ? '#94a3b8'
+                   : score < 40    ? '#ef4444'
+                   : score < 70    ? '#f97316'
+                                   : '#22c55e';
+  const scoreVal = score ?? 0;
+  const dash = Math.round(scoreVal);
+
+  const gaugeHtml = score !== null ? `
+    <div class="flex flex-col items-center my-4">
+      <div class="relative w-24 h-24">
+        <svg viewBox="0 0 36 36" class="w-24 h-24" style="transform:rotate(-90deg)">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#374151" stroke-width="3"/>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="${gaugeColor}" stroke-width="3"
+            stroke-dasharray="${dash} ${100 - dash}" stroke-linecap="round"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-2xl font-bold text-white">${score}</span>
+        </div>
+      </div>
+      ${scoreLabel ? `<p class="text-xs text-slate-400 mt-1 text-center">${esc(scoreLabel)}</p>` : ''}
+    </div>` : '';
+
+  const slideCards = slides.map(s => {
+    const noteId = 'note-' + s.number;
+    const bullets = (s.bullets || []).map(b => `<li class="text-xs text-slate-600">• ${esc(b)}</li>`).join('');
+    const actions = (s.actions || []).map(a =>
+      `<li class="text-xs text-slate-600">• <span class="font-medium">${esc(a.action || '')}</span> — ${esc(a.owner || '')}${a.effort ? `, ${esc(a.effort)}` : ''}${a.cost ? `, ${esc(a.cost)}` : ''}</li>`
+    ).join('');
+    const recommendation = s.recommendation
+      ? `<p class="text-xs text-slate-700 font-medium ml-8 mt-1">${esc(s.recommendation)}</p>` : '';
+    const costAction = s.cost_of_action
+      ? `<p class="text-xs text-slate-600 ml-8 mt-1"><span class="font-medium text-green-700">Action: </span>${esc(s.cost_of_action)}</p>` : '';
+    const costInaction = s.cost_of_inaction
+      ? `<p class="text-xs text-slate-600 ml-8 mt-1"><span class="font-medium text-red-700">Inaction: </span>${esc(s.cost_of_inaction)}</p>` : '';
+
+    const copyPayload = JSON.stringify({
+      title: s.title,
+      bullets: s.bullets || [],
+      actions: s.actions || [],
+      recommendation: s.recommendation || '',
+      speaker_note: s.speaker_note || '',
+    });
+
+    return `
+      <div class="border-b border-slate-100 last:border-0 px-5 py-4">
+        <div class="flex items-start gap-3">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-6 h-6 rounded-full bg-[#0A2540] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">${s.number}</span>
+              <p class="font-semibold text-sm text-slate-800">${esc(s.title || '')}</p>
+            </div>
+            ${bullets ? `<ul class="space-y-1 ml-8">${bullets}</ul>` : ''}
+            ${actions ? `<ul class="space-y-1 ml-8 mt-1">${actions}</ul>` : ''}
+            ${recommendation}${costAction}${costInaction}
+            ${s.speaker_note ? `
+            <button onclick="document.getElementById('${noteId}').classList.toggle('hidden');this.textContent=this.textContent.includes('▸')?'▴ Hide speaker notes':'▸ Speaker notes'"
+              class="mt-2 ml-8 text-xs text-slate-400 hover:text-slate-600 transition-colors">▸ Speaker notes</button>
+            <div id="${noteId}" class="hidden ml-8 mt-1 text-xs text-slate-400 italic leading-relaxed">${esc(s.speaker_note)}</div>` : ''}
+          </div>
+          <button onclick='copySlide(${JSON.stringify(copyPayload)})'
+            title="Copy slide to clipboard"
+            class="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0 text-base mt-0.5">📋</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  append(`
+    <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-sm my-3">
+      <div class="bg-slate-800 px-5 py-4">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">📊 Board Presentation</p>
+        ${gaugeHtml}
+      </div>
+      <div class="bg-white">${slideCards}</div>
+    </div>`);
+}
+
+function copySlide(payloadJson) {
+  let p;
+  try { p = JSON.parse(payloadJson); } catch (_) { return; }
+  const lines = [`# ${p.title}`];
+  (p.bullets || []).forEach(b => lines.push(`• ${b}`));
+  (p.actions || []).forEach(a => lines.push(`• ${a.action} — ${a.owner}, ${a.effort}, ${a.cost}`));
+  if (p.recommendation) lines.push(`\nRecommendation: ${p.recommendation}`);
+  if (p.speaker_note) lines.push(`\nSpeaker note: ${p.speaker_note}`);
+  navigator.clipboard?.writeText(lines.join('\n')).catch(() => {});
 }
 
 // ── UI helpers ─────────────────────────────────────────────────────────────

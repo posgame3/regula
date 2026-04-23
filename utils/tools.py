@@ -156,3 +156,15 @@ def generate_remediation_checklist(session_data: dict) -> str:
         "session_id": session_data.get("session_id", uuid.uuid4().hex[:8]),
     }
     return _render_pdf("checklist.html", context, "checklist")
+
+
+def generate_closure_plan(session_data: dict) -> str:
+    context = {
+        "company_name": session_data.get("company_name", ""),
+        "sector": session_data.get("sector", ""),
+        "closure_plans": session_data.get("closure_plans") or {},
+        "language": session_data.get("language", "pl"),
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "session_id": session_data.get("session_id", uuid.uuid4().hex[:8]),
+    }
+    return _render_pdf("closure_plan.html", context, "closure_plan")

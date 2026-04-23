@@ -945,6 +945,130 @@
     }
     .slide-notes.shown { display: block; }
 
+    /* Closure Plans */
+    .closure-card {
+      border: 1px solid var(--hairline); background: var(--paper);
+      margin-top: 14px;
+    }
+    .closure-head {
+      border-bottom: 1px solid var(--hairline); padding: 14px 18px;
+    }
+    .closure-head .tt {
+      font-family: var(--f-sans); font-weight: 500; font-size: 15px; color: var(--ink);
+    }
+    .closure-head .ts {
+      font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-top: 4px;
+      letter-spacing: 0.02em;
+    }
+    .closure-plan {
+      border-bottom: 1px solid var(--hairline);
+    }
+    .closure-plan:last-child { border-bottom: none; }
+    .cp-head {
+      padding: 12px 18px; cursor: pointer; display: flex; align-items: center;
+      justify-content: space-between; gap: 14px; user-select: none;
+    }
+    .cp-head:hover { background: var(--faint); }
+    .cp-title {
+      font-family: var(--f-sans); font-size: 14px; color: var(--ink); font-weight: 500;
+    }
+    .cp-article {
+      font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-top: 2px;
+    }
+    .cp-meta-inline {
+      font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft);
+      display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px;
+    }
+    .cp-arrow {
+      font-family: var(--f-mono); font-size: 18px; color: var(--muted); flex-shrink: 0;
+    }
+    .cp-body {
+      display: none; padding: 0 18px 18px 18px;
+    }
+    .cp-body.shown { display: block; }
+    .cp-stack {
+      background: var(--faint); border-left: 2px solid var(--signal);
+      padding: 10px 12px; margin-bottom: 14px; font-size: 12px;
+    }
+    .cp-stack strong { color: var(--ink); }
+    .cp-confidence {
+      display: inline-block; padding: 1px 6px; border-radius: 2px;
+      font-family: var(--f-mono); font-size: 10px; margin-left: 6px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .cp-conf-high   { background: #dcfce7; color: #166534; }
+    .cp-conf-medium { background: #fef3c7; color: #92400e; }
+    .cp-conf-low    { background: #fee2e2; color: #991b1b; }
+    .cp-evidence {
+      color: var(--ink-soft); font-style: italic; font-size: 11px; margin-top: 4px;
+    }
+    .cp-day {
+      display: grid; grid-template-columns: 80px 1fr; gap: 14px;
+      padding: 10px 0; border-bottom: 1px dashed var(--hairline);
+    }
+    .cp-day:last-child { border-bottom: none; }
+    .cp-day-num {
+      font-family: var(--f-mono); font-size: 11px; color: var(--signal);
+      font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .cp-day-duration {
+      font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+      margin-top: 2px;
+    }
+    .cp-day-title {
+      font-family: var(--f-sans); font-size: 13px; font-weight: 500; color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .cp-day-steps {
+      margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-soft);
+      line-height: 1.55;
+    }
+    .cp-day-steps li { margin-bottom: 2px; }
+    .cp-day-verify {
+      font-family: var(--f-mono); font-size: 11px; color: var(--muted);
+      margin-top: 6px; font-style: italic;
+    }
+    .cp-templates { margin-top: 14px; }
+    .cp-template {
+      border: 1px solid var(--hairline); background: var(--faint);
+      padding: 10px 12px; margin-top: 8px;
+    }
+    .cp-template-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      margin-bottom: 6px;
+    }
+    .cp-template-label {
+      font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .cp-copy-btn {
+      background: transparent; border: 1px solid var(--hairline);
+      padding: 3px 10px; cursor: pointer;
+      font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .cp-copy-btn:hover { border-color: var(--ink); color: var(--ink); }
+    .cp-copy-btn.copied { border-color: var(--ok); color: var(--ok); }
+    .cp-template-body {
+      font-family: var(--f-mono); font-size: 11.5px; color: var(--ink);
+      white-space: pre-wrap; line-height: 1.55;
+    }
+    .cp-dod {
+      margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--hairline);
+    }
+    .cp-dod-title {
+      font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .cp-dod ul {
+      margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-soft);
+      line-height: 1.55;
+    }
+    .cp-disclaimer {
+      font-family: var(--f-mono); font-size: 10.5px; color: var(--muted);
+      font-style: italic; margin-top: 6px;
+    }
+
     /* Tool generating / ready */
     .tool-box {
       border-left: 2px solid var(--warn); background: var(--warn-soft);
@@ -1961,6 +2085,9 @@ function addComplete(data) {
   if (data.board_slides?.slides?.length) {
     addBoardPresentation(data.board_slides);
   }
+  if (data.closure_plans?.closure_plans?.length) {
+    addClosurePlans(data.closure_plans);
+  }
 
   document.getElementById('input').disabled = true;
   document.getElementById('input').placeholder = lang === 'pl' ? 'Ocena zakończona.' : 'Assessment complete.';
@@ -2070,6 +2197,153 @@ function copySlide(payloadJson) {
   if (p.recommendation) lines.push(`\nRecommendation: ${p.recommendation}`);
   if (p.speaker_note) lines.push(`\nSpeaker note: ${p.speaker_note}`);
   navigator.clipboard?.writeText(lines.join('\n')).catch(() => {});
+}
+
+// ═══════════════════════════ Closure Plans ═══════════════════════════
+const CP_TEXT = {
+  pl: {
+    title: '▸ Plan zamknięcia luk',
+    subtitle: 'Day-by-day runbook, dopasowany do Twojego stacku — nie raport, tylko kroki do wykonania.',
+    days: 'dni', hours: 'h', cost: 'Koszt', owner: 'Odpowiedzialny',
+    stack: 'Wykryty stack', day: 'Dzień', verify: 'Weryfikacja',
+    boardEmail: 'Email do zarządu', teamMsg: 'Komunikat do zespołu',
+    dod: 'Definicja gotowości', copy: 'Kopiuj', copied: '✓ Skopiowano',
+  },
+  en: {
+    title: '▸ Gap closure plan',
+    subtitle: 'Day-by-day runbook tailored to your stack — not a report, actual steps to execute.',
+    days: 'days', hours: 'h', cost: 'Cost', owner: 'Owner',
+    stack: 'Detected stack', day: 'Day', verify: 'Verify',
+    boardEmail: 'Board email', teamMsg: 'Team announcement',
+    dod: 'Definition of Done', copy: 'Copy', copied: '✓ Copied',
+  },
+};
+
+function addClosurePlans(data) {
+  const t = CP_TEXT[lang] || CP_TEXT.en;
+  const plans = (data && data.closure_plans) || [];
+  if (!plans.length) return;
+
+  const plansHtml = plans.map((p, i) => {
+    const bodyId = 'cp-body-' + i + '-' + Date.now();
+    const arrowId = 'cp-arrow-' + i + '-' + Date.now();
+
+    const conf = (p.detected_stack?.confidence || '').toLowerCase();
+    const stackHtml = p.detected_stack ? `
+      <div class="cp-stack">
+        <strong>${t.stack}:</strong> ${esc(p.detected_stack.identity || '—')}
+        ${conf ? `<span class="cp-confidence cp-conf-${conf}">${esc(conf.toUpperCase())}</span>` : ''}
+        ${p.detected_stack.evidence ? `<div class="cp-evidence">"${esc(p.detected_stack.evidence)}"</div>` : ''}
+        ${p.stack_disclaimer ? `<div class="cp-disclaimer">${esc(p.stack_disclaimer)}</div>` : ''}
+      </div>` : '';
+
+    const daysHtml = (p.days || []).map(d => `
+      <div class="cp-day">
+        <div>
+          <div class="cp-day-num">${t.day} ${d.day}</div>
+          <div class="cp-day-duration">${d.duration_min || 0} min</div>
+        </div>
+        <div>
+          <div class="cp-day-title">${esc(d.title || '')}</div>
+          ${(d.steps || []).length
+            ? `<ol class="cp-day-steps">${(d.steps || []).map(s => `<li>${linkifyUrls(esc(s))}</li>`).join('')}</ol>`
+            : ''}
+          ${d.verification ? `<div class="cp-day-verify">✓ ${t.verify}: ${esc(d.verification)}</div>` : ''}
+        </div>
+      </div>`).join('');
+
+    const boardEmailId = 'cp-board-' + i + '-' + Date.now();
+    const teamMsgId    = 'cp-team-'  + i + '-' + Date.now();
+    const boardEmailHtml = p.board_email ? `
+      <div class="cp-template">
+        <div class="cp-template-head">
+          <span class="cp-template-label">${t.boardEmail}</span>
+          <button class="cp-copy-btn" onclick="cpCopy(this, '${boardEmailId}')">${t.copy}</button>
+        </div>
+        <div class="cp-template-body" id="${boardEmailId}">${esc(p.board_email)}</div>
+      </div>` : '';
+    const teamMsgHtml = p.team_announcement ? `
+      <div class="cp-template">
+        <div class="cp-template-head">
+          <span class="cp-template-label">${t.teamMsg}</span>
+          <button class="cp-copy-btn" onclick="cpCopy(this, '${teamMsgId}')">${t.copy}</button>
+        </div>
+        <div class="cp-template-body" id="${teamMsgId}">${esc(p.team_announcement)}</div>
+      </div>` : '';
+
+    const dodHtml = (p.definition_of_done || []).length ? `
+      <div class="cp-dod">
+        <div class="cp-dod-title">${t.dod}</div>
+        <ul>${(p.definition_of_done || []).map(d => `<li>${esc(d)}</li>`).join('')}</ul>
+      </div>` : '';
+
+    const metaParts = [];
+    if (p.timeline_days)      metaParts.push(`${p.timeline_days} ${t.days}`);
+    if (p.total_effort_hours) metaParts.push(`${p.total_effort_hours}${t.hours}`);
+    if (p.cost_eur_range)     metaParts.push(`${t.cost}: €${esc(p.cost_eur_range)}`);
+    if (p.owner_role)         metaParts.push(`${t.owner}: ${esc(p.owner_role)}`);
+
+    return `
+      <div class="closure-plan">
+        <div class="cp-head" onclick="cpToggle('${bodyId}', '${arrowId}')">
+          <div style="flex:1;min-width:0">
+            <div class="cp-title">${esc(p.gap_name_plain || '—')}</div>
+            <div class="cp-article">${esc(p.article_ref || '')}</div>
+            <div class="cp-meta-inline">${metaParts.map(m => `<span>${m}</span>`).join('')}</div>
+          </div>
+          <div class="cp-arrow" id="${arrowId}">+</div>
+        </div>
+        <div class="cp-body" id="${bodyId}">
+          ${stackHtml}
+          ${daysHtml ? `<div>${daysHtml}</div>` : ''}
+          ${(boardEmailHtml || teamMsgHtml) ? `<div class="cp-templates">${boardEmailHtml}${teamMsgHtml}</div>` : ''}
+          ${dodHtml}
+        </div>
+      </div>`;
+  }).join('');
+
+  append(`
+    <div class="closure-card">
+      <div class="closure-head">
+        <div class="tt">${t.title}</div>
+        <div class="ts">${t.subtitle}</div>
+      </div>
+      ${plansHtml}
+    </div>`);
+
+  // Auto-expand the first plan so the feature is visible at first glance
+  setTimeout(() => {
+    const firstHead = document.querySelector('.closure-plan .cp-head');
+    if (firstHead) firstHead.click();
+  }, 50);
+}
+
+function cpToggle(bodyId, arrowId) {
+  const body  = document.getElementById(bodyId);
+  const arrow = document.getElementById(arrowId);
+  if (!body) return;
+  const open = body.classList.toggle('shown');
+  if (arrow) arrow.textContent = open ? '×' : '+';
+}
+
+function cpCopy(btn, sourceId) {
+  const el = document.getElementById(sourceId);
+  if (!el) return;
+  const text = el.textContent || '';
+  const t = CP_TEXT[lang] || CP_TEXT.en;
+  const original = btn.textContent;
+  navigator.clipboard?.writeText(text).then(() => {
+    btn.textContent = t.copied;
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.classList.remove('copied');
+    }, 1800);
+  }).catch(() => {});
+}
+
+function linkifyUrls(html) {
+  return html.replace(/(https?:\/\/[^\s<"]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 }
 
 // ═══════════════════════════ Tool cards ═══════════════════════════

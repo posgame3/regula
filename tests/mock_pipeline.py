@@ -27,7 +27,7 @@ except ImportError:
     sys.exit("Install websockets: pip install websockets")
 
 SERVER = "ws://localhost:8000"
-EXPECTED_STAGES = {"interview", "analyze", "redteam", "draft"}
+EXPECTED_STAGES = {"interview", "analyze", "redteam", "draft", "closure"}
 
 
 async def run_smoke_test() -> bool:
@@ -51,7 +51,8 @@ async def run_smoke_test() -> bool:
                 "language": "en",
             }))
 
-            interview_answered = False
+            answers_sent = 0
+            max_answers = 12  # interviewer requires ≥ 8 questions before completing
 
             while True:
                 try:
@@ -68,23 +69,26 @@ async def run_smoke_test() -> bool:
                 if mtype == "stage_change":
                     stages_seen.append(msg.get("stage", ""))
 
-                # After the first interview question, send one answer so the
-                # mock interview advances to [INTERVIEW_COMPLETE].
+                # Keep answering interview questions until the mock advances
+                # to analysis. The mock interviewer requires at least 8 exchanges.
                 if (
                     mtype == "agent_message"
                     and msg.get("stage") == "interview"
-                    and not interview_answered
+                    and answers_sent < max_answers
                 ):
-                    interview_answered = True
-                    await asyncio.sleep(0.3)
+                    answers_sent += 1
+                    await asyncio.sleep(0.2)
                     await ws.send(json.dumps({
                         "type": "message",
-                        "text": "We only have basic passwords, no two-factor login.",
+                        "text": f"Mock interview answer {answers_sent} — basic passwords, Gmail, no training.",
                         "language": "en",
                     }))
 
                 if mtype == "complete":
                     complete = True
+                    data = msg.get("data", {}) or {}
+                    plans = (data.get("closure_plans") or {}).get("closure_plans") or []
+                    print(f"  closure_plans in payload: {len(plans)}")
                     break
 
     except OSError as exc:

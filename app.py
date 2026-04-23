@@ -70,9 +70,10 @@ from agents.monitor_managed import run_managed_monitor
 from agents.drafter import build_drafter_system
 from agents.threat_actor import build_threat_actor_system
 from agents.board_presenter import build_board_presenter_system
+from agents.closure_planner import build_closure_planner_system
 from utils import benchmark, profile_store, session_store
 from utils.pdf import generate_report_pdf
-from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist, search_enisa_guidance
+from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist, generate_closure_plan, search_enisa_guidance
 
 app = FastAPI()
 TEST_MODE = bool(os.getenv("TEST_MODE"))
@@ -316,6 +317,132 @@ _MOCK_BOARD = json.dumps({
 })
 
 
+_MOCK_CLOSURE_PLANS = json.dumps({
+    "closure_plans": [
+        {
+            "gap_id": 1,
+            "article_ref": "Article 21(2)(j) — MFA and secured communications",
+            "gap_name_plain": "No multi-factor authentication on company accounts",
+            "detected_stack": {
+                "identity": "Google Workspace",
+                "email": "Google Workspace",
+                "evidence": "User mentioned Gmail is the primary email system",
+                "confidence": "high",
+            },
+            "stack_disclaimer": "",
+            "timeline_days": 10,
+            "total_effort_hours": 6,
+            "cost_eur_range": "0-200",
+            "owner_role": "IT Administrator",
+            "days": [
+                {"day": 1, "duration_min": 20, "title": "Enable 2-Step Verification in admin console",
+                 "steps": ["Go to https://admin.google.com/ac/security/2sv",
+                           "Turn On 2-Step Verification for Administrators OU first"],
+                 "verification": "Log out and log back in — must prompt for a 2FA code"},
+                {"day": 2, "duration_min": 45, "title": "Pilot with 5 admin accounts",
+                 "steps": ["Enforce 2SV only on Administrators OU",
+                           "Confirm each admin enrolled via the reports page"],
+                 "verification": "All pilot admins show as enrolled in Reports → Security"},
+                {"day": 5, "duration_min": 60, "title": "Rollout to all staff",
+                 "steps": ["Switch Enforcement to whole domain",
+                           "Send the team announcement below"],
+                 "verification": "100% enrolled count in admin reports within 72h"},
+                {"day": 10, "duration_min": 30, "title": "Document and close",
+                 "steps": ["Add the 2SV requirement to onboarding checklist",
+                           "Document the bypass procedure in the incident response plan"],
+                 "verification": "Onboarding checklist updated, IR plan cites 2SV bypass"},
+            ],
+            "board_email": "Subject: NIS2 — MFA rollout request\n\nDear board, to close our #1 NIS2 Article 21(2)(j) audit finding I am requesting approval for a 10-day multi-factor authentication rollout across all company accounts. Budget: €0-200 (no new licenses needed on our current Google Workspace plan). Timeline: 10 days starting Monday. This closes one of our two critical audit findings and brings us into compliance with the mandatory NIS2 cybersecurity measures. I will report back with enrollment metrics by day 10.\n\nRegards.",
+            "team_announcement": "Hi team — starting Monday we are enabling 2-Step Verification on every company account. You will need your phone to log in from Monday onwards. Please enroll using the link you will receive via email from Google; it takes about 2 minutes. If you lose your phone, contact IT. Full rollout is done by end of next week.",
+            "definition_of_done": [
+                "100% of accounts show enrolled in admin.google.com Reports → Security",
+                "Onboarding checklist includes the 2SV enrollment step",
+                "Incident response plan documents the 2SV bypass procedure for emergencies",
+            ],
+        },
+        {
+            "gap_id": 2,
+            "article_ref": "Article 21(2)(c) — business continuity, backup, disaster recovery",
+            "gap_name_plain": "Backups exist but have never been tested",
+            "detected_stack": {
+                "identity": "Google Workspace",
+                "email": "Google Workspace",
+                "evidence": "User mentioned backups happen but could not say where",
+                "confidence": "medium",
+            },
+            "stack_disclaimer": "Plan assumes Google Workspace. If you use a separate backup provider, adapt day 1-3 accordingly.",
+            "timeline_days": 14,
+            "total_effort_hours": 8,
+            "cost_eur_range": "0-500",
+            "owner_role": "IT Administrator",
+            "days": [
+                {"day": 1, "duration_min": 60, "title": "Inventory what is backed up",
+                 "steps": ["List every critical system (email, CRM, file shares, databases)",
+                           "For each, identify the backup location and retention"],
+                 "verification": "Written inventory exists; gaps flagged with OWNER + RISK"},
+                {"day": 3, "duration_min": 90, "title": "Run a restore drill",
+                 "steps": ["Pick one critical system (e.g. a shared drive)",
+                           "Restore a file from yesterday's backup to a scratch location"],
+                 "verification": "Restored file opens and matches original — recorded in drill log"},
+                {"day": 7, "duration_min": 120, "title": "Document RTO / RPO",
+                 "steps": ["For each system: write the Recovery Time Objective and Recovery Point Objective",
+                           "Circulate to CEO for sign-off"],
+                 "verification": "Signed RTO/RPO document stored in the company wiki"},
+                {"day": 14, "duration_min": 60, "title": "Schedule the next drill",
+                 "steps": ["Put a recurring 90-day reminder in the calendar",
+                           "Name the drill owner"],
+                 "verification": "Calendar event exists with named owner and agenda"},
+            ],
+            "board_email": "Subject: NIS2 — backup testing plan\n\nDear board, our backups are running but we have never tested a restore. I am requesting approval for a 14-day backup verification program across all critical systems. Budget: €0-500 for potential scratch storage. This closes NIS2 Article 21(2)(c) which mandates tested disaster recovery capability. First drill happens in week 1; full documentation signed by end of week 2. Reporting back with drill results.\n\nRegards.",
+            "team_announcement": "Team — over the next two weeks we are running our first backup restore drills. You may see IT perform test restores on non-production data. No action needed from you. If you notice anything odd during the week, tell IT immediately.",
+            "definition_of_done": [
+                "Inventory of backups exists for every critical system",
+                "At least one successful restore drill recorded with evidence",
+                "RTO/RPO signed by CEO and stored in company wiki",
+                "Next drill scheduled in the calendar with named owner",
+            ],
+        },
+        {
+            "gap_id": 3,
+            "article_ref": "Article 21(2)(g) — cyber hygiene and training",
+            "gap_name_plain": "No regular cybersecurity training for staff",
+            "detected_stack": {
+                "identity": "Google Workspace",
+                "email": "Google Workspace",
+                "evidence": "Staff training was never mentioned as a recurring activity",
+                "confidence": "medium",
+            },
+            "stack_disclaimer": "",
+            "timeline_days": 7,
+            "total_effort_hours": 4,
+            "cost_eur_range": "0-100",
+            "owner_role": "Office Manager",
+            "days": [
+                {"day": 1, "duration_min": 45, "title": "Pick a training source",
+                 "steps": ["Review free ENISA SME materials",
+                           "Choose the 30-minute phishing awareness module"],
+                 "verification": "Training material URL written in the company wiki"},
+                {"day": 3, "duration_min": 30, "title": "Send training to all staff",
+                 "steps": ["Email the module link with a 7-day deadline",
+                           "Tell managers to include it in their 1:1s"],
+                 "verification": "Delivery receipts confirm all staff received the email"},
+                {"day": 7, "duration_min": 60, "title": "Collect completions and run phishing drill",
+                 "steps": ["Check Google Forms / quiz completion list",
+                           "Send a benign phishing-test email and record click rate"],
+                 "verification": "Completion rate ≥ 80%; phishing-test click rate recorded"},
+            ],
+            "board_email": "Subject: NIS2 — staff cyber training rollout\n\nDear board, NIS2 Article 21(2)(g) requires basic cybersecurity training for all staff. I am launching a 7-day rollout using free ENISA materials. Budget: €0-100. This addresses our #3 medium-risk audit finding and is the lowest-cost critical fix. Completion rate and phishing-test results reported at day 7.\n\nRegards.",
+            "team_announcement": "Team — by end of next week please complete the 30-minute cybersecurity basics module I will email you on Monday. It is a NIS2 requirement and counts as work time. If you are unsure, it is the one with the phishing examples at the end.",
+            "definition_of_done": [
+                "≥ 80% of staff complete the training by day 7",
+                "Phishing simulation click-rate recorded as a baseline",
+                "Training is scheduled to repeat every 12 months",
+            ],
+        },
+    ],
+})
+
+
 def _system_text(system: "str | list") -> str:
     """Flatten a system prompt (str or list of content blocks) to plain text for mock detection."""
     if isinstance(system, list):
@@ -344,6 +471,8 @@ def _mock_response(system: "str | list") -> str:
         return _MOCK_THREAT_ACTOR
     if "5-slide executive presentation" in s:
         return _MOCK_BOARD
+    if "NIS2 closure engineer" in s:
+        return _MOCK_CLOSURE_PLANS
     return json.dumps({"mock": True, "unknown_stage": True})
 
 MAREK_PERSONA_SYSTEM = """
@@ -762,12 +891,14 @@ _TOOL_GENERATORS = {
     "generate_security_policy": generate_security_policy,
     "generate_incident_plan": generate_incident_plan,
     "generate_remediation_checklist": generate_remediation_checklist,
+    "generate_closure_plan": generate_closure_plan,
 }
 
 _TOOL_FILENAMES = {
     "generate_security_policy": "polityka-bezpieczenstwa",
     "generate_incident_plan": "procedura-incydentow",
     "generate_remediation_checklist": "plan-remediacji",
+    "generate_closure_plan": "plan-zamkniecia-luk",
 }
 
 REMEDIATION_TOOLS = [
@@ -808,6 +939,18 @@ REMEDIATION_TOOLS = [
         },
     },
     {
+        "name": "generate_closure_plan",
+        "description": "Generate a day-by-day, stack-specific runbook for closing the top critical and high risk gaps — with exact admin URLs, verification steps, pre-drafted board email and team announcement, and Definition of Done",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "company_name": {"type": "string"},
+                "reason": {"type": "string"},
+            },
+            "required": ["company_name", "reason"],
+        },
+    },
+    {
         "name": "search_enisa_guidance",
         "description": "Search for real ENISA and national cybersecurity agency resources relevant to this company's specific gaps",
         "input_schema": {
@@ -831,11 +974,13 @@ _REMEDIATION_LABELS = {
         "generate_security_policy": "Pobierz politykę bezpieczeństwa",
         "generate_incident_plan": "Pobierz procedurę reagowania na incydenty",
         "generate_remediation_checklist": "Pobierz plan remediacji",
+        "generate_closure_plan": "Pobierz plan zamknięcia luk",
     },
     "en": {
         "generate_security_policy": "Download Security Policy",
         "generate_incident_plan": "Download Incident Response Plan",
         "generate_remediation_checklist": "Download Remediation Checklist",
+        "generate_closure_plan": "Download Closure Plan",
     },
 }
 
@@ -875,6 +1020,7 @@ async def download_tool_pdf(session_id: str, tool_name: str):
         "priority_actions": gaps_data.get("priority_3", []),
         "language": session.get("language", "pl"),
         "it_contact": findings.get("it_contact", ""),
+        "closure_plans": session.get("closure_plans"),
     }
 
     pdf_path = _TOOL_GENERATORS[tool_name](session_data)
@@ -911,6 +1057,7 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         "drafter_result": None,
         "threat_actor_result": None,
         "board_slides": None,
+        "closure_plans": None,
         "generated_files": {},
         "language": "en",
         "question_count": 0,
@@ -1313,6 +1460,7 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
         "priority_actions": gaps_data.get("priority_3", []),
         "language": lang,
         "it_contact": findings.get("it_contact", ""),
+        "closure_plans": session.get("closure_plans"),
     }
 
     async def _execute_tool(tool_name: str) -> None:
@@ -1558,6 +1706,70 @@ async def _run_legacy_redteam_oneshot(session, client, send):
     await _run_drafter(session, client, send)
 
 
+async def _run_closure_planner(session, client, send) -> None:
+    """Generate day-by-day, stack-aware closure plans for the top 3 critical/high gaps.
+
+    Fail-soft: on any error the pipeline continues without closure plans — the rest of
+    the report (threat scenarios, board deck, remediation docs) is unaffected.
+    """
+    lang = session.get("language", "en")
+    gaps_data = session.get("gap_analysis") or {}
+    all_gaps = gaps_data.get("gaps", []) or []
+
+    def _risk_rank(gap: dict) -> int:
+        level = (gap.get("risk_level") or "").lower()
+        return {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(level, 4)
+
+    top_gaps = sorted(all_gaps, key=_risk_rank)[:3]
+    if not top_gaps:
+        log.info("[closure_planner] no gaps to close — skipping")
+        return
+
+    stage_label = "Plan zamknięcia luk" if lang == "pl" else "Closure Plan"
+    await send({"type": "stage_change", "stage": "closure", "label": stage_label})
+
+    findings = session.get("interview_findings") or {}
+    company_profile = session.get("qualifier_result") or {}
+    key_quotes = findings.get("key_quotes", []) if isinstance(findings, dict) else []
+    transcript = session.get("messages", []) or []
+
+    system = build_closure_planner_system(
+        top_gaps=top_gaps,
+        key_quotes=key_quotes,
+        transcript_excerpt=transcript,
+        company_profile=company_profile,
+        language=lang,
+    )
+    messages = [{
+        "role": "user",
+        "content": (
+            "Wygeneruj plany zamknięcia luk dla podanych luk — day-by-day, dopasowane do stacku firmy."
+            if lang == "pl" else
+            "Generate closure plans for the given gaps — day-by-day, adapted to the company's stack."
+        ),
+    }]
+    try:
+        thinking_text, text, _ = await call_with_thinking(
+            client, system, messages,
+            max_tokens=16000, budget_tokens=6000,
+            session=session, test_max_tokens=10000,
+        )
+        if thinking_text:
+            await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
+        plans = await parse_json_with_retry(
+            client, system, messages, text,
+            max_tokens=16000, stage="closure_planner", expected_key="closure_plans",
+        )
+    except Exception as exc:
+        log.warning("[closure_planner] failed: %s — pipeline continues without closure plans", exc)
+        return
+
+    session["closure_plans"] = plans
+    _persist(session)
+    await send({"type": "closure_plans_ready", "data": plans})
+    log.info("[closure_planner] stored %d plans", len(plans.get("closure_plans", []) or []))
+
+
 async def _run_drafter(session, client, send):
     await send({"type": "stage_change", "stage": "draft", "label": "Report"})
 
@@ -1591,6 +1803,9 @@ async def _run_drafter(session, client, send):
     session["drafter_result"] = policies
     _persist(session)
     log.info("[drafter] stored: keys=%s", list(policies.keys()) if isinstance(policies, dict) else policies)
+
+    # Closure Planner — day-by-day, stack-aware remediation runbook. Fail-soft.
+    await _run_closure_planner(session, client, send)
 
     # Threat Actor — extended thinking, model=claude-opus-4-7 (MODEL constant)
     lang = session["language"]
@@ -1662,6 +1877,7 @@ async def _run_drafter(session, client, send):
             "drafter_result": policies,
             "threat_actor_result": threat_scenarios,
             "board_slides": board_slides,
+            "closure_plans": session.get("closure_plans"),
             "language": session["language"],
             "benchmark": benchmark_data,
         },

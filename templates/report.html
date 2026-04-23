@@ -948,6 +948,73 @@
       line-height: 1.45;
     }
 
+    /* ═══════════ SECTION 8: CLOSURE PLANS ═══════════ */
+    .cp-box { border: 1px solid #0A0A0A; margin-bottom: 14px; background: #FCFBF7; }
+    .cp-box-head { background: #0A0A0A; color: #FCFBF7; padding: 8px 14px; display: table; width: 100%; }
+    .cp-box-head .label {
+      display: table-cell; font-family: 'IBM Plex Mono', monospace; font-size: 8pt;
+      letter-spacing: 0.14em; text-transform: uppercase; color: #9A9A95;
+      vertical-align: middle; width: 90px;
+    }
+    .cp-box-head .title {
+      display: table-cell; font-family: 'Archivo', sans-serif; font-weight: 500;
+      font-size: 11.5pt; letter-spacing: -0.01em; color: #FCFBF7; vertical-align: middle;
+    }
+    .cp-box-article {
+      padding: 6px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 8pt;
+      color: #6b6b66; letter-spacing: 0.02em; border-bottom: 1px solid #D8D4CA;
+    }
+    .cp-box-meta {
+      padding: 8px 14px; border-bottom: 1px solid #D8D4CA;
+      font-family: 'IBM Plex Mono', monospace; font-size: 8.5pt;
+      letter-spacing: 0.02em; color: #9A9A95;
+    }
+    .cp-box-meta b { color: #0A0A0A; font-weight: 500; text-transform: uppercase; font-size: 8pt; letter-spacing: 0.08em; }
+    .cp-box-stack {
+      padding: 8px 14px; background: #F3F1EA; border-bottom: 1px solid #D8D4CA;
+      font-family: 'Archivo', sans-serif; font-size: 9.5pt; color: #2A2A28; line-height: 1.45;
+    }
+    .cp-box-stack b { color: #0A0A0A; }
+    .cp-box-stack .cp-evi { color: #6b6b66; font-style: italic; margin-top: 3px; font-size: 8.5pt; }
+    .cp-box-days {
+      padding: 10px 14px; list-style: none; border-bottom: 1px solid #D8D4CA;
+    }
+    .cp-box-day {
+      padding: 6px 0 6px 80px; position: relative; border-bottom: 1px dotted #D8D4CA;
+      font-family: 'Archivo', sans-serif; font-size: 10pt; color: #0A0A0A; line-height: 1.5;
+    }
+    .cp-box-day:last-child { border-bottom: none; }
+    .cp-box-day .daynum {
+      position: absolute; left: 0; top: 6px; font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt; color: #E11B1B; letter-spacing: 0.02em; text-transform: uppercase;
+    }
+    .cp-box-day .daytitle { font-weight: 500; }
+    .cp-box-day ol {
+      margin: 3px 0 0 14px; padding: 0; font-size: 9pt; color: #2A2A28;
+    }
+    .cp-box-day .verify {
+      font-family: 'IBM Plex Mono', monospace; font-size: 8pt; color: #6b6b66;
+      font-style: italic; margin-top: 4px;
+    }
+    .cp-box-tpl {
+      padding: 8px 14px; border-bottom: 1px solid #D8D4CA;
+      font-family: 'IBM Plex Mono', monospace; font-size: 8.5pt;
+      color: #0A0A0A; white-space: pre-wrap; line-height: 1.5;
+    }
+    .cp-box-tpl .lbl {
+      display: block; font-size: 8pt; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #9A9A95; margin-bottom: 4px;
+    }
+    .cp-box-dod {
+      padding: 8px 14px; background: #F3F1EA;
+      font-family: 'Archivo', sans-serif; font-size: 9pt; color: #0A0A0A;
+    }
+    .cp-box-dod .lbl {
+      display: block; font-family: 'IBM Plex Mono', monospace; font-size: 8pt;
+      letter-spacing: 0.08em; text-transform: uppercase; color: #9A9A95; margin-bottom: 4px;
+    }
+    .cp-box-dod ul { margin: 0 0 0 14px; padding: 0; }
+
     /* ═══════════ MARKDOWN fallback for redteam_html ═══════════ */
     .md-block {
       font-family: 'Archivo', sans-serif;
@@ -1344,6 +1411,87 @@
     {% endif %}
     {% if policy.disclaimer %}
     <div class="policy-disclaimer">{{ policy.disclaimer }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ═══════════ SECTION 8: CLOSURE PLANS ═══════════ -->
+{% if session.closure_plans and session.closure_plans.closure_plans %}
+<div class="section break-before">
+  <div class="section-kicker">
+    <div class="idx">[ 08 ]</div>
+    <div class="title">{% if is_pl %}Plan zamknięcia luk{% else %}Gap Closure Plans{% endif %}</div>
+    <div class="tag">{% if is_pl %}Day-by-day runbook — nie raport, kroki do wykonania{% else %}Day-by-day runbook — not a report, steps to execute{% endif %}</div>
+  </div>
+  {% for plan in session.closure_plans.closure_plans %}
+  <div class="cp-box no-break">
+    <div class="cp-box-head">
+      <div class="label">{% if is_pl %}PLAN {{ '%02d' | format(loop.index) }}{% else %}PLAN {{ '%02d' | format(loop.index) }}{% endif %}</div>
+      <div class="title">{{ plan.gap_name_plain or '' }}</div>
+    </div>
+    {% if plan.article_ref %}
+    <div class="cp-box-article">{{ plan.article_ref }}</div>
+    {% endif %}
+
+    <div class="cp-box-meta">
+      {% if plan.timeline_days %}<b>{% if is_pl %}Czas{% else %}Timeline{% endif %}</b> {{ plan.timeline_days }}{% if is_pl %} dni{% else %} days{% endif %}{% endif %}
+      {% if plan.total_effort_hours %} &nbsp;·&nbsp; <b>{% if is_pl %}Nakład{% else %}Effort{% endif %}</b> {{ plan.total_effort_hours }}h{% endif %}
+      {% if plan.cost_eur_range %} &nbsp;·&nbsp; <b>{% if is_pl %}Koszt{% else %}Cost{% endif %}</b> €{{ plan.cost_eur_range }}{% endif %}
+      {% if plan.owner_role %} &nbsp;·&nbsp; <b>{% if is_pl %}Odpowiedzialny{% else %}Owner{% endif %}</b> {{ plan.owner_role }}{% endif %}
+    </div>
+
+    {% if plan.detected_stack %}
+    <div class="cp-box-stack">
+      <b>{% if is_pl %}Wykryty stack:{% else %}Detected stack:{% endif %}</b> {{ plan.detected_stack.identity }}
+      {% if plan.detected_stack.confidence %} ({{ plan.detected_stack.confidence | upper }}){% endif %}
+      {% if plan.detected_stack.evidence %}
+      <div class="cp-evi">"{{ plan.detected_stack.evidence }}"</div>
+      {% endif %}
+      {% if plan.stack_disclaimer %}
+      <div class="cp-evi">{{ plan.stack_disclaimer }}</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if plan.days %}
+    <ol class="cp-box-days">
+      {% for d in plan.days %}
+      <li class="cp-box-day">
+        <span class="daynum">{% if is_pl %}Dzień{% else %}Day{% endif %} {{ d.day }}{% if d.duration_min %} · {{ d.duration_min }}m{% endif %}</span>
+        <span class="daytitle">{{ d.title or '' }}</span>
+        {% if d.steps %}
+        <ol>
+          {% for step in d.steps %}<li>{{ step }}</li>{% endfor %}
+        </ol>
+        {% endif %}
+        {% if d.verification %}
+        <div class="verify">✓ {% if is_pl %}Weryfikacja:{% else %}Verify:{% endif %} {{ d.verification }}</div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+
+    {% if plan.board_email %}
+    <div class="cp-box-tpl">
+      <span class="lbl">{% if is_pl %}Email do zarządu{% else %}Board email{% endif %}</span>{{ plan.board_email }}
+    </div>
+    {% endif %}
+    {% if plan.team_announcement %}
+    <div class="cp-box-tpl">
+      <span class="lbl">{% if is_pl %}Komunikat do zespołu{% else %}Team announcement{% endif %}</span>{{ plan.team_announcement }}
+    </div>
+    {% endif %}
+
+    {% if plan.definition_of_done %}
+    <div class="cp-box-dod">
+      <span class="lbl">{% if is_pl %}Definicja gotowości{% else %}Definition of Done{% endif %}</span>
+      <ul>
+        {% for item in plan.definition_of_done %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    </div>
     {% endif %}
   </div>
   {% endfor %}

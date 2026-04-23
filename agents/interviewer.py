@@ -27,8 +27,15 @@ def _format_art21(measures: list, fallback_requirements: list) -> str:
     return "\n".join(lines)
 
 
-_INTERVIEW_SYSTEM_TEMPLATE = """## CRITICAL RULE — READ FIRST
-After your closing message (when you have gathered enough information),
+_INTERVIEW_SYSTEM_TEMPLATE = """## HARD RULE — MINIMUM QUESTIONS
+You MUST ask AT LEAST 8 questions before ending the interview.
+Current question_count: {question_count}
+If question_count < 8, you CANNOT end the interview.
+You CANNOT output [INTERVIEW_COMPLETE] if question_count < 8.
+Under NO circumstances may you output the closing phrase, marker, or JSON before question_count reaches 8.
+
+## CRITICAL RULE — READ FIRST
+After your closing message (when you have gathered enough information AND question_count >= 8),
 you MUST output on a new line EXACTLY:
 [INTERVIEW_COMPLETE]
 Then IMMEDIATELY on the next line output the JSON assessment.
@@ -79,7 +86,7 @@ Map each question to one of the 10 Art. 21(2)(a)-(j) requirements. Cover all 10 
 **Acknowledge what's working.** If the user mentions something good: "That's actually a solid practice — good to have that in place."
 
 ## When to wrap up
-After 10-14 exchanges, end with ALL of the following steps in order:
+Only after question_count >= 8 AND you have covered all 10 Art. 21(2) requirements (typically 8-14 exchanges), end with ALL of the following steps in order:
 1. One warm closing sentence (max 2 sentences)
 2. A blank line
 3. [INTERVIEW_COMPLETE]  ← EXACTLY this text, on its own line, nothing else on that line

@@ -4,383 +4,1330 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>REGULA — NIS2 Compliance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .dot { animation: pulse-dot 1.4s infinite ease-in-out both; }
-    .dot:nth-child(1) { animation-delay: -0.32s; }
-    .dot:nth-child(2) { animation-delay: -0.16s; }
+    :root {
+      --paper:     #FCFBF7;
+      --ink:       #0A0A0A;
+      --ink-soft:  #2A2A28;
+      --muted:     #9A9A95;
+      --hairline:  #D8D4CA;
+      --faint:     #EAE6DC;
+      --signal:    #E11B1B;
+      --signal-soft: #FBEAEA;
+      --warn:      #C97A0C;
+      --warn-soft: #FBF0DF;
+      --ok:        #2F7D34;
+      --ok-soft:   #E7F4E8;
+
+      --col-gap:   24px;
+      --margin:    40px;
+      --chat-max:  960px;
+
+      --f-sans:    "Archivo", "Helvetica Neue", Arial, sans-serif;
+      --f-mono:    "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--f-sans);
+      font-size: 15px;
+      line-height: 1.5;
+      font-weight: 400;
+      letter-spacing: -0.005em;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Kill Tailwind CDN rounded defaults inside app */
+    .reg-flat, .reg-flat * { border-radius: 0 !important; }
+
+    a { color: var(--ink); text-decoration: none; }
+
+    .dot-typing { animation: pulse-dot 1.4s infinite ease-in-out both; }
+    .dot-typing:nth-child(1) { animation-delay: -0.32s; }
+    .dot-typing:nth-child(2) { animation-delay: -0.16s; }
     @keyframes pulse-dot {
       0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; }
       40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ─────────────────────── LANDING ─────────────────────── */
+    .grid-12 {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+      padding: 0 var(--margin);
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 var(--margin);
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+      opacity: 0.45;
+    }
+    .grid-overlay span { border-left: 1px solid var(--faint); }
+    .grid-overlay span:first-child { border-left: none; }
+
+    #landing > main { position: relative; z-index: 1; }
+
+    /* System bar */
+    .sys-bar {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+      padding: 14px var(--margin);
+      max-width: 1440px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--ink);
+      font-family: var(--f-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      background: var(--paper);
+    }
+    .sys-bar > * { grid-column: span 3; }
+    .sys-brand { font-family: var(--f-sans); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+    .sys-ref { color: var(--muted); }
+    .sys-ref b { color: var(--ink); font-weight: 500; }
+    .sys-region { color: var(--muted); }
+    .sys-region b { color: var(--ink); font-weight: 500; }
+    .sys-lang { text-align: right; display: flex; justify-content: flex-end; gap: 14px; align-items: center; }
+
+    .lang-btn {
+      background: transparent; border: none; padding: 0;
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.04em; color: var(--muted); cursor: pointer;
+    }
+    .lang-btn.active { color: var(--ink); font-weight: 500; }
+    .lang-btn.active::before { content: "●"; margin-right: 4px; color: var(--signal); }
+
+    /* Hero */
+    .hero {
+      padding: 120px var(--margin) 80px;
+      max-width: 1440px; margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+    }
+    .hero-index {
+      grid-column: 1 / 2;
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.02em;
+      writing-mode: vertical-rl; transform: rotate(180deg);
+      align-self: start;
+    }
+    .hero-label {
+      grid-column: 2 / 9;
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 32px;
+    }
+    .hero-label .dot { color: var(--signal); margin: 0 6px; }
+
+    .hero-headline {
+      grid-column: 2 / 10;
+      font-family: var(--f-sans); font-weight: 300;
+      font-size: clamp(40px, 6vw, 88px);
+      line-height: 1.05; letter-spacing: -0.03em;
+      margin: 0 0 48px 0; color: var(--ink);
+    }
+    .hero-headline b { font-weight: 600; display: block; }
+
+    .hero-sub {
+      grid-column: 2 / 8;
+      font-size: 17px; line-height: 1.5;
+      color: var(--ink); margin: 0 0 48px 0;
+    }
+    .hero-cta-cell { grid-column: 2 / 8; }
+
+    .cta-link {
+      display: inline-flex; align-items: baseline; gap: 16px;
+      font-family: var(--f-sans); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.005em; color: var(--ink);
+      background: transparent; border: none; padding: 0 0 4px 0;
+      cursor: pointer;
+      border-bottom: 1.5px solid var(--ink);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .cta-link:hover { color: var(--signal); border-bottom-color: var(--signal); }
+    .cta-link .arrow {
+      font-family: var(--f-mono); font-size: 16px; display: inline-block;
+      transition: transform 0.25s cubic-bezier(.2,.6,.2,1);
+    }
+    .cta-link:hover .arrow { transform: translateX(6px); }
+    .cta-note {
+      display: block; margin-top: 16px;
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.04em;
+    }
+
+    .hero-meta { grid-column: 9 / 13; align-self: start; }
+    .meta-table { width: 100%; border-top: 1px solid var(--ink); }
+    .meta-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--hairline);
+      font-family: var(--f-mono); font-size: 12px;
+    }
+    .meta-row .k { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; }
+    .meta-row .v { color: var(--ink); font-weight: 500; text-align: right; }
+
+    /* Section kicker */
+    .section-kicker {
+      max-width: 1440px; margin: 0 auto;
+      padding: 80px var(--margin) 24px;
+      display: grid; grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap); border-top: 1px solid var(--ink);
+    }
+    .section-kicker .num {
+      grid-column: 1 / 2;
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--signal); letter-spacing: 0.04em;
+    }
+    .section-kicker .title {
+      grid-column: 2 / 8;
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+    }
+    .section-kicker .counter {
+      grid-column: 10 / 13;
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); text-align: right; letter-spacing: 0.04em;
+    }
+
+    /* Pillars */
+    .pillars {
+      max-width: 1440px; margin: 0 auto;
+      padding: 40px var(--margin) 100px;
+      display: grid; grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+    }
+    .pillar-1 { grid-column: 2 / 6; padding-right: 16px; }
+    .pillar-2 { grid-column: 6 / 10; padding-right: 16px; }
+    .pillar-3 { grid-column: 10 / 13; }
+    .pillar-num {
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--signal); letter-spacing: 0.04em;
+      margin-bottom: 28px; padding-top: 6px;
+      border-top: 1px solid var(--ink);
+    }
+    .pillar-title {
+      font-family: var(--f-sans); font-weight: 500; font-size: 24px;
+      letter-spacing: -0.02em; line-height: 1.15;
+      margin: 0 0 16px 0;
+    }
+    .pillar-body {
+      font-family: var(--f-sans); font-weight: 400; font-size: 14px;
+      line-height: 1.55; color: var(--ink); margin: 0;
+    }
+
+    /* Contents */
+    .contents {
+      max-width: 1440px; margin: 0 auto;
+      padding: 40px var(--margin) 100px;
+      display: grid; grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+    }
+    .contents-head {
+      grid-column: 2 / 10;
+      font-family: var(--f-sans); font-weight: 300;
+      font-size: clamp(36px, 5vw, 64px);
+      line-height: 1.02; letter-spacing: -0.025em;
+      margin: 0 0 48px 0;
+    }
+    .contents-head b { font-weight: 500; color: var(--signal); }
+    .contents-list { grid-column: 2 / 13; border-top: 1px solid var(--ink); }
+    .contents-item {
+      display: grid; grid-template-columns: 40px 1fr 80px;
+      align-items: baseline;
+      padding: 16px 0; border-bottom: 1px solid var(--hairline);
+      font-family: var(--f-sans); font-size: 16px;
+    }
+    .contents-item .ix {
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.04em;
+    }
+    .contents-item .txt { color: var(--ink); }
+    .contents-item .tag {
+      font-family: var(--f-mono); font-size: 10px;
+      color: var(--muted); letter-spacing: 0.08em;
+      text-align: right; text-transform: uppercase;
+    }
+
+    /* Report accordion */
+    .report {
+      max-width: 1440px; margin: 0 auto;
+      padding: 40px var(--margin) 120px;
+      display: grid; grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+    }
+    .report-head {
+      grid-column: 2 / 8;
+      font-family: var(--f-sans); font-weight: 300;
+      font-size: clamp(36px, 5vw, 64px);
+      line-height: 1.02; letter-spacing: -0.025em;
+      margin: 0 0 12px 0;
+    }
+    .report-head b { font-weight: 500; color: var(--signal); }
+    .report-sub {
+      grid-column: 2 / 8;
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.04em; color: var(--muted);
+      margin: 0 0 40px 0;
+    }
+
+    .acc-list { grid-column: 2 / 13; border-top: 1px solid var(--ink); }
+    .acc-item { border-bottom: 1px solid var(--hairline); }
+    .acc-head {
+      width: 100%;
+      display: grid; grid-template-columns: 60px 1fr 40px;
+      align-items: baseline;
+      padding: 20px 0;
+      background: transparent; border: none; text-align: left; cursor: pointer;
+      color: var(--ink); font-family: inherit;
+    }
+    .acc-head:hover .acc-num { color: var(--signal); }
+    .acc-num {
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.04em;
+      transition: color 0.2s;
+    }
+    .acc-name {
+      font-family: var(--f-sans); font-weight: 400;
+      font-size: 22px; letter-spacing: -0.015em;
+    }
+    .acc-arrow {
+      font-family: var(--f-mono); font-size: 14px;
+      color: var(--muted); justify-self: end;
+      transition: transform 0.3s, color 0.2s;
+    }
+    .acc-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(.2,.6,.2,1);
+    }
+    .acc-body-inner {
+      padding: 4px 0 28px 60px;
+      font-size: 15px; line-height: 1.55; color: var(--ink);
+      max-width: 72ch;
+    }
+
+    /* Footer */
+    .landing-footer {
+      max-width: 1440px; margin: 0 auto;
+      padding: 32px var(--margin);
+      border-top: 1px solid var(--ink);
+      display: grid; grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.04em; color: var(--muted);
+    }
+    .landing-footer .l { grid-column: 1 / 7; }
+    .landing-footer .l b { color: var(--ink); font-weight: 500; }
+    .landing-footer .r { grid-column: 7 / 13; text-align: right; }
+    .landing-footer a {
+      color: var(--ink); border-bottom: 1px solid var(--signal);
+      padding-bottom: 1px;
+    }
+
+    /* ─────────────────────── CHAT ─────────────────────── */
+    #chat-app.hidden { display: none !important; }
+    #chat-app {
+      display: flex; flex-direction: column;
+      height: 100vh; max-width: 1440px; margin: 0 auto;
+      background: var(--paper);
+    }
+
+    .chat-sys-bar {
+      display: grid; grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+      padding: 14px var(--margin);
+      border-bottom: 1px solid var(--ink);
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.04em; flex-shrink: 0; background: var(--paper);
+    }
+    .chat-sys-bar .brand { grid-column: span 2; font-family: var(--f-sans); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+    .chat-sys-bar .ref { grid-column: span 3; color: var(--muted); }
+    .chat-sys-bar .ref b { color: var(--ink); font-weight: 500; }
+    .chat-sys-bar .status { grid-column: span 3; color: var(--muted); }
+    .chat-sys-bar .status b { color: var(--ink); font-weight: 500; }
+    .chat-sys-bar .status .live-dot {
+      display: inline-block; width: 6px; height: 6px;
+      background: var(--signal); border-radius: 50%;
+      margin-right: 6px; vertical-align: 1px;
+      animation: pulse-live 2s infinite;
+    }
+    @keyframes pulse-live { 50% { opacity: 0.35; } }
+    .chat-sys-bar .controls {
+      grid-column: span 4;
+      display: flex; justify-content: flex-end; gap: 20px; align-items: center;
+    }
+    .sys-demo {
+      background: transparent; border: 1px solid var(--ink);
+      padding: 4px 10px; font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.04em; cursor: pointer; color: var(--ink);
+      transition: background 0.15s, color 0.15s;
+    }
+    .sys-demo:hover { background: var(--ink); color: var(--paper); }
+
+    /* Progress row */
+    .progress-row {
+      display: grid; grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+      padding: 18px var(--margin);
+      border-bottom: 1px solid var(--hairline);
+      flex-shrink: 0; background: var(--paper);
+    }
+    .progress-label {
+      grid-column: span 3;
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.04em; align-self: center;
+    }
+    .progress-label b { color: var(--ink); font-weight: 500; }
+    .progress-steps {
+      grid-column: span 7;
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      gap: 8px; align-self: center;
+    }
+    .step { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+    .step .step-bar {
+      height: 3px; background: var(--faint); position: relative; overflow: hidden;
+    }
+    .step.done .step-bar { background: var(--ink); }
+    .step.active .step-bar::before {
+      content: ""; position: absolute; inset: 0;
+      background: var(--signal); width: 60%;
+      animation: fill 2.5s ease-in-out infinite alternate;
+    }
+    @keyframes fill { from { width: 20%; } to { width: 80%; } }
+    .step .step-txt {
+      font-family: var(--f-mono); font-size: 10px;
+      letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase;
+    }
+    .step.done .step-txt { color: var(--ink); }
+    .step.active .step-txt { color: var(--signal); font-weight: 500; }
+    .progress-counter {
+      grid-column: span 2;
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); text-align: right; align-self: center;
+      letter-spacing: 0.04em;
+    }
+
+    /* Thread area */
+    .chat-scroll {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      padding: 40px 0 20px;
+    }
+    .chat-scroll::-webkit-scrollbar { width: 8px; }
+    .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+    .chat-scroll::-webkit-scrollbar-thumb { background: var(--hairline); }
+    .chat-scroll::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    .chat-thread {
+      max-width: var(--chat-max);
+      margin: 0 auto;
+      padding: 0 var(--margin);
+    }
+
+    /* Message: assistant (Regula) */
+    .msg {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 0 var(--col-gap);
+      padding: 20px 0;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .msg-head {
+      grid-column: 1 / 13;
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 10px;
+      font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.04em;
+    }
+    .msg-sender { color: var(--muted); }
+    .msg-sender b { color: var(--ink); font-weight: 500; }
+    .msg-time { color: var(--muted); }
+
+    .msg-body {
+      font-family: var(--f-sans); font-size: 17px;
+      line-height: 1.5; color: var(--ink);
+    }
+
+    .msg.regula .msg-sender::before {
+      content: "R"; display: inline-block;
+      width: 16px; height: 16px; background: var(--ink); color: var(--paper);
+      font-size: 10px; line-height: 16px; text-align: center;
+      margin-right: 10px; font-family: var(--f-mono); font-weight: 500;
+      vertical-align: -1px;
+    }
+    .msg.regula .msg-body {
+      grid-column: 1 / 11;
+      border-left: 2px solid var(--signal);
+      padding-left: 14px;
+    }
+
+    .msg.user .msg-head { flex-direction: row-reverse; }
+    .msg.user .msg-sender::after {
+      content: "U"; display: inline-block;
+      width: 16px; height: 16px; background: var(--paper); color: var(--ink);
+      border: 1px solid var(--ink);
+      font-size: 10px; line-height: 14px; text-align: center;
+      margin-left: 10px; font-family: var(--f-mono); font-weight: 500;
+      vertical-align: -1px;
+    }
+    .msg.user .msg-body {
+      grid-column: 3 / 13;
+      text-align: right; color: var(--ink-soft);
+    }
+
+    .msg.demo-user .msg-sender::after {
+      content: "M"; background: var(--signal); color: var(--paper); border-color: var(--signal);
+    }
+    .msg.demo-user .msg-body { grid-column: 3 / 13; text-align: right; color: var(--ink-soft); }
+    .msg.demo-user .msg-head { flex-direction: row-reverse; }
+
+    .msg.divider {
+      padding: 28px 0 10px;
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+      margin: 16px 0;
+    }
+    .msg.divider .msg-body {
+      grid-column: 1 / 13;
+      font-family: var(--f-sans); font-size: 14px; font-weight: 500;
+      text-align: center; color: var(--ink);
+    }
+    .msg.divider .msg-body::before {
+      content: "§"; color: var(--signal); margin-right: 10px; font-weight: 500;
+    }
+
+    .msg.error .msg-body {
+      grid-column: 1 / 13;
+      border-left: 2px solid var(--signal);
+      padding-left: 14px;
+      background: var(--signal-soft);
+      padding: 14px;
+      color: var(--signal);
+      font-size: 14px;
+      font-family: var(--f-mono);
+    }
+    .msg.error .msg-sender::before { content: "!"; background: var(--signal); }
+
+    .msg.thinking .msg-body { grid-column: 1 / 13; }
+    .msg.thinking .toggle-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; border: 1px solid var(--hairline);
+      padding: 8px 12px; cursor: pointer;
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.04em; color: var(--muted);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .msg.thinking .toggle-btn:hover { border-color: var(--ink); color: var(--ink); }
+    .msg.thinking .think-body {
+      margin-top: 12px; padding: 14px;
+      background: var(--faint);
+      font-family: var(--f-mono); font-size: 12px;
+      line-height: 1.55; color: var(--ink-soft);
+      white-space: pre-wrap; max-height: 260px; overflow-y: auto;
+    }
+
+    .msg.disclaimer .msg-body {
+      grid-column: 1 / 13;
+      background: var(--warn-soft); padding: 14px;
+      border-left: 2px solid var(--warn);
+      font-size: 14px; color: var(--ink);
+    }
+    .msg.disclaimer .msg-sender::before { content: "!"; background: var(--warn); color: var(--paper); }
+
+    .msg.lang-confirm .msg-body {
+      grid-column: 1 / 13;
+      background: var(--warn-soft); padding: 14px;
+      border-left: 2px solid var(--warn);
+      display: flex; align-items: center; gap: 12px;
+      font-size: 14px;
+    }
+    .lc-btn {
+      font-family: var(--f-mono); font-size: 11px;
+      padding: 6px 12px; cursor: pointer;
+      letter-spacing: 0.04em;
+    }
+    .lc-yes { background: var(--ink); color: var(--paper); border: 1px solid var(--ink); }
+    .lc-no { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+    .lc-yes:hover { background: var(--signal); border-color: var(--signal); }
+    .lc-no:hover { background: var(--ink); color: var(--paper); }
+
+    /* Rich cards — v5 palette */
+    .card-block {
+      margin: 20px 0;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+    }
+    .card-head {
+      background: var(--ink); color: var(--paper);
+      padding: 14px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .card-head .label { opacity: 0.6; }
+    .card-head .risk-pill {
+      font-family: var(--f-mono); font-weight: 500;
+      padding: 3px 8px; font-size: 10px; letter-spacing: 0.08em;
+    }
+    .risk-critical, .risk-high { background: var(--signal); color: var(--paper); }
+    .risk-medium { background: var(--warn); color: var(--paper); }
+    .risk-low { background: var(--ok); color: var(--paper); }
+
+    .card-headline {
+      padding: 18px 20px 6px;
+      font-family: var(--f-sans); font-size: 18px;
+      font-weight: 500; color: var(--ink);
+      line-height: 1.35;
+    }
+    .card-tags {
+      padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 8px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .tag-chip {
+      font-family: var(--f-mono); font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 8px;
+    }
+    .chip-critical, .chip-high { background: var(--signal-soft); color: var(--signal); }
+    .chip-medium { background: var(--warn-soft); color: var(--warn); }
+    .chip-low { background: var(--ok-soft); color: var(--ok); }
+
+    .card-section-label {
+      padding: 16px 20px 8px;
+      font-family: var(--f-mono); font-size: 10px;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    }
+    .priority-list { padding: 0 20px 20px; list-style: none; margin: 0; }
+    .priority-list li {
+      display: flex; gap: 14px; padding: 8px 0;
+      font-size: 15px; color: var(--ink); line-height: 1.5;
+      border-bottom: 1px dotted var(--hairline);
+    }
+    .priority-list li:last-child { border-bottom: none; }
+    .priority-list .pnum {
+      font-family: var(--f-mono); font-size: 11px;
+      color: var(--signal); flex-shrink: 0; padding-top: 3px;
+      letter-spacing: 0.04em;
+    }
+    .good-news {
+      padding: 12px 20px; font-size: 13px;
+      color: var(--ok); font-family: var(--f-mono);
+      border-top: 1px solid var(--hairline);
+    }
+
+    .verdict-block {
+      padding: 18px 20px; border-bottom: 1px solid var(--ink);
+      font-family: var(--f-mono);
+    }
+    .verdict-pass { background: var(--ok-soft); color: var(--ok); border-left: 4px solid var(--ok); }
+    .verdict-fail { background: var(--signal-soft); color: var(--signal); border-left: 4px solid var(--signal); }
+    .verdict-conditions { background: var(--warn-soft); color: var(--warn); border-left: 4px solid var(--warn); }
+    .verdict-block .v-label {
+      font-size: 10px; letter-spacing: 0.14em;
+      text-transform: uppercase; opacity: 0.7; margin-bottom: 6px;
+    }
+    .verdict-block .v-text {
+      font-family: var(--f-sans); font-weight: 600;
+      font-size: 16px; letter-spacing: -0.01em;
+    }
+    .verdict-block .v-sim {
+      font-size: 10px; letter-spacing: 0.04em;
+      margin-top: 4px; font-style: italic;
+    }
+    .verdict-block .v-summary {
+      font-family: var(--f-sans); font-size: 13px;
+      line-height: 1.5; margin-top: 10px;
+    }
+
+    .card-meta-row {
+      padding: 14px 20px; font-family: var(--f-sans); font-size: 14px;
+      color: var(--ink); border-bottom: 1px solid var(--hairline);
+    }
+    .card-meta-row b { color: var(--signal); font-weight: 500; }
+    .card-disclaimer {
+      padding: 10px 20px; font-family: var(--f-mono); font-size: 10px;
+      color: var(--muted); letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .download-btn {
+      display: block; width: 100%; text-align: center;
+      background: var(--ink); color: var(--paper);
+      padding: 14px 20px;
+      font-family: var(--f-sans); font-weight: 500; font-size: 15px;
+      letter-spacing: -0.005em; border: none; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .download-btn:hover { background: var(--signal); }
+    .download-btn .arrow { margin-left: 10px; font-family: var(--f-mono); }
+
+    .card-footer-link {
+      display: block; text-align: center;
+      padding: 10px 20px; font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.04em;
+      background: transparent; border: none; cursor: pointer; width: 100%;
+    }
+    .card-footer-link:hover { color: var(--ink); }
+
+    /* Threat scenarios card */
+    .threat-card {
+      margin: 20px 0; border: 1px solid var(--signal); background: var(--paper);
+    }
+    .threat-head {
+      background: var(--signal-soft); color: var(--signal);
+      padding: 14px 20px; border-bottom: 1px solid var(--signal);
+    }
+    .threat-head .tt {
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .threat-head .ts {
+      font-family: var(--f-sans); font-size: 13px;
+      color: var(--ink-soft); line-height: 1.5;
+    }
+    .scenario {
+      padding: 16px 20px; border-bottom: 1px solid var(--hairline);
+    }
+    .scenario:last-child { border-bottom: none; }
+    .scenario-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px; margin-bottom: 6px;
+    }
+    .scenario-title {
+      font-family: var(--f-sans); font-weight: 500; font-size: 15px; color: var(--ink);
+    }
+    .scenario-gap {
+      font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.04em; margin-bottom: 10px;
+    }
+    .prob-pill {
+      font-family: var(--f-mono); font-size: 10px; padding: 3px 8px;
+      text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+    }
+    .prob-high { background: var(--signal); color: var(--paper); }
+    .prob-medium { background: var(--warn); color: var(--paper); }
+    .prob-low { background: var(--ok); color: var(--paper); }
+    .scenario-details { display: none; margin-top: 10px; }
+    .scenario-details.shown { display: block; }
+    .scenario-detail-row {
+      padding: 8px 10px; background: var(--faint);
+      font-size: 13px; color: var(--ink-soft);
+      margin-bottom: 6px; line-height: 1.5;
+    }
+    .scenario-detail-row b { color: var(--ink); font-weight: 500; }
+    .scenario-toggle {
+      background: transparent; border: none; padding: 0;
+      font-family: var(--f-mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.04em; cursor: pointer;
+    }
+    .scenario-toggle:hover { color: var(--signal); }
+    .scenario-fix {
+      margin-top: 10px; padding: 10px;
+      background: var(--ok-soft); border-left: 2px solid var(--ok);
+      font-size: 13px; color: var(--ok); line-height: 1.5;
+    }
+    .scenario-fix b { font-weight: 500; }
+
+    /* Board presentation card */
+    .board-card {
+      margin: 20px 0; border: 1px solid var(--ink); background: var(--paper);
+    }
+    .board-head {
+      background: var(--ink); color: var(--paper);
+      padding: 18px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .board-head .bt {
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.7;
+    }
+    .board-gauge { display: flex; flex-direction: column; align-items: center; padding: 20px; background: var(--ink); color: var(--paper); border-bottom: 1px solid var(--hairline); }
+    .board-gauge .score-num { font-family: var(--f-sans); font-weight: 300; font-size: 56px; line-height: 1; margin-bottom: 4px; letter-spacing: -0.03em; }
+    .board-gauge .score-lbl { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.6; }
+    .slide {
+      padding: 16px 20px; border-bottom: 1px solid var(--hairline);
+      display: flex; gap: 14px;
+    }
+    .slide:last-child { border-bottom: none; }
+    .slide-num {
+      flex-shrink: 0; width: 28px; height: 28px;
+      background: var(--ink); color: var(--paper);
+      font-family: var(--f-mono); font-weight: 500; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .slide-body { flex: 1; }
+    .slide-title { font-family: var(--f-sans); font-weight: 500; font-size: 15px; color: var(--ink); margin-bottom: 8px; }
+    .slide-bullets, .slide-actions { margin: 6px 0 0 0; padding: 0; list-style: none; }
+    .slide-bullets li, .slide-actions li { padding: 3px 0 3px 16px; position: relative; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+    .slide-bullets li::before { content: "·"; position: absolute; left: 4px; color: var(--signal); }
+    .slide-actions li::before { content: "→"; position: absolute; left: 0; color: var(--signal); font-family: var(--f-mono); font-size: 10px; top: 4px; }
+    .slide-recommendation {
+      font-family: var(--f-sans); font-size: 13px; font-weight: 500;
+      color: var(--ink); margin-top: 8px; padding: 6px 0;
+      border-left: 2px solid var(--signal); padding-left: 10px;
+    }
+    .slide-cost { font-family: var(--f-mono); font-size: 11px; margin-top: 6px; }
+    .slide-cost .cost-action { color: var(--ok); }
+    .slide-cost .cost-inaction { color: var(--signal); }
+    .slide-copy {
+      background: transparent; border: 1px solid var(--hairline);
+      padding: 3px 8px; cursor: pointer;
+      font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+      flex-shrink: 0; align-self: flex-start;
+    }
+    .slide-copy:hover { border-color: var(--ink); color: var(--ink); }
+    .slide-notes-toggle {
+      background: transparent; border: none; padding: 0; cursor: pointer;
+      font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.04em; margin-top: 8px;
+    }
+    .slide-notes-toggle:hover { color: var(--ink); }
+    .slide-notes {
+      display: none; margin-top: 6px; padding: 8px; background: var(--faint);
+      font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft);
+      line-height: 1.55;
+    }
+    .slide-notes.shown { display: block; }
+
+    /* Tool generating / ready */
+    .tool-box {
+      border-left: 2px solid var(--warn); background: var(--warn-soft);
+      padding: 12px 14px; font-size: 13px; color: var(--ink-soft);
+      font-family: var(--f-mono); letter-spacing: 0.02em;
+      display: inline-flex; align-items: center; gap: 10px;
+    }
+    .tool-box .dot {
+      width: 5px; height: 5px; background: var(--warn);
+      border-radius: 50%;
+      animation: dotbounce 1.2s infinite;
+    }
+    .tool-box .dot:nth-child(2) { animation-delay: 0.15s; }
+    .tool-box .dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes dotbounce {
+      0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
+      30% { opacity: 1; transform: translateY(-2px); }
+    }
+    .tool-ready-link {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--ink); color: var(--paper);
+      padding: 10px 14px;
+      font-family: var(--f-sans); font-weight: 500; font-size: 14px;
+    }
+    .tool-ready-link:hover { background: var(--signal); }
+    .enisa-box { border-left: 2px solid var(--signal); background: var(--faint); padding: 14px; }
+    .enisa-box .enisa-head { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--signal); margin-bottom: 10px; }
+    .enisa-box a { display: block; padding: 6px 0; color: var(--ink); border-bottom: 1px solid var(--hairline); font-size: 14px; }
+    .enisa-box a:hover { color: var(--signal); }
+    .enisa-box a:last-child { border-bottom: none; }
+    .enisa-box a .desc { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .demo-banner {
+      text-align: center; padding: 10px 0 14px;
+      font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em;
+      color: var(--signal); text-transform: uppercase;
+    }
+
+    /* Typing indicator */
+    .typing {
+      max-width: var(--chat-max); margin: 0 auto;
+      padding: 14px var(--margin) 20px;
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.04em; color: var(--muted);
+    }
+    .typing.hidden { display: none; }
+    .typing-dots { display: inline-flex; gap: 4px; }
+    .typing-dots span {
+      width: 5px; height: 5px;
+      background: var(--signal);
+      animation: dotbounce 1.2s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+    /* Input bar */
+    .input-bar {
+      border-top: 1px solid var(--ink);
+      flex-shrink: 0; background: var(--paper);
+      padding: 20px var(--margin) 24px;
+    }
+    .input-inner {
+      max-width: var(--chat-max); margin: 0 auto;
+      display: grid; grid-template-columns: 1fr auto;
+      gap: var(--col-gap); align-items: end;
+    }
+    .input-field-wrap { position: relative; }
+    .input-prompt {
+      position: absolute; left: 0; top: 10px;
+      font-family: var(--f-mono); font-size: 14px;
+      color: var(--signal); pointer-events: none; font-weight: 500;
+    }
+    .input-field {
+      width: 100%; background: transparent; border: none;
+      border-bottom: 1px solid var(--ink);
+      padding: 10px 0 10px 24px;
+      font-family: var(--f-sans); font-size: 17px; color: var(--ink);
+      outline: none; letter-spacing: -0.005em;
+    }
+    .input-field:focus { border-bottom-color: var(--signal); }
+    .input-field::placeholder { color: var(--muted); }
+    .input-field:disabled { color: var(--muted); }
+
+    .send-btn {
+      background: transparent; border: none;
+      padding: 10px 0;
+      font-family: var(--f-sans); font-size: 16px; font-weight: 500;
+      color: var(--ink); cursor: pointer;
+      display: inline-flex; align-items: baseline; gap: 12px;
+      border-bottom: 1.5px solid var(--ink);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .send-btn:hover { color: var(--signal); border-bottom-color: var(--signal); }
+    .send-btn .arrow {
+      font-family: var(--f-mono); font-size: 14px;
+      transition: transform 0.25s cubic-bezier(.2,.6,.2,1);
+    }
+    .send-btn:hover .arrow { transform: translateX(6px); }
+    .send-btn:disabled { color: var(--muted); border-bottom-color: var(--hairline); cursor: not-allowed; }
+    .send-btn:disabled:hover { color: var(--muted); }
+    .send-btn:disabled .arrow { transform: none; }
+
+    .input-hint {
+      max-width: var(--chat-max); margin: 10px auto 0;
+      font-family: var(--f-mono); font-size: 10px;
+      color: var(--muted); letter-spacing: 0.04em;
+      display: flex; justify-content: space-between;
+    }
+    .kbd {
+      display: inline-block; padding: 1px 5px;
+      border: 1px solid var(--hairline);
+      font-family: var(--f-mono); font-size: 10px;
+      color: var(--ink); margin: 0 2px;
+    }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+      :root { --margin: 20px; --col-gap: 12px; }
+      .grid-overlay { display: none; }
+      .sys-bar { grid-template-columns: 1fr 1fr; row-gap: 10px; }
+      .sys-bar > * { grid-column: span 1; }
+      .sys-region { display: none; }
+      .hero { padding: 48px var(--margin); }
+      .hero-index { display: none; }
+      .hero-label, .hero-headline, .hero-sub, .hero-cta-cell, .hero-meta { grid-column: 1 / 13; }
+      .hero-meta { margin-top: 40px; }
+      .section-kicker, .pillars, .contents, .report, .landing-footer {
+        padding-left: var(--margin); padding-right: var(--margin);
+      }
+      .pillar-1, .pillar-2, .pillar-3, .contents-head, .contents-list, .report-head, .report-sub, .acc-list {
+        grid-column: 1 / 13;
+      }
+      .pillar-1, .pillar-2 { margin-bottom: 40px; padding-right: 0; }
+      .contents-item { grid-template-columns: 32px 1fr auto; }
+      .acc-head { grid-template-columns: 48px 1fr 30px; }
+      .acc-body-inner { padding-left: 48px; }
+      .landing-footer .l, .landing-footer .r { grid-column: 1 / 13; text-align: left; }
+
+      .chat-sys-bar { grid-template-columns: 1fr 1fr; row-gap: 10px; }
+      .chat-sys-bar .brand, .chat-sys-bar .ref, .chat-sys-bar .status, .chat-sys-bar .controls {
+        grid-column: span 1;
+      }
+      .chat-sys-bar .status { display: none; }
+      .chat-sys-bar .controls { justify-content: flex-start; }
+      .progress-row { grid-template-columns: 1fr; row-gap: 14px; }
+      .progress-label, .progress-steps, .progress-counter { grid-column: span 1; }
+      .progress-counter { text-align: left; }
+      .progress-steps { grid-template-columns: repeat(3, 1fr); }
+      .msg.regula .msg-body, .msg.user .msg-body, .msg.demo-user .msg-body {
+        grid-column: 1 / 13; text-align: left;
+      }
     }
   </style>
 </head>
 <body>
 
-<!-- LANDING PAGE -->
-<div id="landing" class="min-h-screen bg-[#0A1628] text-white flex flex-col">
+<!-- ═════════════════════════ LANDING ═════════════════════════ -->
+<div id="landing">
 
-  <!-- Language toggle top-right -->
-  <div class="flex justify-end px-6 pt-5">
-    <div class="flex items-center gap-3">
-      <button id="landing-btn-en" onclick="setLandingLanguage('en')"
-        class="px-2 py-1 text-sm font-semibold text-white border-b-2 border-[#D4AF77] transition-colors">EN</button>
-      <button id="landing-btn-pl" onclick="setLandingLanguage('pl')"
-        class="px-2 py-1 text-sm font-semibold text-white/50 border-b-2 border-transparent hover:text-white transition-colors">PL</button>
-    </div>
+  <div class="grid-overlay" aria-hidden="true">
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
   </div>
 
-  <!-- Hero -->
-  <div class="flex flex-col items-center justify-center flex-1 px-6 py-20 text-center">
-    <div data-lang-key="badge" class="text-[#D4AF77] text-sm font-mono tracking-widest uppercase mb-4">
-      NIS2 Compliance Assessment
-    </div>
-    <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-      <span data-lang-key="h1_1">Check your NIS2 compliance</span><br>
-      <span data-lang-key="h1_2" class="text-[#D4AF77]">in 15 minutes</span>
-    </h1>
-    <p data-lang-key="subtitle" class="text-lg text-white/70 max-w-2xl mb-10">
-      Regula guides you through the assessment like an experienced consultant —
-      and generates documents you can implement right away.
-      No registration, no fees.
-    </p>
-    <button onclick="startAssessment()"
-      class="bg-[#D4AF77] hover:bg-[#c49d66] text-[#0A1628] font-bold
-             text-lg px-10 py-4 rounded-lg transition-all duration-200
-             shadow-lg hover:shadow-[#D4AF77]/30 hover:shadow-xl">
-      <span data-lang-key="cta">Start assessment →</span>
-    </button>
-    <p data-lang-key="fine" class="text-white/40 text-sm mt-4">Free · Open source MIT · Your data never leaves the server</p>
-  </div>
+  <main>
 
-  <!-- 3 Feature Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-6 pb-16">
-    <div class="bg-white/5 border border-white/10 rounded-xl p-6">
-      <div class="text-3xl mb-3">🎯</div>
-      <h3 data-lang-key="card1_title" class="font-bold text-lg mb-2">Does NIS2 apply to you?</h3>
-      <p data-lang-key="card1_text" class="text-white/60 text-sm">Directly or through supply chain — we check both cases.</p>
-    </div>
-    <div class="bg-white/5 border border-white/10 rounded-xl p-6">
-      <div class="text-3xl mb-3">🔍</div>
-      <h3 data-lang-key="card2_title" class="font-bold text-lg mb-2">Audit simulation</h3>
-      <p data-lang-key="card2_text" class="text-white/60 text-sm">See what the NIS2 inspector will ask before they actually show up. PASS/FAIL verdict with article citations.</p>
-    </div>
-    <div class="bg-white/5 border border-white/10 rounded-xl p-6">
-      <div class="text-3xl mb-3">📄</div>
-      <h3 data-lang-key="card3_title" class="font-bold text-lg mb-2">Ready documents</h3>
-      <p data-lang-key="card3_text" class="text-white/60 text-sm">Security policy, incident plan, remediation checklist — downloadable right after assessment.</p>
-    </div>
-  </div>
-
-  <!-- What you get -->
-  <div class="max-w-3xl mx-auto px-6 pb-20 w-full">
-    <h2 data-lang-key="what_title" class="text-2xl font-bold text-center mb-8 text-[#D4AF77]">What you get at the end</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <div class="flex items-start gap-3 text-white/80 text-sm">
-        <span class="text-green-400 mt-0.5">✓</span>
-        <span data-lang-key="item0">PDF report with compliance score 0–100</span>
-      </div>
-      <div class="flex items-start gap-3 text-white/80 text-sm">
-        <span class="text-green-400 mt-0.5">✓</span>
-        <span data-lang-key="item1">Gap table with priorities and remediation costs</span>
-      </div>
-      <div class="flex items-start gap-3 text-white/80 text-sm">
-        <span class="text-green-400 mt-0.5">✓</span>
-        <span data-lang-key="item2">Audit simulation with PASS/FAIL verdict</span>
-      </div>
-      <div class="flex items-start gap-3 text-white/80 text-sm">
-        <span class="text-green-400 mt-0.5">✓</span>
-        <span data-lang-key="item3">Personalized attack scenarios for your company</span>
-      </div>
-      <div class="flex items-start gap-3 text-white/80 text-sm">
-        <span class="text-green-400 mt-0.5">✓</span>
-        <span data-lang-key="item4">Board presentation (5 slides)</span>
-      </div>
-      <div class="flex items-start gap-3 text-white/80 text-sm">
-        <span class="text-green-400 mt-0.5">✓</span>
-        <span data-lang-key="item5">Security policy ready to sign</span>
-      </div>
-      <div class="flex items-start gap-3 text-white/80 text-sm">
-        <span class="text-green-400 mt-0.5">✓</span>
-        <span data-lang-key="item6">Incident response plan</span>
-      </div>
-      <div class="flex items-start gap-3 text-white/80 text-sm">
-        <span class="text-green-400 mt-0.5">✓</span>
-        <span data-lang-key="item7">ENISA resources matched to your gaps</span>
+    <!-- System bar -->
+    <div class="sys-bar">
+      <div class="sys-brand">Regula</div>
+      <div class="sys-ref">Ref. <b>NIS2.SA/2026/001</b></div>
+      <div class="sys-region">Region <b>EU · PL</b></div>
+      <div class="sys-lang">
+        <button class="lang-btn active" id="landing-btn-en" onclick="setLandingLanguage('en')">EN</button>
+        <button class="lang-btn" id="landing-btn-pl" onclick="setLandingLanguage('pl')">PL</button>
       </div>
     </div>
-    <p data-lang-key="disclaimer" class="text-white/30 text-xs text-center mt-10">
-      Regula is a starting point for legal review — not a substitute for a consultant.
-      MIT open source · github.com/posgame3/regula
-    </p>
-  </div>
 
-  <!-- REPORT BREAKDOWN SECTION -->
-  <div class="max-w-4xl mx-auto px-6 pb-20 w-full">
-    <h2 data-lang-key="report_section_title"
-        class="text-2xl font-bold text-center mb-4 text-white">
-      What's in the report
-    </h2>
-    <p data-lang-key="report_section_sub"
-       class="text-center text-white/50 text-sm mb-10">
-      A complete 7-section PDF generated after your assessment
-    </p>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-index">01 / 03</div>
 
-    <!-- 7 accordion items, click to expand -->
-    <div class="space-y-3" id="report-accordion">
-
-      <!-- Item 1 -->
-      <div class="border border-white/10 rounded-lg overflow-hidden">
-        <button onclick="toggleAccordion(1)"
-          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
-          <div class="flex items-center gap-3">
-            <span class="text-[#D4AF77] font-mono text-sm">01</span>
-            <span data-lang-key="r1_title" class="font-semibold">Qualification Summary</span>
-          </div>
-          <span id="arrow-1" class="text-white/40 transition-transform">▼</span>
-        </button>
-        <div id="acc-1" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
-          <span data-lang-key="r1_desc">Whether NIS2 applies to your company — directly (Annex I/II sectors) or indirectly via supply chain pressure from your clients. Includes confidence level and legal basis.</span>
-        </div>
+      <div class="hero-label">
+        <span data-lang-key="label_a">NIS2</span>
+        <span class="dot">●</span>
+        <span data-lang-key="label_b">Compliance self-assessment</span>
+        <span class="dot">●</span>
+        <span>v.2026.04</span>
       </div>
 
-      <!-- Item 2 -->
-      <div class="border border-white/10 rounded-lg overflow-hidden">
-        <button onclick="toggleAccordion(2)"
-          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
-          <div class="flex items-center gap-3">
-            <span class="text-[#D4AF77] font-mono text-sm">02</span>
-            <span data-lang-key="r2_title" class="font-semibold">Compliance Score</span>
-          </div>
-          <span id="arrow-2" class="text-white/40 transition-transform">▼</span>
+      <h1 class="hero-headline">
+        <span data-lang-key="h1_1">NIS2 compliance,</span>
+        <b data-lang-key="h1_em">quantified in fifteen minutes.</b>
+      </h1>
+
+      <p class="hero-sub" data-lang-key="sub">
+        A structured self-assessment with the voice of a regulator. Ten Article 21(2) requirements, scored zero to one hundred. Output: a seven-section PDF with audit-grade article references.
+      </p>
+
+      <div class="hero-cta-cell">
+        <button class="cta-link" onclick="startAssessment()">
+          <span data-lang-key="cta">Begin assessment</span>
+          <span class="arrow">→</span>
         </button>
-        <div id="acc-2" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
-          <span data-lang-key="r2_desc">A score from 0–100 based on your answers, with overall risk level (Critical / High / Medium / Low), executive headline, and a note on what your company already has going for it.</span>
-        </div>
+        <span class="cta-note" data-lang-key="note">No registration. No fee. Data never leaves the server.</span>
       </div>
 
-      <!-- Item 3 -->
-      <div class="border border-white/10 rounded-lg overflow-hidden">
-        <button onclick="toggleAccordion(3)"
-          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
-          <div class="flex items-center gap-3">
-            <span class="text-[#D4AF77] font-mono text-sm">03</span>
-            <span data-lang-key="r3_title" class="font-semibold">Gap Analysis</span>
-          </div>
-          <span id="arrow-3" class="text-white/40 transition-transform">▼</span>
-        </button>
-        <div id="acc-3" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
-          <span data-lang-key="r3_desc">A table covering all 10 requirements of Article 21(2) NIS2. For each: status (missing/partial/met), risk level, what to do, estimated effort, and cost range.</span>
+      <div class="hero-meta">
+        <div class="meta-table">
+          <div class="meta-row"><span class="k" data-lang-key="m_dur">Duration</span><span class="v">00:15:00</span></div>
+          <div class="meta-row"><span class="k" data-lang-key="m_lang">Language</span><span class="v">EN / PL</span></div>
+          <div class="meta-row"><span class="k" data-lang-key="m_fee">Fee</span><span class="v">€ 0.00</span></div>
+          <div class="meta-row"><span class="k" data-lang-key="m_out">Output</span><span class="v">PDF · 7 §</span></div>
+          <div class="meta-row"><span class="k" data-lang-key="m_basis">Basis</span><span class="v">Art. 21(2)</span></div>
+          <div class="meta-row"><span class="k" data-lang-key="m_lic">Licence</span><span class="v">MIT</span></div>
         </div>
       </div>
+    </section>
 
-      <!-- Item 4 -->
-      <div class="border border-white/10 rounded-lg overflow-hidden">
-        <button onclick="toggleAccordion(4)"
-          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
-          <div class="flex items-center gap-3">
-            <span class="text-[#D4AF77] font-mono text-sm">04</span>
-            <span data-lang-key="r4_title" class="font-semibold">Top 3 Priority Actions</span>
-          </div>
-          <span id="arrow-4" class="text-white/40 transition-transform">▼</span>
-        </button>
-        <div id="acc-4" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
-          <span data-lang-key="r4_desc">The 3 most important actions ranked by risk impact, with specific steps, article references, and deadlines. This is what to do first.</span>
-        </div>
-      </div>
-
-      <!-- Item 5 -->
-      <div class="border border-white/10 rounded-lg overflow-hidden">
-        <button onclick="toggleAccordion(5)"
-          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
-          <div class="flex items-center gap-3">
-            <span class="text-[#D4AF77] font-mono text-sm">05</span>
-            <span data-lang-key="r5_title" class="font-semibold">Audit Simulation Verdict</span>
-          </div>
-          <span id="arrow-5" class="text-white/40 transition-transform">▼</span>
-        </button>
-        <div id="acc-5" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
-          <span data-lang-key="r5_desc">PASS or FAIL verdict from a simulated NIS2 inspector. Lists each critical failure with specific article citations, and what you'd need to fix before re-inspection.</span>
-        </div>
-      </div>
-
-      <!-- Item 6 -->
-      <div class="border border-white/10 rounded-lg overflow-hidden">
-        <button onclick="toggleAccordion(6)"
-          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
-          <div class="flex items-center gap-3">
-            <span class="text-[#D4AF77] font-mono text-sm">06</span>
-            <span data-lang-key="r6_title" class="font-semibold">Attack Scenarios</span>
-          </div>
-          <span id="arrow-6" class="text-white/40 transition-transform">▼</span>
-        </button>
-        <div id="acc-6" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
-          <span data-lang-key="r6_desc">Personalized attack scenarios based on YOUR specific gaps — not generic threats. Shows how an attacker would exploit your company's weaknesses and how to fix each vector.</span>
-        </div>
-      </div>
-
-      <!-- Item 7 -->
-      <div class="border border-white/10 rounded-lg overflow-hidden">
-        <button onclick="toggleAccordion(7)"
-          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
-          <div class="flex items-center gap-3">
-            <span class="text-[#D4AF77] font-mono text-sm">07</span>
-            <span data-lang-key="r7_title" class="font-semibold">Policy Drafts</span>
-          </div>
-          <span id="arrow-7" class="text-white/40 transition-transform">▼</span>
-        </button>
-        <div id="acc-7" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
-          <span data-lang-key="r7_desc">Draft security policies for your critical gaps — a starting point you can give to a lawyer or IT contractor. Not final legal documents, but saves 2–3 hours of consultant time.</span>
-        </div>
-      </div>
-
+    <!-- Section 01: pillars -->
+    <div class="section-kicker">
+      <div class="num">01</div>
+      <div class="title" data-lang-key="s1_title">The assessment, in three axes</div>
+      <div class="counter">01 — 03 / 03</div>
     </div>
-  </div>
+    <section class="pillars">
+      <div class="pillar-1">
+        <div class="pillar-num">I</div>
+        <h3 class="pillar-title" data-lang-key="p1_title">Applicability</h3>
+        <p class="pillar-body" data-lang-key="p1_body">
+          Direct and supply-chain scope. Essential vs. important entities. The indirect pressure from NIS2-regulated clients, accounted for explicitly.
+        </p>
+      </div>
+      <div class="pillar-2">
+        <div class="pillar-num">II</div>
+        <h3 class="pillar-title" data-lang-key="p2_title">Adversarial audit</h3>
+        <p class="pillar-body" data-lang-key="p2_body">
+          A simulated inspector challenges stated controls. PASS or FAIL verdict, with article-level citations that can be argued with.
+        </p>
+      </div>
+      <div class="pillar-3">
+        <div class="pillar-num">III</div>
+        <h3 class="pillar-title" data-lang-key="p3_title">Executable documents</h3>
+        <p class="pillar-body" data-lang-key="p3_body">
+          Policy drafts, incident plan, remediation checklist. Written to be handed to counsel or an IT contractor the same day.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 02: deliverables -->
+    <div class="section-kicker">
+      <div class="num">02</div>
+      <div class="title" data-lang-key="s2_title">Deliverables</div>
+      <div class="counter">01 — 08 / 08</div>
+    </div>
+    <section class="contents">
+      <h2 class="contents-head" data-lang-key="c_head_html">Everything an auditor <b>would ask for.</b></h2>
+      <div class="contents-list">
+        <div class="contents-item"><span class="ix">01</span><span class="txt" data-lang-key="item0">PDF report with compliance score 0–100</span><span class="tag">Pdf</span></div>
+        <div class="contents-item"><span class="ix">02</span><span class="txt" data-lang-key="item1">Gap table with priorities and remediation cost</span><span class="tag">Table</span></div>
+        <div class="contents-item"><span class="ix">03</span><span class="txt" data-lang-key="item2">Audit simulation with PASS / FAIL verdict</span><span class="tag">Verdict</span></div>
+        <div class="contents-item"><span class="ix">04</span><span class="txt" data-lang-key="item3">Personalised attack scenarios for your company</span><span class="tag">Scenario</span></div>
+        <div class="contents-item"><span class="ix">05</span><span class="txt" data-lang-key="item4">Board presentation — five slides</span><span class="tag">Slides</span></div>
+        <div class="contents-item"><span class="ix">06</span><span class="txt" data-lang-key="item5">Security policy ready to sign</span><span class="tag">Policy</span></div>
+        <div class="contents-item"><span class="ix">07</span><span class="txt" data-lang-key="item6">Incident response plan</span><span class="tag">Plan</span></div>
+        <div class="contents-item"><span class="ix">08</span><span class="txt" data-lang-key="item7">ENISA resources mapped to your gaps</span><span class="tag">Enisa</span></div>
+      </div>
+    </section>
+
+    <!-- Section 03: report sections -->
+    <div class="section-kicker">
+      <div class="num">03</div>
+      <div class="title" data-lang-key="s3_title">Inside the PDF</div>
+      <div class="counter">01 — 07 / 07</div>
+    </div>
+    <section class="report">
+      <h2 class="report-head" data-lang-key="r_head_html">Section by <b>section.</b></h2>
+      <p class="report-sub" data-lang-key="r_sub">Seven parts, delivered at the close of the assessment</p>
+
+      <div class="acc-list">
+        <div class="acc-item" id="acc-item-1">
+          <button class="acc-head" onclick="toggleAccordion(1)">
+            <span class="acc-num">§ 01</span>
+            <span class="acc-name" data-lang-key="r1_title">Qualification Summary</span>
+            <span class="acc-arrow" id="arrow-1">+</span>
+          </button>
+          <div class="acc-body" id="acc-1"><div class="acc-body-inner" data-lang-key="r1_desc">Whether NIS2 applies to your company — directly (Annex I/II sectors) or indirectly via supply chain pressure from your clients. Includes confidence level and legal basis.</div></div>
+        </div>
+        <div class="acc-item" id="acc-item-2">
+          <button class="acc-head" onclick="toggleAccordion(2)">
+            <span class="acc-num">§ 02</span>
+            <span class="acc-name" data-lang-key="r2_title">Compliance Score</span>
+            <span class="acc-arrow" id="arrow-2">+</span>
+          </button>
+          <div class="acc-body" id="acc-2"><div class="acc-body-inner" data-lang-key="r2_desc">A score from 0–100 based on your answers, with overall risk level (Critical / High / Medium / Low), executive headline, and a note on what your company already has going for it.</div></div>
+        </div>
+        <div class="acc-item" id="acc-item-3">
+          <button class="acc-head" onclick="toggleAccordion(3)">
+            <span class="acc-num">§ 03</span>
+            <span class="acc-name" data-lang-key="r3_title">Gap Analysis</span>
+            <span class="acc-arrow" id="arrow-3">+</span>
+          </button>
+          <div class="acc-body" id="acc-3"><div class="acc-body-inner" data-lang-key="r3_desc">A table covering all 10 requirements of Article 21(2) NIS2. For each: status (missing/partial/met), risk level, what to do, estimated effort, and cost range.</div></div>
+        </div>
+        <div class="acc-item" id="acc-item-4">
+          <button class="acc-head" onclick="toggleAccordion(4)">
+            <span class="acc-num">§ 04</span>
+            <span class="acc-name" data-lang-key="r4_title">Top 3 Priority Actions</span>
+            <span class="acc-arrow" id="arrow-4">+</span>
+          </button>
+          <div class="acc-body" id="acc-4"><div class="acc-body-inner" data-lang-key="r4_desc">The 3 most important actions ranked by risk impact, with specific steps, article references, and deadlines. This is what to do first.</div></div>
+        </div>
+        <div class="acc-item" id="acc-item-5">
+          <button class="acc-head" onclick="toggleAccordion(5)">
+            <span class="acc-num">§ 05</span>
+            <span class="acc-name" data-lang-key="r5_title">Audit Simulation Verdict</span>
+            <span class="acc-arrow" id="arrow-5">+</span>
+          </button>
+          <div class="acc-body" id="acc-5"><div class="acc-body-inner" data-lang-key="r5_desc">PASS or FAIL verdict from a simulated NIS2 inspector. Lists each critical failure with specific article citations, and what you'd need to fix before re-inspection.</div></div>
+        </div>
+        <div class="acc-item" id="acc-item-6">
+          <button class="acc-head" onclick="toggleAccordion(6)">
+            <span class="acc-num">§ 06</span>
+            <span class="acc-name" data-lang-key="r6_title">Attack Scenarios</span>
+            <span class="acc-arrow" id="arrow-6">+</span>
+          </button>
+          <div class="acc-body" id="acc-6"><div class="acc-body-inner" data-lang-key="r6_desc">Personalised attack scenarios based on YOUR specific gaps — not generic threats. Shows how an attacker would exploit your company's weaknesses and how to fix each vector.</div></div>
+        </div>
+        <div class="acc-item" id="acc-item-7">
+          <button class="acc-head" onclick="toggleAccordion(7)">
+            <span class="acc-num">§ 07</span>
+            <span class="acc-name" data-lang-key="r7_title">Policy Drafts</span>
+            <span class="acc-arrow" id="arrow-7">+</span>
+          </button>
+          <div class="acc-body" id="acc-7"><div class="acc-body-inner" data-lang-key="r7_desc">Draft security policies for your critical gaps — a starting point you can give to a lawyer or IT contractor. Not final legal documents, but saves 2–3 hours of consultant time.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="landing-footer">
+      <div class="l"><b>Regula</b> · <span data-lang-key="foot_l">NIS2 simulation · MIT open source · 2026</span></div>
+      <div class="r"><a href="https://github.com/posgame3/regula" target="_blank" rel="noopener">github.com/posgame3/regula ↗</a></div>
+    </footer>
+
+  </main>
 </div>
 
-<!-- CHAT APP (hidden initially) -->
-<div id="chat-app" class="hidden h-screen flex flex-col bg-white overflow-hidden">
+<!-- ═════════════════════════ CHAT APP ═════════════════════════ -->
+<div id="chat-app" class="hidden">
 
-  <!-- Header -->
-  <header class="bg-[#0A2540] text-white px-6 py-3 flex items-center justify-between flex-shrink-0 shadow-lg">
-    <div class="flex items-baseline gap-3">
-      <span class="text-xl font-bold tracking-widest">REGULA</span>
-      <span class="text-xs text-slate-400 hidden sm:inline">NIS2 Compliance Assessment</span>
+  <!-- System bar -->
+  <div class="chat-sys-bar">
+    <div class="brand">Regula</div>
+    <div class="ref">Ref. <b id="session-ref">—</b></div>
+    <div class="status"><span class="live-dot"></span> <span><b data-lang-key-chat="status_title">Assessment in progress</b></span></div>
+    <div class="controls">
+      <button class="sys-demo" id="btn-demo" onclick="runDemo()">▶ Demo: Marek / DataMed</button>
+      <div class="sys-lang">
+        <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" id="btn-pl" onclick="setLang('pl')">PL</button>
+      </div>
     </div>
-    <div class="flex items-center gap-3">
-      <button id="btn-demo" onclick="runDemo()"
-        class="border border-slate-500 text-slate-300 px-3 py-1 rounded-lg text-xs font-medium hover:border-slate-200 hover:text-white transition-colors">
-        ▶️ Historia Marka z DataMed
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-row">
+    <div class="progress-label"><span data-lang-key-chat="stage">Stage</span> <b><span id="stage-idx">01</span> / 06</b> · <span id="stage-name">Qualify</span></div>
+    <div class="progress-steps" id="progress"></div>
+    <div class="progress-counter" id="progress-counter">&nbsp;</div>
+  </div>
+
+  <!-- Thread -->
+  <div class="chat-scroll" id="scroll">
+    <div class="chat-thread" id="chat"></div>
+    <div class="typing hidden" id="typing">
+      <span><b>Regula</b> <span data-lang-key-chat="composing">is composing</span></span>
+      <span class="typing-dots"><span></span><span></span><span></span></span>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-bar">
+    <div class="input-inner">
+      <div class="input-field-wrap">
+        <span class="input-prompt">&gt;</span>
+        <input id="input" class="input-field" type="text"
+          data-lang-key-chat-ph="placeholder"
+          placeholder="Type your answer — in plain language, as you would tell a colleague."
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}" />
+      </div>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">
+        <span data-lang-key-chat="send">Send</span>
+        <span class="arrow">→</span>
       </button>
-      <div class="flex items-center gap-1 bg-[#061929] rounded-lg p-1">
-        <button id="btn-pl" onclick="setLang('pl')">PL</button>
-        <button id="btn-en" onclick="setLang('en')">EN</button>
-      </div>
     </div>
-  </header>
-
-  <!-- Progress bar -->
-  <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex-shrink-0">
-    <div id="progress" class="flex items-center max-w-2xl mx-auto"></div>
-  </div>
-
-  <!-- Scroll area -->
-  <div id="scroll" class="flex-1 overflow-y-auto">
-    <div class="max-w-2xl mx-auto px-4 pt-5 pb-2 space-y-3" id="chat"></div>
-    <!-- Typing indicator -->
-    <div id="typing" class="hidden max-w-2xl mx-auto px-4 pb-4">
-      <div class="flex items-end gap-2">
-        <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
-        <div class="bg-slate-100 rounded-2xl rounded-bl-none px-4 py-3 flex gap-1.5 items-center">
-          <div class="dot w-2 h-2 rounded-full bg-slate-400"></div>
-          <div class="dot w-2 h-2 rounded-full bg-slate-400"></div>
-          <div class="dot w-2 h-2 rounded-full bg-slate-400"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Input bar -->
-  <div class="border-t border-slate-200 bg-white px-4 py-3 flex-shrink-0">
-    <div class="flex gap-2 max-w-2xl mx-auto">
-      <input id="input" type="text"
-        class="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2540] focus:border-transparent placeholder-slate-400 disabled:bg-slate-50 disabled:text-slate-400"
-        placeholder="Type your answer…"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}" />
-      <button id="send-btn"
-        class="bg-[#0A2540] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#0e3566] active:bg-[#061929] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        onclick="sendMessage()">Send</button>
+    <div class="input-hint">
+      <span data-lang-key-chat="hint_l_html"><span class="kbd">Enter</span> to send · <span class="kbd">Shift</span>+<span class="kbd">Enter</span> for newline</span>
+      <span data-lang-key-chat="hint_r">Data stays on server · No egress</span>
     </div>
   </div>
 
 </div><!-- end #chat-app -->
 
+
 <script>
-// ── Landing translations ───────────────────────────────────────────────────
+// ═══════════════════════════ i18n ═══════════════════════════
 const LANDING_TEXT = {
   en: {
-    badge:       'NIS2 Compliance Assessment',
-    h1_1:        'Check your NIS2 compliance',
-    h1_2:        'in 15 minutes',
-    subtitle:    'Regula guides you through the assessment like an experienced consultant — and generates documents you can implement right away. No registration, no fees.',
-    cta:         'Start assessment →',
-    fine:        'Free · Open source MIT · Your data never leaves the server',
-    card1_title: 'Does NIS2 apply to you?',
-    card1_text:  'Directly or through supply chain — we check both cases.',
-    card2_title: 'Audit simulation',
-    card2_text:  'See what the NIS2 inspector will ask before they actually show up. PASS/FAIL verdict with article citations.',
-    card3_title: 'Ready documents',
-    card3_text:  'Security policy, incident plan, remediation checklist — downloadable right after assessment.',
-    what_title:  'What you get at the end',
+    label_a: 'NIS2',
+    label_b: 'Compliance self-assessment',
+    h1_1: 'NIS2 compliance,',
+    h1_em: 'quantified in fifteen minutes.',
+    sub: 'A structured self-assessment with the voice of a regulator. Ten Article 21(2) requirements, scored zero to one hundred. Output: a seven-section PDF with audit-grade article references.',
+    cta: 'Begin assessment',
+    note: 'No registration. No fee. Data never leaves the server.',
+    m_dur: 'Duration', m_lang: 'Language', m_fee: 'Fee', m_out: 'Output', m_basis: 'Basis', m_lic: 'Licence',
+    s1_title: 'The assessment, in three axes',
+    s2_title: 'Deliverables',
+    s3_title: 'Inside the PDF',
+    p1_title: 'Applicability',
+    p1_body: 'Direct and supply-chain scope. Essential vs. important entities. The indirect pressure from NIS2-regulated clients, accounted for explicitly.',
+    p2_title: 'Adversarial audit',
+    p2_body: 'A simulated inspector challenges stated controls. PASS or FAIL verdict, with article-level citations that can be argued with.',
+    p3_title: 'Executable documents',
+    p3_body: 'Policy drafts, incident plan, remediation checklist. Written to be handed to counsel or an IT contractor the same day.',
+    c_head_html: 'Everything an auditor <b>would ask for.</b>',
     item0: 'PDF report with compliance score 0–100',
-    item1: 'Gap table with priorities and remediation costs',
-    item2: 'Audit simulation with PASS/FAIL verdict',
-    item3: 'Personalized attack scenarios for your company',
-    item4: 'Board presentation (5 slides)',
+    item1: 'Gap table with priorities and remediation cost',
+    item2: 'Audit simulation with PASS / FAIL verdict',
+    item3: 'Personalised attack scenarios for your company',
+    item4: 'Board presentation — five slides',
     item5: 'Security policy ready to sign',
     item6: 'Incident response plan',
-    item7: 'ENISA resources matched to your gaps',
-    disclaimer: 'Regula is a starting point for legal review — not a substitute for a consultant. MIT open source · github.com/posgame3/regula',
-    report_section_title: "What's in the report",
-    report_section_sub:   'A complete 7-section PDF generated after your assessment',
+    item7: 'ENISA resources mapped to your gaps',
+    r_head_html: 'Section by <b>section.</b>',
+    r_sub: 'Seven parts, delivered at the close of the assessment',
     r1_title: 'Qualification Summary',
-    r1_desc:  'Whether NIS2 applies to your company — directly (Annex I/II sectors) or indirectly via supply chain pressure from your clients. Includes confidence level and legal basis.',
+    r1_desc: 'Whether NIS2 applies to your company — directly (Annex I/II sectors) or indirectly via supply chain pressure from your clients. Includes confidence level and legal basis.',
     r2_title: 'Compliance Score',
-    r2_desc:  'A score from 0–100 based on your answers, with overall risk level (Critical / High / Medium / Low), executive headline, and a note on what your company already has going for it.',
+    r2_desc: 'A score from 0–100 based on your answers, with overall risk level (Critical / High / Medium / Low), executive headline, and a note on what your company already has going for it.',
     r3_title: 'Gap Analysis',
-    r3_desc:  'A table covering all 10 requirements of Article 21(2) NIS2. For each: status (missing/partial/met), risk level, what to do, estimated effort, and cost range.',
+    r3_desc: 'A table covering all 10 requirements of Article 21(2) NIS2. For each: status (missing/partial/met), risk level, what to do, estimated effort, and cost range.',
     r4_title: 'Top 3 Priority Actions',
-    r4_desc:  'The 3 most important actions ranked by risk impact, with specific steps, article references, and deadlines. This is what to do first.',
+    r4_desc: 'The 3 most important actions ranked by risk impact, with specific steps, article references, and deadlines. This is what to do first.',
     r5_title: 'Audit Simulation Verdict',
-    r5_desc:  'PASS or FAIL verdict from a simulated NIS2 inspector. Lists each critical failure with specific article citations, and what you\'d need to fix before re-inspection.',
+    r5_desc: 'PASS or FAIL verdict from a simulated NIS2 inspector. Lists each critical failure with specific article citations, and what you\'d need to fix before re-inspection.',
     r6_title: 'Attack Scenarios',
-    r6_desc:  'Personalized attack scenarios based on YOUR specific gaps — not generic threats. Shows how an attacker would exploit your company\'s weaknesses and how to fix each vector.',
+    r6_desc: 'Personalised attack scenarios based on YOUR specific gaps — not generic threats. Shows how an attacker would exploit your company\'s weaknesses and how to fix each vector.',
     r7_title: 'Policy Drafts',
-    r7_desc:  'Draft security policies for your critical gaps — a starting point you can give to a lawyer or IT contractor. Not final legal documents, but saves 2–3 hours of consultant time.',
+    r7_desc: 'Draft security policies for your critical gaps — a starting point you can give to a lawyer or IT contractor. Not final legal documents, but saves 2–3 hours of consultant time.',
+    foot_l: 'NIS2 simulation · MIT open source · 2026',
   },
   pl: {
-    badge:       'Ocena zgodności z NIS2',
-    h1_1:        'Sprawdź zgodność z NIS2',
-    h1_2:        'w 15 minut',
-    subtitle:    'Regula prowadzi Cię przez ocenę jak doświadczony konsultant — i generuje dokumenty które możesz wdrożyć od razu. Bez rejestracji, bez opłat.',
-    cta:         'Rozpocznij ocenę →',
-    fine:        'Bezpłatne · Open source MIT · Twoje dane nie opuszczają serwera',
-    card1_title: 'Czy NIS2 Cię dotyczy?',
-    card1_text:  'Bezpośrednio lub przez łańcuch dostaw — sprawdzimy oba przypadki zanim zaczniesz ocenę.',
-    card2_title: 'Symulacja audytu',
-    card2_text:  'Zobaczyć co zapyta inspektor NIS2 zanim naprawdę przyjdzie. Wyrok PASS/FAIL z cytowaniem artykułów.',
-    card3_title: 'Gotowe dokumenty',
-    card3_text:  'Polityka bezpieczeństwa, plan incydentów, checklista remediacji — do pobrania od razu po ocenie.',
-    what_title:  'Co otrzymujesz na końcu',
-    item0: 'Raport PDF z oceną zgodności i score 0–100',
-    item1: 'Tabelę luk z priorytetami i kosztami remediacji',
-    item2: 'Symulację audytu z wyrokiem PASS/FAIL',
-    item3: 'Scenariusze ataków personalizowane pod Twoją firmę',
-    item4: 'Prezentację dla zarządu (5 slajdów)',
-    item5: 'Politykę bezpieczeństwa gotową do podpisu',
-    item6: 'Plan reagowania na incydenty',
-    item7: 'Zasoby ENISA dopasowane do Twoich luk',
-    disclaimer: 'Regula jest punktem startowym do przeglądu prawnego — nie zastępuje konsultanta. Kod open source MIT · github.com/posgame3/regula',
-    report_section_title: 'Co zawiera raport',
-    report_section_sub:   'Kompletny 7-częściowy PDF generowany po ocenie',
+    label_a: 'NIS2',
+    label_b: 'Samoocena zgodności',
+    h1_1: 'Zgodność z NIS2,',
+    h1_em: 'wymierzona w piętnaście minut.',
+    sub: 'Ustrukturyzowana samoocena w tonie regulatora. Dziesięć wymogów Art. 21(2), ocenionych od zera do stu. Wynik: siedmioczęściowy PDF z audytowalnymi odniesieniami do artykułów.',
+    cta: 'Rozpocznij ocenę',
+    note: 'Bez rejestracji. Bez opłat. Dane nie opuszczają serwera.',
+    m_dur: 'Czas', m_lang: 'Język', m_fee: 'Opłata', m_out: 'Wynik', m_basis: 'Podstawa', m_lic: 'Licencja',
+    s1_title: 'Ocena, w trzech osiach',
+    s2_title: 'Rezultaty',
+    s3_title: 'Zawartość PDF',
+    p1_title: 'Zakres zastosowania',
+    p1_body: 'Zakres bezpośredni i łańcuch dostaw. Podmioty kluczowe vs. ważne. Pośrednia presja od klientów objętych NIS2, uwzględniona wprost.',
+    p2_title: 'Audyt adwersarialny',
+    p2_body: 'Symulowany inspektor kwestionuje zadeklarowane kontrole. Werdykt PASS lub FAIL z cytowaniami artykułów, z którymi można dyskutować.',
+    p3_title: 'Dokumenty gotowe',
+    p3_body: 'Szkice polityk, plan reagowania, checklista naprawcza. Napisane, by przekazać prawnikowi lub IT tego samego dnia.',
+    c_head_html: 'Wszystko, o co spyta <b>audytor.</b>',
+    item0: 'Raport PDF z oceną zgodności 0–100',
+    item1: 'Tabela luk z priorytetami i kosztem',
+    item2: 'Symulacja audytu z werdyktem PASS / FAIL',
+    item3: 'Spersonalizowane scenariusze ataków',
+    item4: 'Prezentacja dla zarządu — pięć slajdów',
+    item5: 'Polityka bezpieczeństwa gotowa do podpisu',
+    item6: 'Plan reagowania na incydent',
+    item7: 'Zasoby ENISA zmapowane do luk',
+    r_head_html: 'Sekcja po <b>sekcji.</b>',
+    r_sub: 'Siedem części, dostarczanych po zakończeniu oceny',
     r1_title: 'Podsumowanie kwalifikacji',
-    r1_desc:  'Czy NIS2 dotyczy Twojej firmy — bezpośrednio (sektory Annex I/II) lub pośrednio przez presję łańcucha dostaw od Twoich klientów. Obejmuje poziom pewności i podstawę prawną.',
+    r1_desc: 'Czy NIS2 dotyczy Twojej firmy — bezpośrednio (sektory Aneks I/II) lub pośrednio przez presję łańcucha dostaw od Twoich klientów. Obejmuje poziom pewności i podstawę prawną.',
     r2_title: 'Ocena zgodności',
-    r2_desc:  'Wynik od 0–100 na podstawie Twoich odpowiedzi, z ogólnym poziomem ryzyka (Krytyczny / Wysoki / Średni / Niski), nagłówkiem dla kadry zarządzającej i uwagą o tym, co Twoja firma już ma.',
+    r2_desc: 'Wynik 0–100 na podstawie odpowiedzi, z poziomem ryzyka (Krytyczny / Wysoki / Średni / Niski), executive headline i tym, co firma już ma w porządku.',
     r3_title: 'Analiza luk',
-    r3_desc:  'Tabela obejmująca wszystkie 10 wymagań Art. 21(2) NIS2. Dla każdego: status (brakujący/częściowy/spełniony), poziom ryzyka, co zrobić, szacowany nakład i zakres kosztów.',
-    r4_title: '3 priorytetowe działania',
-    r4_desc:  '3 najważniejsze działania uszeregowane według wpływu na ryzyko, z konkretnymi krokami, odniesieniami do artykułów i terminami. To co zrobić w pierwszej kolejności.',
-    r5_title: 'Wyrok symulacji audytu',
-    r5_desc:  'Wyrok PASS lub FAIL od symulowanego inspektora NIS2. Wymienia każde krytyczne uchybienie z cytowaniem konkretnych artykułów i co trzeba naprawić przed ponowną inspekcją.',
+    r3_desc: 'Tabela pokrywająca wszystkie 10 wymogów Artykułu 21(2). Dla każdego: status (brak/częściowo/spełnione), ryzyko, co zrobić, czas, koszt.',
+    r4_title: '3 Priorytety',
+    r4_desc: 'Trzy najważniejsze działania według wpływu na ryzyko, z konkretnymi krokami, odniesieniami do artykułów i terminami.',
+    r5_title: 'Wynik symulacji audytu',
+    r5_desc: 'Werdykt PASS lub FAIL od symulowanego inspektora. Krytyczne braki z cytowaniami artykułów i tym, co trzeba naprawić.',
     r6_title: 'Scenariusze ataków',
-    r6_desc:  'Personalizowane scenariusze ataków na podstawie TWOICH konkretnych luk — nie ogólne zagrożenia. Pokazuje jak atakujący wykorzystałby słabości Twojej firmy i jak naprawić każdy wektor.',
+    r6_desc: 'Spersonalizowane scenariusze oparte na TWOICH lukach — nie generyczne zagrożenia. Pokazuje wektor i sposób naprawy.',
     r7_title: 'Szkice polityk',
-    r7_desc:  'Szkice polityk bezpieczeństwa dla Twoich krytycznych luk — punkt startowy dla prawnika lub wykonawcy IT. Nie są to ostateczne dokumenty prawne, ale oszczędzają 2–3 godziny pracy konsultanta.',
-  },
+    r7_desc: 'Szkice polityk bezpieczeństwa dla krytycznych luk — punkt startowy dla prawnika lub IT. Oszczędza 2–3h konsultanta.',
+    foot_l: 'symulacja NIS2 · MIT open source · 2026',
+  }
 };
 
-// ── State ──────────────────────────────────────────────────────────────────
+const CHAT_TEXT = {
+  en: {
+    status_title: 'Assessment in progress',
+    stage: 'Stage',
+    composing: 'is composing',
+    send: 'Send',
+    placeholder: 'Type your answer — in plain language, as you would tell a colleague.',
+    hint_l_html: '<span class="kbd">Enter</span> to send · <span class="kbd">Shift</span>+<span class="kbd">Enter</span> for newline',
+    hint_r: 'Data stays on server · No egress',
+    demo_btn: '▶ Demo: Marek / DataMed',
+  },
+  pl: {
+    status_title: 'Ocena w toku',
+    stage: 'Etap',
+    composing: 'pisze',
+    send: 'Wyślij',
+    placeholder: 'Wpisz odpowiedź — prostym językiem, jak koledze.',
+    hint_l_html: '<span class="kbd">Enter</span> by wysłać · <span class="kbd">Shift</span>+<span class="kbd">Enter</span> nowa linia',
+    hint_r: 'Dane na serwerze · Brak transferu',
+    demo_btn: '▶ Demo: Historia Marka z DataMed',
+  }
+};
+
+// ═══════════════════════════ State ═══════════════════════════
 window.selectedLanguage = 'en';
 let currentSessionId = crypto.randomUUID();
 let ws = null;
@@ -402,241 +1349,246 @@ const STAGE_IDX = { qualifier:0, interview:1, analyze:2, redteam:3, draft:4, rem
 
 const TOOL_DISPLAY = {
   generate_security_policy:       { pl: 'Polityka bezpieczeństwa',           en: 'Security Policy'          },
-  generate_incident_plan:         { pl: 'Procedura reagowania na incydenty',  en: 'Incident Response Plan'   },
+  generate_incident_plan:         { pl: 'Procedura reagowania na incydenty', en: 'Incident Response Plan'   },
   generate_remediation_checklist: { pl: 'Plan remediacji NIS2',              en: 'NIS2 Remediation Plan'    },
   search_enisa_guidance:          { pl: 'Zasoby ENISA dla Twojej firmy',     en: 'ENISA Resources for Your Company' },
 };
 
-const RISK_COLORS = {
-  critical: { badge:'bg-red-500 text-white',         tag:'bg-red-100 text-red-700'        },
-  high:     { badge:'bg-orange-500 text-white',      tag:'bg-orange-100 text-orange-700'  },
-  medium:   { badge:'bg-yellow-400 text-slate-800',  tag:'bg-yellow-100 text-yellow-700'  },
-  low:      { badge:'bg-green-500 text-white',       tag:'bg-green-100 text-green-700'    },
-};
-
-// ── Landing language toggle ────────────────────────────────────────────────
+// ═══════════════════════════ i18n apply ═══════════════════════════
 function setLandingLanguage(l) {
   window.selectedLanguage = l;
   const texts = LANDING_TEXT[l];
   document.querySelectorAll('[data-lang-key]').forEach(el => {
     const key = el.dataset.langKey;
-    if (texts[key] !== undefined) el.textContent = texts[key];
+    if (texts[key] !== undefined) {
+      if (key.endsWith('_html')) el.innerHTML = texts[key];
+      else el.textContent = texts[key];
+    }
   });
-  const btnEn = document.getElementById('landing-btn-en');
-  const btnPl = document.getElementById('landing-btn-pl');
-  const active   = 'px-2 py-1 text-sm font-semibold text-white border-b-2 border-[#D4AF77] transition-colors';
-  const inactive = 'px-2 py-1 text-sm font-semibold text-white/50 border-b-2 border-transparent hover:text-white transition-colors';
-  btnEn.className = l === 'en' ? active : inactive;
-  btnPl.className = l === 'pl' ? active : inactive;
+  document.getElementById('landing-btn-en').classList.toggle('active', l === 'en');
+  document.getElementById('landing-btn-pl').classList.toggle('active', l === 'pl');
+  document.documentElement.lang = l;
 }
 
-// ── Landing page ───────────────────────────────────────────────────────────
+function applyChatLang() {
+  const t = CHAT_TEXT[lang];
+  document.querySelectorAll('[data-lang-key-chat]').forEach(el => {
+    const k = el.dataset.langKeyChat;
+    if (t[k] === undefined) return;
+    if (k.endsWith('_html')) el.innerHTML = t[k];
+    else el.textContent = t[k];
+  });
+  const inp = document.getElementById('input');
+  if (inp && !inp.disabled) inp.placeholder = t.placeholder;
+  const demoBtn = document.getElementById('btn-demo');
+  if (demoBtn) demoBtn.textContent = t.demo_btn;
+}
+
+// ═══════════════════════════ Landing → Chat ═══════════════════════════
 function startAssessment() {
   lang = window.selectedLanguage;
   document.getElementById('landing').style.display = 'none';
   document.getElementById('chat-app').classList.remove('hidden');
+  document.getElementById('session-ref').textContent = currentSessionId.slice(0, 8).toUpperCase();
+  applyChatLang();
   updateLangButtons();
   renderProgress();
   connect();
 }
 
-// ── Progress bar ───────────────────────────────────────────────────────────
+// ═══════════════════════════ Progress ═══════════════════════════
 function renderProgress() {
   const active = STAGE_IDX[stage] ?? 0;
-  document.getElementById('progress').innerHTML = STAGES.map((s, i) => {
+  const container = document.getElementById('progress');
+  if (!container) return;
+  container.innerHTML = STAGES.map((s, i) => {
     const done = i < active;
     const cur  = i === active;
-    const circCls = done ? 'bg-green-500 border-green-500 text-white'
-                  : cur  ? 'bg-[#0A2540] border-[#0A2540] text-white'
-                         : 'bg-white border-slate-300 text-slate-400';
-    const lblCls  = done ? 'text-green-600' : cur ? 'text-[#0A2540]' : 'text-slate-400';
-    const icon    = done ? '✓' : i + 1;
-    const line    = i < STAGES.length - 1
-      ? `<div class="flex-1 h-px mx-2 mb-4 transition-colors ${done ? 'bg-green-400' : 'bg-slate-200'}"></div>`
-      : '';
+    const cls = done ? 'step done' : cur ? 'step active' : 'step';
     return `
-      <div class="flex items-center ${i < STAGES.length - 1 ? 'flex-1' : ''}">
-        <div class="flex flex-col items-center">
-          <div class="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all ${circCls}">${icon}</div>
-          <div class="text-[10px] mt-1 font-medium whitespace-nowrap ${lblCls}">${s[lang]}</div>
-        </div>
-        ${line}
+      <div class="${cls}">
+        <div class="step-bar"></div>
+        <div class="step-txt">${String(i+1).padStart(2,'0')}. ${s[lang]}</div>
       </div>`;
   }).join('');
+  document.getElementById('stage-idx').textContent = String(active + 1).padStart(2, '0');
+  document.getElementById('stage-name').textContent = STAGES[active][lang];
 }
 
-// ── Markdown renderer ─────────────────────────────────────────────────────
-function markdownToHtml(text) {
-  let html = esc(text);
-  // Headings
-  html = html.replace(/^### (.+)$/gm, '<h3 class="font-semibold text-sm text-slate-800 mt-3 mb-1">$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2 class="font-bold text-sm text-slate-800 mt-3 mb-1">$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-base text-slate-900 mt-4 mb-2">$1</h1>');
-  // Bold
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Tables — blocks of consecutive pipe-delimited lines
-  html = html.replace(/((?:\|[^\n]+\|\n?)+)/g, tableBlock => {
-    const rows = tableBlock.trim().split('\n')
-      .filter(r => !/^\|[\s\-:|]+\|$/.test(r.trim()))
-      .map(r => {
-        const cells = r.trim().replace(/^\||\|$/g, '').split('|')
-          .map(c => `<td class="border border-slate-200 px-2 py-1">${c.trim()}</td>`).join('');
-        return `<tr>${cells}</tr>`;
-      }).join('');
-    return `<table class="w-full border-collapse text-xs my-2">${rows}</table>`;
-  });
-  // Unordered lists — group consecutive "- " lines
-  html = html.replace(/((?:^- .+$\n?)+)/gm, listBlock => {
-    const items = listBlock.trim().split('\n')
-      .map(l => `<li>${l.replace(/^- /, '')}</li>`).join('');
-    return `<ul class="list-disc pl-4 my-1 space-y-0.5 text-sm text-slate-700">${items}</ul>`;
-  });
-  // Paragraphs from double newlines
-  html = html.replace(/\n\n/g, '</p><p class="mb-2">');
-  // Single newlines
-  html = html.replace(/\n/g, '<br>');
-  return `<div class="p-4 border border-[#0A2540] rounded-xl my-2 text-sm text-slate-700"><p class="mb-2">${html}</p></div>`;
-}
-
-// ── Chat helpers ───────────────────────────────────────────────────────────
+// ═══════════════════════════ Helpers ═══════════════════════════
 function esc(t) {
-  return String(t)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 function fmt(t) { return esc(t).replace(/\n/g,'<br>'); }
 
+function nowTime() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
 function append(html) {
   const wrap = document.createElement('div');
   wrap.innerHTML = html;
-  document.getElementById('chat').appendChild(wrap);
+  document.getElementById('chat').appendChild(wrap.firstElementChild || wrap);
   scrollBottom();
 }
 
+function scrollBottom() {
+  const el = document.getElementById('scroll');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+// ═══════════════════════════ Message renderers (v5) ═══════════════════════════
 function addAgent(text) {
   append(`
-    <div class="flex items-end gap-2">
-      <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
-      <div class="max-w-[85%] bg-slate-100 rounded-2xl rounded-bl-none px-4 py-3 text-sm text-slate-800 leading-relaxed">${fmt(text)}</div>
+    <div class="msg regula">
+      <div class="msg-head">
+        <span class="msg-sender"><b>Regula</b> · Interviewer</span>
+        <span class="msg-time">${nowTime()}</span>
+      </div>
+      <div class="msg-body">${fmt(text)}</div>
     </div>`);
 }
 
 function addUser(text) {
   append(`
-    <div class="flex justify-end">
-      <div class="max-w-[80%] bg-[#0A2540] rounded-2xl rounded-br-none px-4 py-3 text-sm text-white leading-relaxed">${fmt(text)}</div>
+    <div class="msg user">
+      <div class="msg-head">
+        <span class="msg-sender"><b>You</b> · ${nowTime()}</span>
+        <span class="msg-time"></span>
+      </div>
+      <div class="msg-body">${fmt(text)}</div>
+    </div>`);
+}
+
+function addDemoAnswer(text) {
+  append(`
+    <div class="msg demo-user">
+      <div class="msg-head">
+        <span class="msg-sender"><b>Marek</b> · Demo / DataMed · ${nowTime()}</span>
+        <span class="msg-time"></span>
+      </div>
+      <div class="msg-body">${fmt(text)}</div>
     </div>`);
 }
 
 function addDivider(text) {
   append(`
-    <div class="flex items-center gap-3 py-1">
-      <div class="flex-1 h-px bg-slate-200"></div>
-      <span class="text-xs text-slate-400 italic font-medium px-1">${esc(text)}</span>
-      <div class="flex-1 h-px bg-slate-200"></div>
+    <div class="msg divider">
+      <div class="msg-body">${esc(text)}</div>
     </div>`);
 }
 
 function addError(text) {
   append(`
-    <div class="flex items-end gap-2">
-      <div class="max-w-[85%] bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700 leading-relaxed">${fmt(text)}</div>
+    <div class="msg error">
+      <div class="msg-head">
+        <span class="msg-sender"><b>Error</b></span>
+        <span class="msg-time">${nowTime()}</span>
+      </div>
+      <div class="msg-body">${fmt(text)}</div>
     </div>`);
 }
 
 function addThinking(text) {
   const id = 'think-' + Date.now();
   append(`
-    <div class="my-1">
-      <button onclick="document.getElementById('${id}').classList.toggle('hidden')"
-        class="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors group">
-        <span class="text-base leading-none">🧠</span>
-        <span class="font-medium">How Regula analyzed your company (Extended Thinking)</span>
-        <span class="text-slate-400 group-hover:text-slate-600 ml-1">▸ click to expand</span>
-      </button>
-      <div id="${id}" class="hidden mt-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-500 italic leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">${esc(text)}</div>
+    <div class="msg thinking">
+      <div class="msg-head">
+        <span class="msg-sender"><b>Regula</b> · Extended Thinking</span>
+        <span class="msg-time">${nowTime()}</span>
+      </div>
+      <div class="msg-body">
+        <button class="toggle-btn" onclick="const el=document.getElementById('${id}');el.style.display=el.style.display==='block'?'none':'block'">
+          <span>▸ ${lang === 'pl' ? 'Zobacz analizę (Extended Thinking)' : 'See the analysis (Extended Thinking)'}</span>
+        </button>
+        <div id="${id}" class="think-body" style="display:none">${esc(text)}</div>
+      </div>
     </div>`);
 }
 
+function addRedteamDisclaimer() {
+  const text = lang === 'pl'
+    ? 'Symulacja audytu — Regula wciela się w rolę inspektora NIS2. To ćwiczenie przygotowawcze, nie oficjalna kontrola.'
+    : 'Audit simulation — Regula plays the role of a NIS2 inspector. This is a preparation exercise, not an official audit.';
+  append(`
+    <div class="msg disclaimer">
+      <div class="msg-head">
+        <span class="msg-sender"><b>${lang === 'pl' ? 'Uwaga' : 'Notice'}</b></span>
+        <span class="msg-time">${nowTime()}</span>
+      </div>
+      <div class="msg-body">${esc(text)}</div>
+    </div>`);
+}
+
+// ═══════════════════════════ Rich cards ═══════════════════════════
 function addAnalysis(data) {
-  const risk   = (data.overall_risk || 'medium').toLowerCase();
-  const colors = RISK_COLORS[risk] || RISK_COLORS.medium;
+  const risk = (data.overall_risk || 'medium').toLowerCase();
   const counts = {};
   (data.gaps || []).forEach(g => { counts[g.risk_level] = (counts[g.risk_level] || 0) + 1; });
-  const tags = ['critical','high','medium','low']
+  const tagsHtml = ['critical','high','medium','low']
     .filter(r => counts[r])
-    .map(r => {
-      const c = RISK_COLORS[r] || RISK_COLORS.low;
-      return `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${c.tag}">${counts[r]} ${r}</span>`;
-    }).join('');
-  const actions = (data.priority_3 || []).slice(0, 3).map((a, i) => `
-    <li class="flex gap-3 text-sm text-slate-700">
-      <span class="w-5 h-5 rounded-full bg-[#0A2540] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">${i+1}</span>
-      <span>${esc(a)}</span>
-    </li>`).join('');
+    .map(r => `<span class="tag-chip chip-${r}">${counts[r]} ${esc(r)}</span>`).join('');
+  const actionsHtml = (data.priority_3 || []).slice(0, 3).map((a, i) =>
+    `<li><span class="pnum">${String(i+1).padStart(2,'0')}</span><span>${esc(a)}</span></li>`
+  ).join('');
 
   append(`
-    <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm my-1">
-      <div class="bg-slate-800 px-5 py-4">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Gap Analysis</span>
-          <span class="px-3 py-1 rounded-full text-xs font-bold uppercase ${colors.badge}">${esc(risk)}</span>
-        </div>
-        <p class="text-slate-200 text-sm leading-relaxed">${esc(data.headline || '')}</p>
+    <div class="card-block">
+      <div class="card-head">
+        <span class="label">${lang === 'pl' ? 'Analiza luk' : 'Gap Analysis'}</span>
+        <span class="risk-pill risk-${risk}">${esc(risk)}</span>
       </div>
-      <div class="bg-white px-5 py-4">
-        <div class="flex flex-wrap gap-1.5 mb-4">${tags}</div>
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Top 3 Priority Actions</p>
-        <ol class="space-y-2.5">${actions}</ol>
-        ${data.good_news ? `<p class="mt-4 text-xs text-slate-500 italic">✓ ${esc(data.good_news)}</p>` : ''}
-      </div>
+      ${data.headline ? `<div class="card-headline">${esc(data.headline)}</div>` : ''}
+      ${tagsHtml ? `<div class="card-tags">${tagsHtml}</div>` : ''}
+      <div class="card-section-label">${lang === 'pl' ? '3 Priorytety' : 'Top 3 Priority Actions'}</div>
+      <ul class="priority-list">${actionsHtml}</ul>
+      ${data.good_news ? `<div class="good-news">✓ ${esc(data.good_news)}</div>` : ''}
     </div>`);
 }
 
 function addComplete(data) {
   const rr = data.redteam_result;
   const isStrRedteam = typeof rr === 'string' && rr;
-  const verdict  = isStrRedteam ? '' : (rr?.verdict?.verdict || '');
-  const summary  = isStrRedteam ? '' : (rr?.verdict?.auditor_summary || '');
+  const verdict = isStrRedteam ? '' : (rr?.verdict?.verdict || '');
+  const summary = isStrRedteam ? '' : (rr?.verdict?.auditor_summary || '');
   const policies = data.drafter_result?.policies?.length || 0;
 
-  if (isStrRedteam) append(markdownToHtml(rr));
+  if (isStrRedteam) {
+    append(`<div class="card-block"><div class="card-head"><span class="label">${lang === 'pl' ? 'Wyrok audytu' : 'Audit Verdict'}</span></div><div style="padding:18px 20px;font-size:14px;line-height:1.55;white-space:pre-wrap;color:var(--ink)">${esc(rr)}</div></div>`);
+  }
 
-  const vBg = verdict.includes('FAIL')       ? 'bg-red-50 border-red-300 text-red-800'
-            : verdict.includes('CONDITIONS') ? 'bg-yellow-50 border-yellow-300 text-yellow-800'
-                                             : 'bg-green-50 border-green-300 text-green-800';
+  const vCls = verdict.includes('FAIL')       ? 'verdict-fail'
+             : verdict.includes('CONDITIONS') ? 'verdict-conditions'
+                                              : verdict ? 'verdict-pass' : '';
+  const simNote = lang === 'pl'
+    ? 'Wynik symulacji — nie jest to oficjalna decyzja organu nadzorczego'
+    : 'Simulation result — this is not an official supervisory decision';
 
   append(`
-    <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-sm my-1">
+    <div class="card-block">
       ${verdict ? `
-      <div class="border-b ${vBg} px-5 py-4">
-        <p class="text-xs font-semibold uppercase tracking-widest mb-1.5 opacity-60">Audit Simulation Verdict</p>
-        <p class="font-bold text-sm">${esc(verdict)}</p>
-        <p class="text-xs mt-1 text-gray-500 italic">${lang === 'pl' ? 'Wynik symulacji — nie jest to oficjalna decyzja organu nadzorczego' : 'Simulation result — this is not an official supervisory decision'}</p>
-        ${summary ? `<p class="text-xs mt-2 opacity-80 leading-relaxed">${esc(summary)}</p>` : ''}
-      </div>` : ''}
-      <div class="bg-white px-5 py-4 space-y-3">
-        ${policies ? `<p class="text-sm text-slate-600"><span class="font-semibold">${policies} policy draft${policies > 1 ? 's' : ''}</span> generated for your critical and high-risk gaps.</p>` : ''}
-        <p class="text-xs text-slate-400 italic leading-relaxed">Draft starting point for legal review — not a final compliance document.</p>
-        <button id="downloadBtn"
-          onclick="window.open('/report/${currentSessionId}', '_blank')"
-          class="w-full border border-[#0A2540] bg-[#0A2540] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-[#0e3566] active:bg-[#061929] transition-colors">
-          ${lang === 'pl' ? '⬇️ Pobierz raport PDF' : '⬇️ Download PDF Report'}
-        </button>
-        <p class="text-center text-xs text-slate-400 pt-1">
-          <a href="#" onclick="location.reload(); return false;" class="hover:text-slate-600 transition-colors">
-            ${lang === 'pl'
-              ? '✓ Ocena zakończona. Odśwież stronę aby ocenić inną firmę.'
-              : '✓ Assessment complete. Start a new session to assess another company.'}
-          </a>
-        </p>
-      </div>
+        <div class="verdict-block ${vCls}">
+          <div class="v-label">${lang === 'pl' ? 'Wyrok symulacji audytu' : 'Audit Simulation Verdict'}</div>
+          <div class="v-text">${esc(verdict)}</div>
+          <div class="v-sim">${simNote}</div>
+          ${summary ? `<div class="v-summary">${esc(summary)}</div>` : ''}
+        </div>` : ''}
+      ${policies ? `<div class="card-meta-row"><b>${policies}</b> ${lang === 'pl' ? `szkic${policies > 1 ? 'ów' : ''} polityk wygenerowan${policies > 1 ? 'ych' : 'y'} dla luk krytycznych.` : `policy draft${policies > 1 ? 's' : ''} generated for your critical and high-risk gaps.`}</div>` : ''}
+      <div class="card-disclaimer">${lang === 'pl' ? 'Punkt startowy do przeglądu prawnego — nie jest to finalny dokument zgodności.' : 'Draft starting point for legal review — not a final compliance document.'}</div>
+      <button id="downloadBtn" class="download-btn" onclick="window.open('/report/${currentSessionId}', '_blank')">
+        ${lang === 'pl' ? 'Pobierz raport PDF' : 'Download PDF Report'}
+        <span class="arrow">↓</span>
+      </button>
+      <button class="card-footer-link" onclick="location.reload()">
+        ${lang === 'pl' ? '✓ Ocena zakończona. Odśwież stronę, by ocenić inną firmę.' : '✓ Assessment complete. Start a new session to assess another company.'}
+      </button>
     </div>`);
 
   if (data.threat_actor_result?.scenarios?.length) {
     addThreatScenarios(data.threat_actor_result);
   }
-
   if (data.board_slides?.slides?.length) {
     addBoardPresentation(data.board_slides);
   }
@@ -651,50 +1603,40 @@ function addComplete(data) {
 
 function addThreatScenarios(data) {
   const scenarios = data.scenarios || [];
-  const PROB_COLORS = {
-    high:   'bg-red-500 text-white',
-    medium: 'bg-orange-400 text-white',
-    low:    'bg-yellow-400 text-slate-800',
-  };
-
   const cards = scenarios.map((s, i) => {
     const prob = (s.probability || 'medium').toLowerCase();
-    const probCls = PROB_COLORS[prob] || PROB_COLORS.medium;
-    const detailId = 'threat-detail-' + i;
+    const detailId = 'threat-detail-' + i + '-' + Date.now();
     return `
-      <div class="border-b border-red-100 last:border-0 px-5 py-4">
-        <div class="flex items-start justify-between gap-3 mb-1">
-          <p class="font-semibold text-sm text-slate-800">${esc(s.title || '')}</p>
-          <span class="px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${probCls}">${esc(prob)}</span>
+      <div class="scenario">
+        <div class="scenario-top">
+          <div class="scenario-title">${esc(s.title || '')}</div>
+          <span class="prob-pill prob-${prob}">${esc(prob)}</span>
         </div>
-        <p class="text-xs text-slate-400 mb-2">${esc(s.gap_exploited || '')}</p>
-        <button onclick="document.getElementById('${detailId}').classList.toggle('hidden');this.textContent=this.textContent.includes('▸')?'▴ Hide details':'▸ See how the attack unfolds'"
-          class="text-xs text-slate-500 hover:text-slate-700 transition-colors">▸ See how the attack unfolds</button>
-        <div id="${detailId}" class="hidden mt-3 space-y-2">
-          <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
-            <span class="font-semibold text-slate-700">How it starts: </span>${esc(s.how_it_starts || '')}
-          </div>
-          <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
-            <span class="font-semibold text-slate-700">What happens: </span>${esc(s.what_happens || '')}
-          </div>
-          <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
-            <span class="font-semibold text-slate-700">Business impact: </span>${esc(s.business_impact || '')}
-          </div>
+        <div class="scenario-gap">${esc(s.gap_exploited || '')}</div>
+        <button class="scenario-toggle" onclick="
+          const d=document.getElementById('${detailId}');
+          d.classList.toggle('shown');
+          this.textContent=d.classList.contains('shown')?'▴ ${lang === 'pl' ? 'Zwiń' : 'Hide details'}':'▸ ${lang === 'pl' ? 'Jak przebiega atak' : 'See how the attack unfolds'}'">
+          ▸ ${lang === 'pl' ? 'Jak przebiega atak' : 'See how the attack unfolds'}
+        </button>
+        <div id="${detailId}" class="scenario-details">
+          <div class="scenario-detail-row"><b>${lang === 'pl' ? 'Jak się zaczyna:' : 'How it starts:'}</b> ${esc(s.how_it_starts || '')}</div>
+          <div class="scenario-detail-row"><b>${lang === 'pl' ? 'Co się dzieje:' : 'What happens:'}</b> ${esc(s.what_happens || '')}</div>
+          <div class="scenario-detail-row"><b>${lang === 'pl' ? 'Wpływ na biznes:' : 'Business impact:'}</b> ${esc(s.business_impact || '')}</div>
         </div>
-        <div class="mt-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
-          <span class="font-semibold">Fix: </span>${esc(s.fix || '')}
-          ${s.fix_effort ? `<span class="text-green-500 ml-2">(${esc(s.fix_effort)})</span>` : ''}
+        <div class="scenario-fix">
+          <b>${lang === 'pl' ? 'Naprawa:' : 'Fix:'}</b> ${esc(s.fix || '')}${s.fix_effort ? ` <span style="opacity:0.7">(${esc(s.fix_effort)})</span>` : ''}
         </div>
       </div>`;
   }).join('');
 
   append(`
-    <div class="rounded-2xl border-2 border-red-200 overflow-hidden shadow-sm my-3">
-      <div class="bg-red-50 px-5 py-4 border-b border-red-200">
-        <p class="text-sm font-bold text-red-800">⚠️ How attackers see your company</p>
-        ${data.summary ? `<p class="text-xs text-red-600 mt-1 leading-relaxed">${esc(data.summary)}</p>` : ''}
+    <div class="threat-card">
+      <div class="threat-head">
+        <div class="tt">${lang === 'pl' ? '⚠ Jak atakujący widzą Twoją firmę' : '⚠ How attackers see your company'}</div>
+        ${data.summary ? `<div class="ts">${esc(data.summary)}</div>` : ''}
       </div>
-      <div class="bg-white">${cards}</div>
+      ${cards}
     </div>`);
 }
 
@@ -704,83 +1646,55 @@ function addBoardPresentation(data) {
   const score = scoreSlide?.score ?? 0;
   const scoreLabel = scoreSlide?.score_label || '';
 
-  const gaugeColor = score < 40 ? '#ef4444'
-                   : score < 70 ? '#f97316'
-                                : '#22c55e';
-  const dash = Math.round(score);
-
-  const gaugeHtml = score ? `
-    <div class="flex flex-col items-center my-4">
-      <div class="relative w-24 h-24">
-        <svg viewBox="0 0 36 36" class="w-24 h-24" style="transform:rotate(-90deg)">
-          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#374151" stroke-width="3"/>
-          <circle cx="18" cy="18" r="15.9" fill="none" stroke="${gaugeColor}" stroke-width="3"
-            stroke-dasharray="${dash} ${100 - dash}" stroke-linecap="round"/>
-        </svg>
-        <div class="absolute inset-0 flex flex-col items-center justify-center">
-          <span class="text-2xl font-bold text-white">${score}</span>
-        </div>
-      </div>
-      ${scoreLabel ? `<p class="text-xs text-slate-400 mt-1 text-center">${esc(scoreLabel)}</p>` : ''}
-    </div>` : `<div class="flex flex-col items-center my-4"><p class="text-slate-400 text-sm font-medium">N/A</p></div>`;
-
   const slideCards = slides.map(s => {
-    const noteId = 'note-' + s.number;
-    const bullets = (s.bullets || []).map(b => `<li class="text-xs text-slate-600">• ${esc(b)}</li>`).join('');
+    const noteId = 'note-' + s.number + '-' + Date.now();
+    const bullets = (s.bullets || []).map(b => `<li>${esc(b)}</li>`).join('');
     const actions = (s.actions || []).map(a =>
-      `<li class="text-xs text-slate-600">• <span class="font-medium">${esc(a.action || '')}</span> — ${esc(a.owner || '')}${a.effort ? `, ${esc(a.effort)}` : ''}${a.cost ? `, ${esc(a.cost)}` : ''}</li>`
+      `<li><b>${esc(a.action || '')}</b> — ${esc(a.owner || '')}${a.effort ? `, ${esc(a.effort)}` : ''}${a.cost ? `, ${esc(a.cost)}` : ''}</li>`
     ).join('');
-    const recommendation = s.recommendation
-      ? `<p class="text-xs text-slate-700 font-medium ml-8 mt-1">${esc(s.recommendation)}</p>` : '';
-    const costAction = s.cost_of_action
-      ? `<p class="text-xs text-slate-600 ml-8 mt-1"><span class="font-medium text-green-700">Action: </span>${esc(s.cost_of_action)}</p>` : '';
-    const costInaction = s.cost_of_inaction
-      ? `<p class="text-xs text-slate-600 ml-8 mt-1"><span class="font-medium text-red-700">Inaction: </span>${esc(s.cost_of_inaction)}</p>` : '';
-
+    const recommendation = s.recommendation ? `<div class="slide-recommendation">${esc(s.recommendation)}</div>` : '';
+    const costAction = s.cost_of_action ? `<div class="slide-cost"><span class="cost-action">${lang === 'pl' ? '→ Działanie:' : '→ Action:'}</span> ${esc(s.cost_of_action)}</div>` : '';
+    const costInaction = s.cost_of_inaction ? `<div class="slide-cost"><span class="cost-inaction">${lang === 'pl' ? '→ Bezczynność:' : '→ Inaction:'}</span> ${esc(s.cost_of_inaction)}</div>` : '';
     const copyPayload = JSON.stringify({
-      title: s.title,
-      bullets: s.bullets || [],
-      actions: s.actions || [],
-      recommendation: s.recommendation || '',
-      speaker_note: s.speaker_note || '',
+      title: s.title, bullets: s.bullets || [], actions: s.actions || [],
+      recommendation: s.recommendation || '', speaker_note: s.speaker_note || '',
     });
 
     return `
-      <div class="border-b border-slate-100 last:border-0 px-5 py-4">
-        <div class="flex items-start gap-3">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="w-6 h-6 rounded-full bg-[#0A2540] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">${s.number}</span>
-              <p class="font-semibold text-sm text-slate-800">${esc(s.title || '')}</p>
-            </div>
-            ${bullets ? `<ul class="space-y-1 ml-8">${bullets}</ul>` : ''}
-            ${actions ? `<ul class="space-y-1 ml-8 mt-1">${actions}</ul>` : ''}
-            ${recommendation}${costAction}${costInaction}
-            ${s.speaker_note ? `
-            <button onclick="document.getElementById('${noteId}').classList.toggle('hidden');this.textContent=this.textContent.includes('▸')?'▴ Hide speaker notes':'▸ Speaker notes'"
-              class="mt-2 ml-8 text-xs text-slate-400 hover:text-slate-600 transition-colors">▸ Speaker notes</button>
-            <div id="${noteId}" class="hidden ml-8 mt-1 text-xs text-slate-400 italic leading-relaxed">${esc(s.speaker_note)}</div>` : ''}
-          </div>
-          <button onclick='copySlide(${JSON.stringify(copyPayload)})'
-            title="Copy slide to clipboard"
-            class="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0 text-base mt-0.5">📋</button>
+      <div class="slide">
+        <div class="slide-num">${s.number}</div>
+        <div class="slide-body">
+          <div class="slide-title">${esc(s.title || '')}</div>
+          ${bullets ? `<ul class="slide-bullets">${bullets}</ul>` : ''}
+          ${actions ? `<ul class="slide-actions">${actions}</ul>` : ''}
+          ${recommendation}${costAction}${costInaction}
+          ${s.speaker_note ? `
+            <button class="slide-notes-toggle" onclick="const el=document.getElementById('${noteId}');el.classList.toggle('shown');this.textContent=el.classList.contains('shown')?'▴ ${lang === 'pl' ? 'Ukryj notatki' : 'Hide speaker notes'}':'▸ ${lang === 'pl' ? 'Notatki prelegenta' : 'Speaker notes'}'">▸ ${lang === 'pl' ? 'Notatki prelegenta' : 'Speaker notes'}</button>
+            <div id="${noteId}" class="slide-notes">${esc(s.speaker_note)}</div>` : ''}
         </div>
+        <button class="slide-copy" onclick='copySlide(${JSON.stringify(copyPayload)})' title="Copy slide">Copy</button>
       </div>`;
   }).join('');
 
+  const gaugeHtml = `
+    <div class="board-gauge">
+      <div class="score-num">${score}</div>
+      <div class="score-lbl">${scoreLabel ? esc(scoreLabel) : (lang === 'pl' ? 'Wynik / 100' : 'Score / 100')}</div>
+    </div>`;
+
   append(`
-    <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-sm my-3">
-      <div class="bg-slate-800 px-5 py-4">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">📊 Board Presentation</p>
-        ${gaugeHtml}
+    <div class="board-card">
+      <div class="board-head">
+        <div class="bt">${lang === 'pl' ? '§ Prezentacja zarządcza' : '§ Board Presentation'}</div>
       </div>
-      <div class="bg-white">${slideCards}</div>
+      ${gaugeHtml}
+      ${slideCards}
     </div>`);
 }
 
 function copySlide(payloadJson) {
   let p;
-  try { p = JSON.parse(payloadJson); } catch (_) { return; }
+  try { p = typeof payloadJson === 'string' ? JSON.parse(payloadJson) : payloadJson; } catch (_) { return; }
   const lines = [`# ${p.title}`];
   (p.bullets || []).forEach(b => lines.push(`• ${b}`));
   (p.actions || []).forEach(a => lines.push(`• ${a.action} — ${a.owner}, ${a.effort}, ${a.cost}`));
@@ -789,33 +1703,21 @@ function copySlide(payloadJson) {
   navigator.clipboard?.writeText(lines.join('\n')).catch(() => {});
 }
 
-// ── Audit simulation disclaimer banner ───────────────────────────────────
-function addRedteamDisclaimer() {
-  const text = lang === 'pl'
-    ? '⚠️ Symulacja audytu — Regula wciela się w rolę inspektora NIS2. To ćwiczenie przygotowawcze, nie oficjalna kontrola.'
-    : '⚠️ Audit simulation — Regula plays the role of a NIS2 inspector. This is a preparation exercise, not an official audit.';
-  append(`
-    <div class="rounded-xl bg-amber-50 border border-amber-300 px-4 py-3 text-sm text-amber-900 font-medium leading-relaxed">
-      ${esc(text)}
-    </div>`);
-}
-
-// ── Remediation tool cards ────────────────────────────────────────────────
+// ═══════════════════════════ Tool cards ═══════════════════════════
 function addToolGenerating(toolName) {
   const display = (TOOL_DISPLAY[toolName] || {})[lang] || toolName;
   const wrap = document.createElement('div');
   wrap.id = 'tool-wrap-' + toolName;
+  wrap.className = 'msg regula';
   wrap.innerHTML = `
-    <div class="flex items-end gap-2">
-      <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
-      <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl rounded-bl-none px-4 py-2.5 text-sm text-amber-700">
-        <div class="flex gap-1">
-          <div class="dot w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-          <div class="dot w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-          <div class="dot w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-        </div>
-        <span class="font-medium">${esc(display)}</span>
-        <span class="text-amber-500 text-xs ml-1">${lang === 'pl' ? 'Generowanie...' : 'Generating...'}</span>
+    <div class="msg-head">
+      <span class="msg-sender"><b>Regula</b> · Tool</span>
+      <span class="msg-time">${nowTime()}</span>
+    </div>
+    <div class="msg-body" style="border-left:none;padding-left:0">
+      <div class="tool-box">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span><b>${esc(display)}</b> · ${lang === 'pl' ? 'Generowanie…' : 'Generating…'}</span>
       </div>
     </div>`;
   document.getElementById('chat').appendChild(wrap);
@@ -824,68 +1726,58 @@ function addToolGenerating(toolName) {
 
 function updateToolReady(toolName, url, label, resources) {
   const wrap = document.getElementById('tool-wrap-' + toolName);
-  let html;
+  let bodyHtml;
 
   if (toolName === 'search_enisa_guidance' && resources && resources.length) {
-    const heading = lang === 'pl' ? '📚 Zasoby ENISA dla Twojej firmy:' : '📚 ENISA Resources for Your Company:';
+    const heading = lang === 'pl' ? '📚 Zasoby ENISA dla Twojej firmy' : '📚 ENISA Resources for Your Company';
     const links = resources.map(r => `
-      <a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer"
-        class="flex items-start gap-2 text-blue-700 hover:text-blue-900 hover:underline text-sm py-0.5 no-underline">
-        <span class="mt-0.5 flex-shrink-0">↗</span>
-        <span class="font-medium">${esc(r.title)}${r.description ? `<span class="block text-xs text-slate-500 font-normal">${esc(r.description)}</span>` : ''}</span>
+      <a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">
+        <span>${esc(r.title)}</span>
+        ${r.description ? `<span class="desc">${esc(r.description)}</span>` : ''}
       </a>`).join('');
-    html = `
-      <div class="flex items-end gap-2">
-        <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
-        <div class="bg-blue-50 border border-blue-200 rounded-2xl rounded-bl-none px-4 py-3 max-w-sm">
-          <p class="text-sm font-semibold text-blue-800 mb-2">${esc(heading)}</p>
-          <div class="flex flex-col gap-1">${links}</div>
-        </div>
+    bodyHtml = `
+      <div class="enisa-box">
+        <div class="enisa-head">${esc(heading)}</div>
+        ${links}
       </div>`;
   } else {
-    html = `
-      <div class="flex items-end gap-2">
-        <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
-        <a href="${esc(url)}" target="_blank"
-          class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-2xl rounded-bl-none px-4 py-2.5 text-sm font-semibold transition-colors no-underline">
-          ⬇️ <span>${esc(label)}</span>
-        </a>
-      </div>`;
+    bodyHtml = `
+      <a class="tool-ready-link" href="${esc(url)}" target="_blank" rel="noopener">
+        <span>↓</span><span>${esc(label)}</span>
+      </a>`;
   }
+
+  const html = `
+    <div class="msg-head">
+      <span class="msg-sender"><b>Regula</b> · Tool</span>
+      <span class="msg-time">${nowTime()}</span>
+    </div>
+    <div class="msg-body" style="border-left:none;padding-left:0">
+      ${bodyHtml}
+    </div>`;
 
   if (wrap) {
     wrap.innerHTML = html;
   } else {
     const newWrap = document.createElement('div');
+    newWrap.className = 'msg regula';
     newWrap.innerHTML = html;
     document.getElementById('chat').appendChild(newWrap);
   }
   scrollBottom();
 }
 
-// ── Demo mode ─────────────────────────────────────────────────────────────
+// ═══════════════════════════ Demo ═══════════════════════════
 function updateDemoButton() {
   const btn = document.getElementById('btn-demo');
   if (!btn) return;
-  btn.textContent = lang === 'pl' ? '▶️ Historia Marka z DataMed' : '▶️ Watch Marek from DataMed';
+  btn.textContent = CHAT_TEXT[lang].demo_btn;
   btn.style.display = (conversationStarted || demoRunning) ? 'none' : '';
-}
-
-function addDemoAnswer(text) {
-  append(`
-    <div class="flex justify-end">
-      <div class="flex flex-col items-end gap-1">
-        <span class="text-[10px] text-slate-400 font-medium mr-1">🤖 Marek</span>
-        <div class="max-w-[80%] bg-[#0A2540] rounded-2xl rounded-br-none px-4 py-3 text-sm text-white leading-relaxed">${fmt(text)}</div>
-      </div>
-    </div>`);
-  scrollBottom();
 }
 
 function runDemo() {
   if (demoRunning || conversationStarted) return;
   demoRunning = true;
-
   document.getElementById('btn-demo').style.display = 'none';
   const inp = document.getElementById('input');
   inp.disabled = true;
@@ -893,10 +1785,8 @@ function runDemo() {
   document.getElementById('send-btn').disabled = true;
 
   append(`
-    <div class="flex justify-center my-1">
-      <span class="px-3 py-1 bg-slate-100 text-slate-500 text-xs rounded-full font-medium border border-slate-200">
-        🎬 ${lang === 'pl' ? 'Tryb demo — Marek AI odpowiada' : 'Demo mode — Marek AI is responding'}
-      </span>
+    <div class="msg divider">
+      <div class="msg-body" style="color:var(--signal)">${lang === 'pl' ? 'Tryb demo · Marek AI odpowiada' : 'Demo mode · Marek AI is responding'}</div>
     </div>`);
 
   if (ws && ws.readyState === WebSocket.OPEN) {
@@ -904,7 +1794,7 @@ function runDemo() {
   }
 }
 
-// ── UI helpers ─────────────────────────────────────────────────────────────
+// ═══════════════════════════ UI helpers ═══════════════════════════
 function setProcessing(on) {
   busy = on;
   document.getElementById('typing').classList.toggle('hidden', !on);
@@ -913,32 +1803,26 @@ function setProcessing(on) {
   scrollBottom();
 }
 
-function scrollBottom() {
-  const el = document.getElementById('scroll');
-  el.scrollTop = el.scrollHeight;
-}
-
-// ── Language toggle (chat) ────────────────────────────────────────────────
 function updateLangButtons() {
-  const active   = 'px-3 py-1 rounded text-sm font-semibold bg-white text-[#0A2540] transition-colors';
-  const inactive = 'px-3 py-1 rounded text-sm font-semibold text-slate-400 hover:text-white transition-colors';
-  document.getElementById('btn-en').className = lang === 'en' ? active : inactive;
-  document.getElementById('btn-pl').className = lang === 'pl' ? active : inactive;
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-pl').classList.toggle('active', lang === 'pl');
   updateDemoButton();
 }
 
 function resetSession() {
   if (ws) { try { ws.close(); } catch (_) {} ws = null; }
   currentSessionId = crypto.randomUUID();
+  document.getElementById('session-ref').textContent = currentSessionId.slice(0, 8).toUpperCase();
   stage = 'qualifier';
   conversationStarted = false;
   demoRunning = false;
   busy = false;
   document.getElementById('chat').innerHTML = '';
   document.getElementById('input').disabled = false;
-  document.getElementById('input').placeholder = 'Type your answer…';
+  document.getElementById('input').placeholder = CHAT_TEXT[lang].placeholder;
   document.getElementById('send-btn').disabled = false;
   renderProgress();
+  applyChatLang();
   connect();
 }
 
@@ -949,6 +1833,7 @@ function setLang(l) {
     window.selectedLanguage = l;
     updateLangButtons();
     renderProgress();
+    applyChatLang();
     resetSession();
   } else {
     showLangConfirm(l);
@@ -960,13 +1845,12 @@ function showLangConfirm(newLang) {
   const langName = newLang === 'pl' ? 'Polish' : 'English';
   const div = document.createElement('div');
   div.id = 'lang-confirm';
+  div.className = 'msg lang-confirm';
   div.innerHTML = `
-    <div class="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-slate-700">
-      <span class="flex-1">Restart conversation in ${langName}?</span>
-      <button onclick="confirmLangChange('${newLang}')"
-        class="px-3 py-1 bg-[#0A2540] text-white rounded-lg text-xs font-semibold hover:bg-[#0e3566] active:bg-[#061929] transition-colors">Yes</button>
-      <button onclick="cancelLangChange()"
-        class="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300 transition-colors">No</button>
+    <div class="msg-body">
+      <span style="flex:1">${lang === 'pl' ? `Uruchomić rozmowę od nowa po ${newLang === 'pl' ? 'polsku' : 'angielsku'}?` : `Restart conversation in ${langName}?`}</span>
+      <button class="lc-btn lc-yes" onclick="confirmLangChange('${newLang}')">${lang === 'pl' ? 'Tak' : 'Yes'}</button>
+      <button class="lc-btn lc-no" onclick="cancelLangChange()">${lang === 'pl' ? 'Nie' : 'No'}</button>
     </div>`;
   document.getElementById('chat').appendChild(div);
   scrollBottom();
@@ -978,6 +1862,7 @@ function confirmLangChange(newLang) {
   window.selectedLanguage = newLang;
   updateLangButtons();
   renderProgress();
+  applyChatLang();
   resetSession();
 }
 
@@ -985,7 +1870,7 @@ function cancelLangChange() {
   document.getElementById('lang-confirm')?.remove();
 }
 
-// ── WebSocket ──────────────────────────────────────────────────────────────
+// ═══════════════════════════ WebSocket ═══════════════════════════
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}/ws/${currentSessionId}`);
@@ -1023,20 +1908,22 @@ function connect() {
     } else if (msg.type === 'error') {
       setProcessing(false);
       demoRunning = false;
-      addError('Error: ' + msg.text);
+      addError((lang === 'pl' ? 'Błąd: ' : 'Error: ') + msg.text);
     }
   };
 
   ws.onerror = () => {
     setProcessing(false);
-    addError('Connection error. Please refresh the page to start over.');
+    addError(lang === 'pl'
+      ? 'Błąd połączenia. Odśwież stronę, aby zacząć od nowa.'
+      : 'Connection error. Please refresh the page to start over.');
   };
 
   ws.onclose = () => setProcessing(false);
 }
 
 function sendMessage() {
-  const inp  = document.getElementById('input');
+  const inp = document.getElementById('input');
   const text = inp.value.trim();
   if (!text || busy || !ws || ws.readyState !== WebSocket.OPEN) return;
   conversationStarted = true;
@@ -1047,17 +1934,24 @@ function sendMessage() {
   setProcessing(true);
 }
 
-// ── Report accordion ──────────────────────────────────────────────────────
+// ═══════════════════════════ Accordion ═══════════════════════════
 function toggleAccordion(n) {
-  const content = document.getElementById('acc-' + n);
-  const arrow   = document.getElementById('arrow-' + n);
-  content.classList.toggle('hidden');
-  arrow.style.transform = content.classList.contains('hidden') ? '' : 'rotate(180deg)';
+  const body = document.getElementById('acc-' + n);
+  const arrow = document.getElementById('arrow-' + n);
+  if (!body || !arrow) return;
+  const open = body.style.maxHeight && body.style.maxHeight !== '0px';
+  if (open) {
+    body.style.maxHeight = '0';
+    arrow.textContent = '+';
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    arrow.textContent = '×';
+  }
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
-// Landing starts in EN; chat buttons reflect the same
-updateLangButtons();
+// ═══════════════════════════ Init ═══════════════════════════
+setLandingLanguage('en');
 </script>
+
 </body>
 </html>

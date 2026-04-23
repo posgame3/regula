@@ -43,6 +43,11 @@ _MOCK_INTERVIEW_Q1 = (
     "for example, do employees use a password plus a code from their phone to log in?"
 )
 
+_MOCK_INTERVIEW_Q1_PL = (
+    "Jakie zabezpieczenia ma obecnie Twoja firma — "
+    "na przykład czy pracownicy logują się hasłem plus kodem z telefonu?"
+)
+
 _MOCK_INTERVIEW_COMPLETE = (
     "Thank you — I now have everything I need.\n\n"
     + COMPLETE_MARKER + "\n"
@@ -67,6 +72,32 @@ _MOCK_INTERVIEW_COMPLETE = (
             "completely exposed during a cyberattack."
         ),
     })
+)
+
+_MOCK_INTERVIEW_COMPLETE_PL = (
+    "Dziękuję — mam już wszystko, czego potrzebuję.\n\n"
+    + COMPLETE_MARKER + "\n"
+    + json.dumps({
+        "company_name": "Test Transport Sp. z o.o.",
+        "sector": "transport",
+        "employee_count": 80,
+        "scope": "important",
+        "language": "pl",
+        "findings": {
+            "req_1_risk": 1, "req_2_risk": 3, "req_3_risk": 2,
+            "req_4_risk": 1, "req_5_risk": 3, "req_6_risk": 2,
+            "req_7_risk": 3, "req_8_risk": 1, "req_9_risk": 2, "req_10_risk": 3,
+        },
+        "key_quotes": [
+            "Nie mamy spisanych polityk bezpieczeństwa",
+            "Kopie zapasowe skonfigurowane rok temu, nigdy nie testowane",
+            "Brak szkoleń z cyberbezpieczeństwa dla pracowników",
+        ],
+        "biggest_concern": (
+            "Brak planu reagowania na incydenty i nietestowane kopie zapasowe "
+            "zostawiają firmę zupełnie bezbronną w razie cyberataku."
+        ),
+    }, ensure_ascii=False)
 )
 
 _MOCK_ANALYZER = json.dumps({
@@ -193,7 +224,10 @@ def _mock_response(system: str) -> str:
     if "interviewer named Regula" in system or COMPLETE_MARKER in system:
         m = re.search(r"Questions asked so far: (\d+)", system)
         count = int(m.group(1)) if m else 0
-        return _MOCK_INTERVIEW_COMPLETE if count >= 1 else _MOCK_INTERVIEW_Q1
+        is_pl = ("Polish" in system or "język polski" in system or "po polsku" in system)
+        if count >= 8:
+            return _MOCK_INTERVIEW_COMPLETE_PL if is_pl else _MOCK_INTERVIEW_COMPLETE
+        return _MOCK_INTERVIEW_Q1_PL if is_pl else _MOCK_INTERVIEW_Q1
     if "NIS2 compliance analyst" in system:
         return _MOCK_ANALYZER_PL if ("Polish" in system or "język polski" in system) else _MOCK_ANALYZER
     if "strict NIS2 compliance auditor" in system:
@@ -573,7 +607,7 @@ async def ws_handler(websocket: WebSocket, session_id: str):
                     session["greeted"] = True
                     greeting = GREETINGS.get(new_lang, GREETINGS["en"])
                     session["messages"] = [
-                        {"role": "user", "content": "Hello"},
+                        {"role": "user", "content": "Cześć" if new_lang == "pl" else "Hello"},
                         {"role": "assistant", "content": greeting},
                     ]
                     session["last_question"] = greeting
@@ -647,6 +681,22 @@ async def _dispatch(client, session, reqs, user_text, send):
         text = await stream_to_ws(client, system, session["messages"], 2048, send, "interview")
         session["messages"].append({"role": "assistant", "content": text})
         session["question_count"] += 1
+        q_count = session["question_count"]
+
+        # HARD GUARD: interview cannot end before 8 questions.
+        # If model emitted marker prematurely, strip it (and the JSON) and scrub history,
+        # so the model doesn't see its own premature close on the next turn.
+        if q_count < 8:
+            if COMPLETE_MARKER in text:
+                head = text.split(COMPLETE_MARKER, 1)[0].strip()
+                text = head or ("Zadam jeszcze jedno pytanie..." if session["language"] == "pl" else "Let me ask one more thing...")
+                if session["messages"] and session["messages"][-1]["role"] == "assistant":
+                    session["messages"][-1]["content"] = text
+            await send({"type": "agent_message", "text": text, "stage": "interview"})
+            session["last_question"] = text
+            if session.get("demo_mode"):
+                await _do_demo_answer(client, session, reqs, text, send)
+            return
 
         if COMPLETE_MARKER in text:
             idx = text.find(COMPLETE_MARKER)
@@ -662,7 +712,7 @@ async def _dispatch(client, session, reqs, user_text, send):
             _closing_words = {"dziękuję", "thank you", "podsumowując", "summary",
                               "za chwilę dostaniesz", "you'll receive", "dziękuje"}
             _looks_like_closing = (
-                session["question_count"] >= 10
+                q_count >= 8
                 and any(w in text.lower() for w in _closing_words)
             )
             if _looks_like_closing:
@@ -766,7 +816,7 @@ async def _handle_qualifier_result(parsed, session, reqs, client, send):
         session["stage"] = "interview"
         session["question_count"] = 0
 
-        seed = "Hi, I'm ready for the interview."
+        seed = "Cześć, jestem gotowy na wywiad." if session["language"] == "pl" else "Hi, I'm ready for the interview."
         session["messages"] = [{"role": "user", "content": seed}]
         system = build_interview_system(parsed, reqs, 0, session["language"])
         q1 = await stream_to_ws(client, system, session["messages"], 2048, send, "interview")
@@ -790,7 +840,7 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     await send({"type": "agent_message", "text": analyzing_msg, "stage": "analyze"})
 
     system = build_analyzer_system_with_thinking(findings, reqs, lang)
-    messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
+    messages = [{"role": "user", "content": "Przeanalizuj te wyniki wywiadu i przygotuj pełną analizę luk." if lang == "pl" else "Please analyze these interview findings and produce the complete gap analysis."}]
     response = await client.messages.create(
         model=MODEL,
         max_tokens=10000,
@@ -831,7 +881,7 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     session["stage"] = "redteam"
 
     system = build_redteam_system(gaps, session["qualifier_result"], lang)
-    seed = "I'm ready for the inspection."
+    seed = "Jestem gotowy na kontrolę." if lang == "pl" else "I'm ready for the inspection."
     session["messages"] = [{"role": "user", "content": seed}]
     response = await client.messages.create(
         model=MODEL,
@@ -970,10 +1020,11 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
 async def _run_drafter(session, client, send):
     await send({"type": "stage_change", "stage": "draft", "label": "Report"})
 
+    lang = session["language"]
     system = build_drafter_system(
-        session["gap_analysis"], session["qualifier_result"], session["language"]
+        session["gap_analysis"], session["qualifier_result"], lang
     )
-    messages = [{"role": "user", "content": "Please generate the policy outlines for the critical and high risk gaps."}]
+    messages = [{"role": "user", "content": "Wygeneruj szkice polityk dla luk krytycznych i wysokiego ryzyka." if lang == "pl" else "Please generate the policy outlines for the critical and high risk gaps."}]
     text = await stream_silent(client, system, messages, 6000)
     try:
         policies = extract_json(text)

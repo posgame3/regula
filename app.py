@@ -558,7 +558,7 @@ async def call_with_thinking(
     response = await client.messages.create(
         model=MODEL,
         max_tokens=max_tokens,
-        thinking={"type": "adaptive"},
+        thinking={"type": "adaptive", "display": "summarized"},
         output_config={"effort": "high"},
         system=system,
         messages=messages,
@@ -742,7 +742,15 @@ async def download_report(session_id: str):
     if missing:
         from fastapi.responses import JSONResponse
         return JSONResponse({"error": f"Missing pipeline data: {missing}"}, status_code=422)
-    pdf_bytes = generate_report_pdf(session, session.get("language", "en"))
+    loop = asyncio.get_running_loop()
+    try:
+        pdf_bytes = await asyncio.wait_for(
+            loop.run_in_executor(None, generate_report_pdf, session, session.get("language", "en")),
+            timeout=45.0,
+        )
+    except asyncio.TimeoutError:
+        log.error("[report] PDF generation timed out after 45s session=%s", session_id[:8])
+        raise HTTPException(status_code=504, detail="PDF generation timed out")
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

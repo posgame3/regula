@@ -160,7 +160,7 @@ def _article_2_excerpt(article_2_text: str) -> str:
     return article_2_text[:1200].strip()
 
 
-def build_qualifier_system(language: str = "en") -> str:
+def build_qualifier_system(language: str = "en") -> list[dict]:
     if language == "pl":
         lang_instruction = "Polish (język polski). All your responses must be in Polish."
     else:
@@ -187,9 +187,10 @@ def build_qualifier_system(language: str = "en") -> str:
         annex_1_text = _format_annex(annex_1)
         annex_2_text = _format_annex(annex_2)
 
-    return _QUALIFIER_SYSTEM_TEMPLATE.format(
+    text = _QUALIFIER_SYSTEM_TEMPLATE.format(
         lang_instruction=lang_instruction,
         annex_1_text=annex_1_text,
         annex_2_text=annex_2_text,
         article_2_excerpt=_article_2_excerpt(art2),
     )
+    return [{"type": "text", "text": text, "cache_control": {"type": "ephemeral"}}]

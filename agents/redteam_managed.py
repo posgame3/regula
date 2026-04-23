@@ -14,10 +14,13 @@ from __future__ import annotations
 import asyncio
 import difflib
 import json
+import logging
 import pathlib
 from typing import Any, Awaitable, Callable
 
 from anthropic import AsyncAnthropic
+
+log = logging.getLogger("regula")
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
 _DIRECTIVE_PATH = BASE_DIR / "data" / "frameworks" / "nis2_directive.json"

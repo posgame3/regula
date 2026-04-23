@@ -55,8 +55,8 @@ Under Article 32/34 of Directive (EU) 2022/2555:
 ## Slide quality criteria:
 - Slide 1 bullets: explain NIS2 in terms of this company's sector (healthcare → patient data, transport → operational continuity, etc.)
 - Slide 2 score: calculate exactly using formula (100 - 15×critical - 8×high - 3×medium), never round to 0 or 100
-- Slide 3 actions: each action must name the responsible person by job title (not "management"), an EUR estimate, and time commitment in days not months
-- Slide 4 numbers: use actual estimates from the gap analysis. If inaction, estimate both the fine AND the likely incident recovery cost for this sector
+- Slide 3 actions: each action must name the responsible person by job title (not "management"), a realistic EUR cost range (show DIY/in-house cost first, then external consultant cost — many NIS2 fixes cost €0–500 in-house), and time commitment in days not months
+- Slide 4 numbers: split cost_of_action into DIY range (company does it internally) and external range (hired consultant). Most MFA, backup, and policy fixes can be done in-house for under €1,000. Use actual estimates from the gap analysis for inaction: both the fine exposure AND the realistic incident recovery cost for this sector
 - Slide 5 recommendation: one sentence, specific ask, includes a success metric ("within 30 days", "by Q3", "hire one person")
 
 ## Rules:
@@ -93,7 +93,7 @@ Under Article 32/34 of Directive (EU) 2022/2555:
     {{
       "number": 4,
       "title": "Cost of action vs. cost of inaction",
-      "cost_of_action": "total EUR estimate for top 3 fixes",
+      "cost_of_action": "DIY/in-house range vs. external consultant range — e.g. 'DIY: €500–2,000 · External: €15,000–25,000'",
       "cost_of_inaction": "fine exposure + realistic incident cost for their sector",
       "speaker_note": "..."
     }},

@@ -989,9 +989,11 @@ _REMEDIATION_LABELS = {
 async def download_tool_pdf(session_id: str, tool_name: str):
     if tool_name not in _TOOL_GENERATORS:
         raise HTTPException(status_code=400, detail=f"Unknown tool: {tool_name}. Valid: {list(_TOOL_GENERATORS)}")
-    if session_id not in sessions:
+    session = sessions.get(session_id) or session_store.load(session_id)
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    session = sessions[session_id]
+    if session_id not in sessions:
+        sessions[session_id] = session
 
     # Serve pre-generated file if the remediation agent already built it
     cached_path = session.get("generated_files", {}).get(tool_name)
@@ -1531,7 +1533,7 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
             max_tokens=1024,
             system=system,
             tools=REMEDIATION_TOOLS,
-            tool_choice={"type": "auto"},
+            tool_choice={"type": "any"},
             messages=[{"role": "user", "content": user_content}],
         )
     except Exception as exc:

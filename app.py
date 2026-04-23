@@ -319,6 +319,7 @@ async def call_with_thinking(
     max_tokens: int = 16000,
     budget_tokens: int = 10000,
     session: dict = None,
+    test_max_tokens: int = 4096,
 ) -> tuple[str, str, list]:
     """Call with extended thinking enabled. Returns (thinking_text, result_text, full_content_blocks).
     In demo mode, skips extended thinking for speed."""
@@ -327,7 +328,7 @@ async def call_with_thinking(
     if TEST_MODE or (session and session.get("demo_mode")):
         response = await client.messages.create(
             model=MODEL,
-            max_tokens=4096,
+            max_tokens=test_max_tokens,
             system=system,
             messages=messages,
         )
@@ -688,7 +689,7 @@ async def _dispatch(client, session, reqs, user_text, send):
         system = build_redteam_system(
             session["gap_analysis"], session["qualifier_result"], session["language"]
         )
-        thinking_text, text, content_blocks = await call_with_thinking(client, system, session["messages"], session=session)
+        thinking_text, text, content_blocks = await call_with_thinking(client, system, session["messages"], session=session, test_max_tokens=8192)
         # Store full content blocks (with thinking) so conversation threading works
         session["messages"].append({"role": "assistant", "content": content_blocks})
 
@@ -762,7 +763,7 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
 
     system = build_analyzer_system_with_thinking(findings, reqs, lang)
     messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
-    thinking_text, text, _ = await call_with_thinking(client, system, messages, session=session)
+    thinking_text, text, _ = await call_with_thinking(client, system, messages, session=session, test_max_tokens=8192)
     try:
         gaps = extract_json(text)
         if "gaps" not in gaps:
@@ -908,7 +909,7 @@ async def _run_drafter(session, client, send):
         session["gap_analysis"], session["qualifier_result"], session["language"]
     )
     messages = [{"role": "user", "content": "Please generate the policy outlines for the critical and high risk gaps."}]
-    text = await stream_silent(client, system, messages, 4096)
+    text = await stream_silent(client, system, messages, 6000)
     try:
         policies = extract_json(text)
         if "policies" not in policies:

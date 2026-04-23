@@ -22,96 +22,96 @@
 
   <!-- Language toggle top-right -->
   <div class="flex justify-end px-6 pt-5">
-    <div class="flex items-center gap-1 bg-white/10 rounded-lg p-1">
-      <button id="landing-btn-pl" onclick="startAssessment('pl')"
-        class="px-3 py-1 rounded text-sm font-semibold text-white/60 hover:text-white transition-colors">PL</button>
-      <button id="landing-btn-en" onclick="startAssessment('en')"
-        class="px-3 py-1 rounded text-sm font-semibold text-white/60 hover:text-white transition-colors">EN</button>
+    <div class="flex items-center gap-3">
+      <button id="landing-btn-en" onclick="setLandingLanguage('en')"
+        class="px-2 py-1 text-sm font-semibold text-white border-b-2 border-[#D4AF77] transition-colors">EN</button>
+      <button id="landing-btn-pl" onclick="setLandingLanguage('pl')"
+        class="px-2 py-1 text-sm font-semibold text-white/50 border-b-2 border-transparent hover:text-white transition-colors">PL</button>
     </div>
   </div>
 
   <!-- Hero -->
   <div class="flex flex-col items-center justify-center flex-1 px-6 py-20 text-center">
-    <div class="text-[#D4AF77] text-sm font-mono tracking-widest uppercase mb-4">
+    <div data-lang-key="badge" class="text-[#D4AF77] text-sm font-mono tracking-widest uppercase mb-4">
       NIS2 Compliance Assessment
     </div>
     <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-      Sprawdź zgodność z NIS2<br>
-      <span class="text-[#D4AF77]">w 15 minut</span>
+      <span data-lang-key="h1_1">Check your NIS2 compliance</span><br>
+      <span data-lang-key="h1_2" class="text-[#D4AF77]">in 15 minutes</span>
     </h1>
-    <p class="text-lg text-white/70 max-w-2xl mb-10">
-      Regula prowadzi Cię przez ocenę jak doświadczony konsultant —
-      i generuje dokumenty które możesz wdrożyć od razu.
-      Bez rejestracji, bez opłat.
+    <p data-lang-key="subtitle" class="text-lg text-white/70 max-w-2xl mb-10">
+      Regula guides you through the assessment like an experienced consultant —
+      and generates documents you can implement right away.
+      No registration, no fees.
     </p>
     <button onclick="startAssessment()"
       class="bg-[#D4AF77] hover:bg-[#c49d66] text-[#0A1628] font-bold
              text-lg px-10 py-4 rounded-lg transition-all duration-200
              shadow-lg hover:shadow-[#D4AF77]/30 hover:shadow-xl">
-      Rozpocznij ocenę →
+      <span data-lang-key="cta">Start assessment →</span>
     </button>
-    <p class="text-white/40 text-sm mt-4">Bezpłatne · Open source MIT · Twoje dane nie opuszczają serwera</p>
+    <p data-lang-key="fine" class="text-white/40 text-sm mt-4">Free · Open source MIT · Your data never leaves the server</p>
   </div>
 
   <!-- 3 Feature Cards -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-6 pb-16">
     <div class="bg-white/5 border border-white/10 rounded-xl p-6">
       <div class="text-3xl mb-3">🎯</div>
-      <h3 class="font-bold text-lg mb-2">Czy NIS2 Cię dotyczy?</h3>
-      <p class="text-white/60 text-sm">Bezpośrednio lub przez łańcuch dostaw — sprawdzimy oba przypadki zanim zaczniesz ocenę.</p>
+      <h3 data-lang-key="card1_title" class="font-bold text-lg mb-2">Does NIS2 apply to you?</h3>
+      <p data-lang-key="card1_text" class="text-white/60 text-sm">Directly or through supply chain — we check both cases.</p>
     </div>
     <div class="bg-white/5 border border-white/10 rounded-xl p-6">
       <div class="text-3xl mb-3">🔍</div>
-      <h3 class="font-bold text-lg mb-2">Symulacja audytu</h3>
-      <p class="text-white/60 text-sm">Zobaczyć co zapyta inspektor NIS2 zanim naprawdę przyjdzie. Wyrok PASS/FAIL z cytowaniem artykułów.</p>
+      <h3 data-lang-key="card2_title" class="font-bold text-lg mb-2">Audit simulation</h3>
+      <p data-lang-key="card2_text" class="text-white/60 text-sm">See what the NIS2 inspector will ask before they actually show up. PASS/FAIL verdict with article citations.</p>
     </div>
     <div class="bg-white/5 border border-white/10 rounded-xl p-6">
       <div class="text-3xl mb-3">📄</div>
-      <h3 class="font-bold text-lg mb-2">Gotowe dokumenty</h3>
-      <p class="text-white/60 text-sm">Polityka bezpieczeństwa, plan incydentów, checklista remediacji — do pobrania od razu po ocenie.</p>
+      <h3 data-lang-key="card3_title" class="font-bold text-lg mb-2">Ready documents</h3>
+      <p data-lang-key="card3_text" class="text-white/60 text-sm">Security policy, incident plan, remediation checklist — downloadable right after assessment.</p>
     </div>
   </div>
 
   <!-- What you get -->
   <div class="max-w-3xl mx-auto px-6 pb-20 w-full">
-    <h2 class="text-2xl font-bold text-center mb-8 text-[#D4AF77]">Co otrzymujesz na końcu</h2>
+    <h2 data-lang-key="what_title" class="text-2xl font-bold text-center mb-8 text-[#D4AF77]">What you get at the end</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div class="flex items-start gap-3 text-white/80 text-sm">
         <span class="text-green-400 mt-0.5">✓</span>
-        <span>Raport PDF z oceną zgodności i score 0–100</span>
+        <span data-lang-key="item0">PDF report with compliance score 0–100</span>
       </div>
       <div class="flex items-start gap-3 text-white/80 text-sm">
         <span class="text-green-400 mt-0.5">✓</span>
-        <span>Tabelę luk z priorytetami i kosztami remediacji</span>
+        <span data-lang-key="item1">Gap table with priorities and remediation costs</span>
       </div>
       <div class="flex items-start gap-3 text-white/80 text-sm">
         <span class="text-green-400 mt-0.5">✓</span>
-        <span>Symulację audytu z wyrokiem PASS/FAIL</span>
+        <span data-lang-key="item2">Audit simulation with PASS/FAIL verdict</span>
       </div>
       <div class="flex items-start gap-3 text-white/80 text-sm">
         <span class="text-green-400 mt-0.5">✓</span>
-        <span>Scenariusze ataków personalizowane pod Twoją firmę</span>
+        <span data-lang-key="item3">Personalized attack scenarios for your company</span>
       </div>
       <div class="flex items-start gap-3 text-white/80 text-sm">
         <span class="text-green-400 mt-0.5">✓</span>
-        <span>Prezentację dla zarządu (5 slajdów)</span>
+        <span data-lang-key="item4">Board presentation (5 slides)</span>
       </div>
       <div class="flex items-start gap-3 text-white/80 text-sm">
         <span class="text-green-400 mt-0.5">✓</span>
-        <span>Politykę bezpieczeństwa gotową do podpisu</span>
+        <span data-lang-key="item5">Security policy ready to sign</span>
       </div>
       <div class="flex items-start gap-3 text-white/80 text-sm">
         <span class="text-green-400 mt-0.5">✓</span>
-        <span>Plan reagowania na incydenty</span>
+        <span data-lang-key="item6">Incident response plan</span>
       </div>
       <div class="flex items-start gap-3 text-white/80 text-sm">
         <span class="text-green-400 mt-0.5">✓</span>
-        <span>Zasoby ENISA dopasowane do Twoich luk</span>
+        <span data-lang-key="item7">ENISA resources matched to your gaps</span>
       </div>
     </div>
-    <p class="text-white/30 text-xs text-center mt-10">
-      Regula jest punktem startowym do przeglądu prawnego — nie zastępuje konsultanta.
-      Kod open source MIT · github.com/posgame3/regula
+    <p data-lang-key="disclaimer" class="text-white/30 text-xs text-center mt-10">
+      Regula is a starting point for legal review — not a substitute for a consultant.
+      MIT open source · github.com/posgame3/regula
     </p>
   </div>
 </div>
@@ -174,10 +174,63 @@
 </div><!-- end #chat-app -->
 
 <script>
+// ── Landing translations ───────────────────────────────────────────────────
+const LANDING_TEXT = {
+  en: {
+    badge:       'NIS2 Compliance Assessment',
+    h1_1:        'Check your NIS2 compliance',
+    h1_2:        'in 15 minutes',
+    subtitle:    'Regula guides you through the assessment like an experienced consultant — and generates documents you can implement right away. No registration, no fees.',
+    cta:         'Start assessment →',
+    fine:        'Free · Open source MIT · Your data never leaves the server',
+    card1_title: 'Does NIS2 apply to you?',
+    card1_text:  'Directly or through supply chain — we check both cases.',
+    card2_title: 'Audit simulation',
+    card2_text:  'See what the NIS2 inspector will ask before they actually show up. PASS/FAIL verdict with article citations.',
+    card3_title: 'Ready documents',
+    card3_text:  'Security policy, incident plan, remediation checklist — downloadable right after assessment.',
+    what_title:  'What you get at the end',
+    item0: 'PDF report with compliance score 0–100',
+    item1: 'Gap table with priorities and remediation costs',
+    item2: 'Audit simulation with PASS/FAIL verdict',
+    item3: 'Personalized attack scenarios for your company',
+    item4: 'Board presentation (5 slides)',
+    item5: 'Security policy ready to sign',
+    item6: 'Incident response plan',
+    item7: 'ENISA resources matched to your gaps',
+    disclaimer: 'Regula is a starting point for legal review — not a substitute for a consultant. MIT open source · github.com/posgame3/regula',
+  },
+  pl: {
+    badge:       'Ocena zgodności z NIS2',
+    h1_1:        'Sprawdź zgodność z NIS2',
+    h1_2:        'w 15 minut',
+    subtitle:    'Regula prowadzi Cię przez ocenę jak doświadczony konsultant — i generuje dokumenty które możesz wdrożyć od razu. Bez rejestracji, bez opłat.',
+    cta:         'Rozpocznij ocenę →',
+    fine:        'Bezpłatne · Open source MIT · Twoje dane nie opuszczają serwera',
+    card1_title: 'Czy NIS2 Cię dotyczy?',
+    card1_text:  'Bezpośrednio lub przez łańcuch dostaw — sprawdzimy oba przypadki zanim zaczniesz ocenę.',
+    card2_title: 'Symulacja audytu',
+    card2_text:  'Zobaczyć co zapyta inspektor NIS2 zanim naprawdę przyjdzie. Wyrok PASS/FAIL z cytowaniem artykułów.',
+    card3_title: 'Gotowe dokumenty',
+    card3_text:  'Polityka bezpieczeństwa, plan incydentów, checklista remediacji — do pobrania od razu po ocenie.',
+    what_title:  'Co otrzymujesz na końcu',
+    item0: 'Raport PDF z oceną zgodności i score 0–100',
+    item1: 'Tabelę luk z priorytetami i kosztami remediacji',
+    item2: 'Symulację audytu z wyrokiem PASS/FAIL',
+    item3: 'Scenariusze ataków personalizowane pod Twoją firmę',
+    item4: 'Prezentację dla zarządu (5 slajdów)',
+    item5: 'Politykę bezpieczeństwa gotową do podpisu',
+    item6: 'Plan reagowania na incydenty',
+    item7: 'Zasoby ENISA dopasowane do Twoich luk',
+    disclaimer: 'Regula jest punktem startowym do przeglądu prawnego — nie zastępuje konsultanta. Kod open source MIT · github.com/posgame3/regula',
+  },
+};
+
 // ── State ──────────────────────────────────────────────────────────────────
+window.selectedLanguage = 'en';
 let currentSessionId = crypto.randomUUID();
 let ws = null;
-let lang = 'pl';
+let lang = 'en';
 let stage = 'qualifier';
 let busy = false;
 let conversationStarted = false;
@@ -206,9 +259,25 @@ const RISK_COLORS = {
   low:      { badge:'bg-green-500 text-white',       tag:'bg-green-100 text-green-700'    },
 };
 
+// ── Landing language toggle ────────────────────────────────────────────────
+function setLandingLanguage(l) {
+  window.selectedLanguage = l;
+  const texts = LANDING_TEXT[l];
+  document.querySelectorAll('[data-lang-key]').forEach(el => {
+    const key = el.dataset.langKey;
+    if (texts[key] !== undefined) el.textContent = texts[key];
+  });
+  const btnEn = document.getElementById('landing-btn-en');
+  const btnPl = document.getElementById('landing-btn-pl');
+  const active   = 'px-2 py-1 text-sm font-semibold text-white border-b-2 border-[#D4AF77] transition-colors';
+  const inactive = 'px-2 py-1 text-sm font-semibold text-white/50 border-b-2 border-transparent hover:text-white transition-colors';
+  btnEn.className = l === 'en' ? active : inactive;
+  btnPl.className = l === 'pl' ? active : inactive;
+}
+
 // ── Landing page ───────────────────────────────────────────────────────────
-function startAssessment(newLang) {
-  if (newLang) lang = newLang;
+function startAssessment() {
+  lang = window.selectedLanguage;
   document.getElementById('landing').style.display = 'none';
   document.getElementById('chat-app').classList.remove('hidden');
   updateLangButtons();
@@ -673,7 +742,7 @@ function scrollBottom() {
   el.scrollTop = el.scrollHeight;
 }
 
-// ── Language toggle ────────────────────────────────────────────────────────
+// ── Language toggle (chat) ────────────────────────────────────────────────
 function updateLangButtons() {
   const active   = 'px-3 py-1 rounded text-sm font-semibold bg-white text-[#0A2540] transition-colors';
   const inactive = 'px-3 py-1 rounded text-sm font-semibold text-slate-400 hover:text-white transition-colors';
@@ -701,6 +770,7 @@ function setLang(l) {
   if (l === lang) return;
   if (!conversationStarted) {
     lang = l;
+    window.selectedLanguage = l;
     updateLangButtons();
     renderProgress();
     resetSession();
@@ -729,6 +799,7 @@ function showLangConfirm(newLang) {
 function confirmLangChange(newLang) {
   document.getElementById('lang-confirm')?.remove();
   lang = newLang;
+  window.selectedLanguage = newLang;
   updateLangButtons();
   renderProgress();
   resetSession();
@@ -800,7 +871,8 @@ function sendMessage() {
   setProcessing(true);
 }
 
-// ── Init (no connect here — deferred until startAssessment) ───────────────
+// ── Init ───────────────────────────────────────────────────────────────────
+// Landing starts in EN; chat buttons reflect the same
 updateLangButtons();
 </script>
 </body>

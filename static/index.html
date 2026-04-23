@@ -381,6 +381,19 @@
     }
     .sys-demo:hover { background: var(--ink); color: var(--paper); }
 
+    /* Sticky demo-mode banner — shown whenever the simulated Marek persona is active */
+    .demo-mode-banner {
+      background: #FFE380; color: #1a1a1a;
+      border-bottom: 2px solid #1a1a1a;
+      padding: 10px var(--margin);
+      font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.04em;
+      text-align: center; flex-shrink: 0;
+      display: none;
+    }
+    .demo-mode-banner.active { display: block; }
+    .demo-mode-banner b { font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .demo-mode-banner .sep { margin: 0 10px; color: #7a6a20; }
+
     /* Progress row */
     .progress-row {
       display: grid; grid-template-columns: repeat(12, 1fr);
@@ -951,6 +964,50 @@
       color: var(--signal); text-transform: uppercase;
     }
 
+    /* Anonymous benchmark card — shows user score vs peer percentiles */
+    .bench-card {
+      border: 1px solid var(--ink); background: var(--paper);
+      padding: 20px 22px; margin-top: 14px;
+    }
+    .bench-head {
+      font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+    }
+    .bench-row {
+      display: grid; grid-template-columns: auto 1fr auto;
+      gap: 14px; align-items: baseline; margin-bottom: 8px;
+    }
+    .bench-row.me { border-bottom: 1px solid var(--hairline); padding-bottom: 14px; margin-bottom: 14px; }
+    .bench-label {
+      font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.04em;
+      color: var(--muted); text-transform: uppercase;
+    }
+    .bench-row.me .bench-label { color: var(--signal); }
+    .bench-val {
+      font-family: var(--f-display, Archivo), sans-serif;
+      font-size: 15px; font-weight: 500; color: var(--ink);
+    }
+    .bench-row.me .bench-val { font-size: 36px; letter-spacing: -0.01em; }
+    .bench-bar-wrap { height: 4px; background: var(--hairline); position: relative; overflow: visible; }
+    .bench-bar-fill { height: 100%; background: var(--muted); }
+    .bench-row.me .bench-bar-fill { background: var(--signal); }
+    .bench-bar-marker {
+      position: absolute; top: -4px; width: 2px; height: 12px; background: var(--ink);
+    }
+    .bench-bar-marker::after {
+      content: attr(data-label); position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      font-family: var(--f-mono); font-size: 9px; color: var(--muted);
+      white-space: nowrap; letter-spacing: 0.04em;
+    }
+    .bench-footer {
+      margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--hairline);
+      font-family: var(--f-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.04em; line-height: 1.5;
+    }
+    .bench-callout {
+      font-size: 13px; color: var(--ink); margin-top: 10px; font-weight: 500;
+    }
+
     /* Typing indicator */
     .typing {
       max-width: var(--chat-max); margin: 0 auto;
@@ -968,6 +1025,11 @@
     }
     .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
     .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+    .typing-elapsed {
+      margin-left: auto; font-family: var(--f-mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+    }
 
     /* Input bar */
     .input-bar {
@@ -1278,6 +1340,13 @@
     </div>
   </div>
 
+  <!-- Demo-mode banner: only visible when the simulated Marek persona is driving answers -->
+  <div class="demo-mode-banner" id="demo-banner" role="alert">
+    <b id="demo-banner-title">Demo mode</b>
+    <span class="sep">·</span>
+    <span id="demo-banner-body">Marek is a simulated AI persona. Answers below are generated from a fixed persona profile — not a real company assessment.</span>
+  </div>
+
   <!-- Progress -->
   <div class="progress-row">
     <div class="progress-label"><span data-lang-key-chat="stage">Stage</span> <b><span id="stage-idx">01</span> / 06</b> · <span id="stage-name">Qualify</span></div>
@@ -1289,8 +1358,9 @@
   <div class="chat-scroll" id="scroll">
     <div class="chat-thread" id="chat"></div>
     <div class="typing hidden" id="typing">
-      <span><b>Regula</b> <span data-lang-key-chat="composing">is composing</span></span>
+      <span><b>Regula</b> <span id="typing-status" data-lang-key-chat="composing">is composing</span></span>
       <span class="typing-dots"><span></span><span></span><span></span></span>
+      <span class="typing-elapsed" id="typing-elapsed"></span>
     </div>
   </div>
 
@@ -1491,6 +1561,9 @@ function applyChatLang() {
   if (inp && !inp.disabled) inp.placeholder = t.placeholder;
   const demoBtn = document.getElementById('btn-demo');
   if (demoBtn) demoBtn.textContent = t.demo_btn;
+  // Refresh demo banner copy if it's currently visible.
+  const banner = document.getElementById('demo-banner');
+  if (banner && banner.classList.contains('active')) showDemoBanner();
 }
 
 // ═══════════════════════════ Landing → Chat ═══════════════════════════
@@ -1702,6 +1775,95 @@ function addAnalysis(data) {
     </div>`);
 }
 
+// Human-readable sector/bucket labels used in the benchmark card.
+const _SECTOR_LABELS = {
+  en: {
+    transport: 'Transport', health: 'Healthcare', energy: 'Energy', water: 'Water',
+    banking: 'Banking', digital: 'Digital services', ict_services: 'ICT services',
+    manufacturing: 'Manufacturing', chemicals: 'Chemicals', food: 'Food',
+    waste: 'Waste management', public_admin: 'Public administration',
+    research: 'Research', space: 'Space', other: 'Other',
+  },
+  pl: {
+    transport: 'Transport', health: 'Ochrona zdrowia', energy: 'Energetyka', water: 'Gospodarka wodna',
+    banking: 'Bankowość', digital: 'Usługi cyfrowe', ict_services: 'Usługi ICT',
+    manufacturing: 'Produkcja', chemicals: 'Chemia', food: 'Żywność',
+    waste: 'Gospodarka odpadami', public_admin: 'Administracja publiczna',
+    research: 'Badania naukowe', space: 'Sektor kosmiczny', other: 'Inne',
+  },
+};
+
+function addBenchmark(b) {
+  if (!b || typeof b.user_score !== 'number' || b.median == null) return;
+  const t = lang === 'pl' ? {
+    head: 'Porównanie z branżą (anonimowo)',
+    you: 'Twój wynik',
+    median: 'Mediana',
+    top10: 'Top 10%',
+    peerLabel: (s, sz) => `${(_SECTOR_LABELS.pl[s] || s)} · firmy ${sz} prac.`,
+    callout_bottom: (pct) => `Jesteś w dolnych ${100 - pct}% grupy porównawczej. Luki są do nadrobienia — zacznij od 3 priorytetów powyżej.`,
+    callout_mid:    (pct) => `Jesteś na ${pct}. percentylu. Mediana w grupie to ${b.median}/100 — masz realną szansę na top przy 2-3 kwartałach pracy.`,
+    callout_top:    (pct) => `Jesteś w górnych ${100 - pct}%. Trzymaj tempo i zadbaj o testowanie kontroli (Art. 21(2)(f)).`,
+    footer: (n, fb, group) => `Na podstawie ${n} anonimowych ocen · Grupa: ${group}${fb ? ' · przybliżone (brak wystarczających danych dla dokładnej grupy)' : ''}`,
+  } : {
+    head: 'Peer benchmark (anonymous)',
+    you: 'You',
+    median: 'Peer median',
+    top10: 'Top 10%',
+    peerLabel: (s, sz) => `${(_SECTOR_LABELS.en[s] || s)} · ${sz} employees`,
+    callout_bottom: (pct) => `You're in the bottom ${100 - pct}% of your peer group. The gaps are closable — start with the top-3 priorities above.`,
+    callout_mid:    (pct) => `You're at the ${pct}${_ord(pct)} percentile. Peer median is ${b.median}/100 — two or three quarters of focused work puts top-quartile in reach.`,
+    callout_top:    (pct) => `You're in the top ${100 - pct}%. Hold the line and focus on control-effectiveness testing (Art. 21(2)(f)).`,
+    footer: (n, fb, group) => `Based on ${n} anonymised assessments · Group: ${group}${fb ? ' · approximate (not enough data for exact group)' : ''}`,
+  };
+
+  const pct = Math.max(0, Math.min(100, b.user_percentile || 0));
+  const callout = pct < 33 ? t.callout_bottom(pct) : pct < 67 ? t.callout_mid(pct) : t.callout_top(pct);
+  const peerGroup = t.peerLabel(b.sector, b.size_bucket);
+
+  // Bar fills are percentages of 100 (max score).
+  const userFill = Math.max(4, b.user_score);  // min visible width
+  const medianFill = b.median;
+  const top10Fill = b.top10;
+
+  append(`
+    <div class="bench-card">
+      <div class="bench-head">${t.head}</div>
+
+      <div class="bench-row me">
+        <div class="bench-label">${t.you}</div>
+        <div class="bench-bar-wrap">
+          <div class="bench-bar-fill" style="width:${userFill}%"></div>
+          <div class="bench-bar-marker" data-label="${pct}${lang === 'pl' ? '.' : _ord(pct)}" style="left:${userFill}%"></div>
+        </div>
+        <div class="bench-val">${b.user_score}<span style="font-size:14px;color:var(--muted);font-weight:400">/100</span></div>
+      </div>
+
+      <div class="bench-row">
+        <div class="bench-label">${t.median}</div>
+        <div class="bench-bar-wrap"><div class="bench-bar-fill" style="width:${medianFill}%"></div></div>
+        <div class="bench-val">${b.median}</div>
+      </div>
+
+      <div class="bench-row">
+        <div class="bench-label">${t.top10}</div>
+        <div class="bench-bar-wrap"><div class="bench-bar-fill" style="width:${top10Fill}%"></div></div>
+        <div class="bench-val">${b.top10}</div>
+      </div>
+
+      <div class="bench-callout">${esc(callout)}</div>
+      <div class="bench-footer">${esc(t.footer(b.count, b.fallback_used, peerGroup))}</div>
+    </div>
+  `);
+}
+
+function _ord(n) {
+  // English ordinal suffix for percentile badges (21st, 42nd, 53rd, 94th).
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return 'th';
+  switch (n % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
+}
+
 function addComplete(data) {
   const rr = data.redteam_result;
   const isStrRedteam = typeof rr === 'string' && rr;
@@ -1739,6 +1901,10 @@ function addComplete(data) {
         ${lang === 'pl' ? '✓ Ocena zakończona. Odśwież stronę, by ocenić inną firmę.' : '✓ Assessment complete. Start a new session to assess another company.'}
       </button>
     </div>`);
+
+  if (data.benchmark) {
+    addBenchmark(data.benchmark);
+  }
 
   addSubscribeCard();
 
@@ -1931,6 +2097,26 @@ function updateDemoButton() {
   btn.style.display = (conversationStarted || demoRunning) ? 'none' : '';
 }
 
+function showDemoBanner() {
+  const banner = document.getElementById('demo-banner');
+  const title = document.getElementById('demo-banner-title');
+  const body = document.getElementById('demo-banner-body');
+  if (!banner) return;
+  if (lang === 'pl') {
+    title.textContent = '⚠ Tryb demo';
+    body.textContent = 'Marek to symulowana persona AI. Odpowiedzi poniżej są generowane ze stałego profilu persony — to nie jest ocena prawdziwej firmy.';
+  } else {
+    title.textContent = '⚠ Demo mode';
+    body.textContent = 'Marek is a simulated AI persona. Answers below are generated from a fixed persona profile — not a real company assessment.';
+  }
+  banner.classList.add('active');
+}
+
+function hideDemoBanner() {
+  const banner = document.getElementById('demo-banner');
+  if (banner) banner.classList.remove('active');
+}
+
 function runDemo() {
   if (demoRunning || conversationStarted) return;
   demoRunning = true;
@@ -1939,6 +2125,8 @@ function runDemo() {
   inp.disabled = true;
   inp.placeholder = lang === 'pl' ? 'Tryb demo — Marek AI odpowiada…' : 'Demo mode — Marek AI is responding…';
   document.getElementById('send-btn').disabled = true;
+
+  showDemoBanner();
 
   append(`
     <div class="msg divider">
@@ -1951,10 +2139,73 @@ function runDemo() {
 }
 
 // ═══════════════════════════ UI helpers ═══════════════════════════
-function setProcessing(on) {
+// Stage-specific typing status. For long-running stages (analyze/redteam/threat/board)
+// we rotate hints so the user sees the pipeline is still alive during 30-60s waits.
+const STAGE_STATUS = {
+  en: {
+    qualifier:   ['is composing'],
+    interview:   ['is composing'],
+    analyze:     ['is analyzing your answers', 'cross-referencing Art. 21(2) requirements', 'scoring gaps by risk level', 'still working — extended thinking in progress'],
+    redteam:     ['auditor is reviewing your gaps', 'looking up directive text', 'cross-checking interview answers', 'preparing audit verdict'],
+    threat:      ['mapping realistic attack scenarios', 'modelling threat actor behaviour', 'still working — extended thinking in progress'],
+    board:       ['building the 5-slide executive deck'],
+    draft:       ['drafting policy outlines'],
+    remediation: ['generating remediation documents'],
+  },
+  pl: {
+    qualifier:   ['pisze'],
+    interview:   ['pisze'],
+    analyze:     ['analizuję Twoje odpowiedzi', 'porównuję z wymaganiami Art. 21(2)', 'oceniam luki po poziomie ryzyka', 'nadal pracuję — Extended Thinking w toku'],
+    redteam:     ['audytor sprawdza Twoje luki', 'wyszukuje treść dyrektywy', 'porównuje z odpowiedziami z wywiadu', 'przygotowuje werdykt'],
+    threat:      ['mapuję realistyczne scenariusze ataków', 'modeluję zachowanie atakującego', 'nadal pracuję — Extended Thinking w toku'],
+    board:       ['buduję 5-slajdową prezentację dla zarządu'],
+    draft:       ['piszę szkice polityk'],
+    remediation: ['generuję dokumenty remediacji'],
+  },
+};
+
+let _typingTimer = null;
+let _typingStart = 0;
+
+function _startTypingTicker(stageKey) {
+  _stopTypingTicker();
+  _typingStart = Date.now();
+  const statusEl = document.getElementById('typing-status');
+  const elapsedEl = document.getElementById('typing-elapsed');
+  const hints = (STAGE_STATUS[lang] || STAGE_STATUS.en)[stageKey] || ['is composing'];
+  let idx = 0;
+  const applyHint = () => {
+    if (statusEl) statusEl.textContent = hints[idx % hints.length];
+    idx++;
+  };
+  const applyElapsed = () => {
+    const s = Math.floor((Date.now() - _typingStart) / 1000);
+    if (elapsedEl) elapsedEl.textContent = s >= 3 ? `${s}s` : '';
+  };
+  applyHint();
+  applyElapsed();
+  _typingTimer = setInterval(() => {
+    applyElapsed();
+    // rotate hint every 8 seconds (only if we have >1 hint)
+    if (hints.length > 1 && Math.floor((Date.now() - _typingStart) / 8000) >= idx) applyHint();
+  }, 500);
+}
+
+function _stopTypingTicker() {
+  if (_typingTimer) { clearInterval(_typingTimer); _typingTimer = null; }
+  const elapsedEl = document.getElementById('typing-elapsed');
+  if (elapsedEl) elapsedEl.textContent = '';
+}
+
+function setProcessing(on, stageKey) {
   busy = on;
   document.getElementById('typing').classList.toggle('hidden', !on);
   document.getElementById('send-btn').disabled = on || demoRunning;
+  if (on) {
+    _startTypingTicker(stageKey || stage || 'interview');
+  } else {
+    _stopTypingTicker();
+  }
   if (!on && !demoRunning) setTimeout(() => document.getElementById('input').focus(), 50);
   scrollBottom();
 }
@@ -1973,6 +2224,7 @@ function resetSession() {
   conversationStarted = false;
   demoRunning = false;
   busy = false;
+  hideDemoBanner();
   document.getElementById('chat').innerHTML = '';
   document.getElementById('input').disabled = false;
   document.getElementById('input').placeholder = CHAT_TEXT[lang].placeholder;
@@ -2050,7 +2302,7 @@ function connect() {
       renderProgress();
       addDivider(msg.label || msg.stage);
       if (msg.stage === 'redteam') addRedteamDisclaimer();
-      setProcessing(true);
+      setProcessing(true, msg.stage);
     } else if (msg.type === 'analysis_result') {
       addAnalysis(msg.data);
     } else if (msg.type === 'tool_generating') {
@@ -2130,7 +2382,7 @@ function addSubscribeCard() {
         </form>
         <div class="subscribe-note">${lang === 'pl'
           ? 'Na demo: po subskrypcji zobaczysz skrzynkę z prawdziwymi alertami znalezionymi przez agenta.'
-          : 'For demo: after subscribing you\\'ll see a mailbox with real alerts the agent finds.'}</div>
+          : 'For demo: after subscribing you\'ll see a mailbox with real alerts the agent finds.'}</div>
       </div>
     </div>`);
 }

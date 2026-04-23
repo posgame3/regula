@@ -50,24 +50,29 @@ prompt, but a real audit trace.
 Enable via `MANAGED_AGENTS=1` in `.env` after running the setup script.
 Falls back to the legacy in-process flow when disabled (so `MOCK_MODE` stays fast).
 
-### 2. Regulatory Monitor (new feature)
+### 2. Regulatory Monitor (on-demand)
 
-A second Managed Agent that runs **after** the assessment is done. User enters
-their email, gets subscribed, and the monitor periodically (demo: on-demand)
-does the following:
+A second Managed Agent the user can invoke **after** the assessment completes.
+User enters their email to create a monitoring profile, then triggers a run
+on-demand from the in-app mailbox (no scheduler / no email delivery in this
+release — both are on the roadmap). Each run does the following:
 
 - Calls `lookup_user_profile()` to see the company's sector, language, and open gaps
 - Runs 2–4 targeted `web_search` queries for NIS2 / CSIRT / regulatory news relevant to that sector
 - Queues an alert via `queue_alert()` **only** when a finding touches one of the user's specific open gaps
 - Calls `finalize_run()` to close the session
 
-The alerts include source URLs, severity, and which of the user's gaps they relate to — delivered
+Alerts include source URLs, severity, and which of the user's gaps they relate to — rendered
 in the user's language. Zero alerts is a perfectly valid run.
 
 Endpoints:
 - `POST /api/subscribe` — after assessment, save email + gaps as a monitoring profile
-- `POST /api/monitor/run` — trigger one monitor pass (scheduled in production)
+- `POST /api/monitor/run` — trigger one monitor pass on-demand (user-driven, not scheduled)
 - `GET /api/alerts?user_id=...` — list all alerts queued for a user
+
+**Roadmap:** APScheduler + SMTP delivery to turn on-demand into genuine background monitoring.
+Not wired up in this release — so the subscription is effectively a saved monitoring profile
+rather than a live subscription.
 
 ## Key features
 
@@ -89,8 +94,8 @@ Endpoints:
 - **Extended Thinking:** `thinking={"type": "adaptive"}, output_config={"effort": "high"}`
 - **PDF:** WeasyPrint + Jinja2, Archivo + IBM Plex Mono TTFs embedded
 - **Frontend:** Vanilla JS + Tailwind CSS
-- **NIS2 grounding:** EUR-Lex directive PDF parsed with pypdf → `data/frameworks/nis2_directive.json`
-- **Profile store:** JSON file-backed (`data/profiles.json`, gitignored)
+- **NIS2 grounding:** EUR-Lex directive PDF parsed with pypdf → `data/frameworks/nis2_directive.json`; each requirement in `nis2.json` carries its `article_ref` + `eurlex_url` + verbatim `directive_text`
+- **Persistence:** SQLite (`data/regula.db`, gitignored) for both assessment sessions and monitoring profiles — survives server restarts
 
 ## Quick start
 
@@ -173,7 +178,8 @@ regula/
 ├── utils/
 │   ├── pdf.py                       # WeasyPrint report generator
 │   ├── tools.py
-│   └── profile_store.py             # JSON-backed user profile + alerts
+│   ├── session_store.py             # SQLite assessment session persistence
+│   └── profile_store.py             # SQLite user profile + alerts
 ├── templates/report.html            # redesigned PDF template (Archivo / IBM Plex Mono)
 ├── static/
 │   ├── fonts/                       # Archivo + IBM Plex Mono TTFs (embedded in PDFs)

@@ -24,10 +24,17 @@
     ]
   },
   "directive": "NIS2 Directive (EU) 2022/2555",
+  "directive_celex": "32022L2555",
+  "directive_url": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj",
   "article": "Article 21 — Cybersecurity Risk-Management Measures",
+  "article_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555#d1e2635-80-1",
+  "source_note": "Plain-language summaries written by the Regula team. Directive text in article_21_measures is verbatim from EUR-Lex CELEX:32022L2555 (see data/frameworks/nis2_directive.json). Cost/effort estimates are indicative — actual figures vary by country, vendor and existing posture.",
   "requirements": [
     {
       "id": "NIS2-01",
+      "article_ref": "Art. 21(2)(a)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "policies on risk analysis and information system security",
       "name": "Policies on risk analysis and information system security",
       "plain_language": "You must have a written policy that explains how you identify risks to your IT systems and how you decide what to protect. Think of it as a map of what could go wrong and your plan to prevent it.",
       "interview_probes": [
@@ -42,6 +49,9 @@
     },
     {
       "id": "NIS2-02",
+      "article_ref": "Art. 21(2)(b)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "incident handling",
       "name": "Incident handling",
       "plain_language": "You must have a clear plan for what to do when something goes wrong — a cyberattack, a data breach, or a system outage. This includes who calls whom, how you contain the damage, and how you report it to authorities within 24 hours.",
       "interview_probes": [
@@ -56,6 +66,9 @@
     },
     {
       "id": "NIS2-03",
+      "article_ref": "Art. 21(2)(c)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "business continuity, such as backup management and disaster recovery, and crisis management",
       "name": "Business continuity and crisis management",
       "plain_language": "You need a plan to keep your business running during a serious attack or disaster — including backups, how to restore systems, and how to communicate with customers when things break.",
       "interview_probes": [
@@ -70,6 +83,9 @@
     },
     {
       "id": "NIS2-04",
+      "article_ref": "Art. 21(2)(d)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "supply chain security, including security-related aspects concerning the relationships between each entity and its direct suppliers or service providers",
       "name": "Supply chain security",
       "plain_language": "You are responsible for the security of your suppliers and software vendors too. If a supplier gets hacked and it affects your systems or customers, NIS2 holds you accountable. You must know who your critical suppliers are and check their security.",
       "interview_probes": [
@@ -84,6 +100,9 @@
     },
     {
       "id": "NIS2-05",
+      "article_ref": "Art. 21(2)(e)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "security in network and information systems acquisition, development and maintenance, including vulnerability handling and disclosure",
       "name": "Security in network and information systems acquisition, development and maintenance",
       "plain_language": "When you buy, build, or update software and IT systems, security must be built in from the start — not added on as an afterthought. This includes how you install updates and patches.",
       "interview_probes": [
@@ -98,6 +117,9 @@
     },
     {
       "id": "NIS2-06",
+      "article_ref": "Art. 21(2)(f)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "policies and procedures to assess the effectiveness of cybersecurity risk-management measures",
       "name": "Policies and procedures to assess effectiveness of cybersecurity measures",
       "plain_language": "You must regularly check whether your security measures actually work — not just assume they do. This means testing, audits, and measuring results.",
       "interview_probes": [
@@ -112,6 +134,9 @@
     },
     {
       "id": "NIS2-07",
+      "article_ref": "Art. 21(2)(g)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "basic cyber hygiene practices and cybersecurity training",
       "name": "Basic cyber hygiene practices and cybersecurity training",
       "plain_language": "Every employee must receive basic cybersecurity training — how to spot phishing emails, use strong passwords, and avoid common mistakes. Leadership must also understand cyber risks, not just the IT team.",
       "interview_probes": [
@@ -126,6 +151,9 @@
     },
     {
       "id": "NIS2-08",
+      "article_ref": "Art. 21(2)(h)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "policies and procedures regarding the use of cryptography and, where appropriate, encryption",
       "name": "Policies and procedures regarding the use of cryptography and encryption",
       "plain_language": "Sensitive data — customer records, financial information, passwords — must be encrypted both when stored and when sent over the internet. You need a policy that says what gets encrypted and how.",
       "interview_probes": [
@@ -140,6 +168,9 @@
     },
     {
       "id": "NIS2-09",
+      "article_ref": "Art. 21(2)(i)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "human resources security, access control policies and asset management",
       "name": "Human resources security, access control policies and asset management",
       "plain_language": "You must control who has access to what in your systems. Employees should only access what they need for their job. When someone leaves, their access must be removed immediately. You also need to know what IT assets you have.",
       "interview_probes": [
@@ -154,6 +185,9 @@
     },
     {
       "id": "NIS2-10",
+      "article_ref": "Art. 21(2)(j)",
+      "eurlex_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555",
+      "directive_text": "the use of multi-factor authentication or continuous authentication solutions, secured voice, video and text communications and secured emergency communication systems within the entity, where appropriate",
       "name": "Multi-factor authentication and secured communications",
       "plain_language": "All important systems — email, company accounts, remote access — must require a second verification step beyond just a password. Sensitive internal communications must use secure channels.",
       "interview_probes": [

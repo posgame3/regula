@@ -1,8 +1,14 @@
-"""Managed-Agents implementation of the scheduled Regulatory Monitor.
+"""Managed-Agents implementation of the on-demand Regulatory Monitor.
 
-Triggered manually (for demo) or via scheduler in production. Agent uses
-built-in web_search / web_fetch plus custom tools to query the user's profile
-and queue alerts. Terminal tool: finalize_run.
+User-triggered: invoked by POST /api/monitor/run from the in-app mailbox after
+a user subscribes with their email. Agent uses built-in web_search / web_fetch
+plus custom tools to query the user's profile and queue alerts.
+Terminal tool: finalize_run.
+
+No scheduler, no SMTP delivery — the "subscription" is a saved monitoring
+profile, not a push subscription. APScheduler + SMTP would be the natural
+next step to turn this into a true background service (out of scope for this
+release).
 """
 from __future__ import annotations
 

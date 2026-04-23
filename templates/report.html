@@ -1076,7 +1076,10 @@
       </div>
       <div class="qual-item">
         <div class="qual-key">{{ t_article_ref }}</div>
-        <div class="qual-value-mono">Directive (EU) 2022/2555, Art. 21</div>
+        <div class="qual-value-mono">
+          Directive (EU) 2022/2555, Art. 21<br/>
+          <span style="font-size: 9px; color: #6b6b66;">eur-lex.europa.eu/eli/dir/2022/2555/oj</span>
+        </div>
       </div>
     </div>
     <div class="qual-right">
@@ -1344,6 +1347,68 @@
     {% endif %}
   </div>
   {% endfor %}
+</div>
+{% endif %}
+
+<!-- ═══════════ APPENDIX: LEGAL BASIS (verbatim Art. 21(2) from EUR-Lex) ═══════════ -->
+{% if nis2_requirements %}
+<div class="section" style="page-break-before: always; margin-top: 0;">
+  <div class="section-kicker">{% if is_pl %}ZAŁĄCZNIK · PODSTAWA PRAWNA{% else %}APPENDIX · LEGAL BASIS{% endif %}</div>
+  <h2 style="font-family: var(--f-display, Archivo); font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 6px; color: #0A0A0A;">
+    {% if is_pl %}Artykuł 21(2) Dyrektywy (UE) 2022/2555{% else %}Article 21(2) of Directive (EU) 2022/2555{% endif %}
+  </h2>
+  <div style="font-family: var(--f-mono, 'IBM Plex Mono'); font-size: 10px; color: #6b6b66; margin-bottom: 18px; letter-spacing: 0.03em;">
+    {% if is_pl %}Źródło{% else %}Source{% endif %}:
+    EUR-Lex CELEX 32022L2555 · {{ nis2_directive_url }}
+  </div>
+  <div style="font-size: 11px; color: #3a3a35; margin-bottom: 14px; line-height: 1.5;">
+    {% if is_pl -%}
+      Wszystkie luki zidentyfikowane w tym raporcie są powiązane z konkretnym podpunktem Art. 21(2) dyrektywy NIS2.
+      Poniżej zacytowano pełne, oryginalne brzmienie każdego z 10 wymagań w wersji angielskiej (wersja prawnie wiążąca
+      znajduje się w EUR-Lex — link powyżej).
+    {%- else -%}
+      Every gap in this report is tied to a specific sub-paragraph of Art. 21(2) of the NIS2 directive.
+      The 10 measures below are quoted verbatim from the directive text. The legally binding version
+      is on EUR-Lex at the link above.
+    {%- endif %}
+  </div>
+  <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+    <thead>
+      <tr style="border-bottom: 1.5px solid #0A0A0A;">
+        <th style="text-align: left; padding: 8px 10px 8px 0; font-family: var(--f-mono, 'IBM Plex Mono'); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #6b6b66; width: 13%;">Art. 21(2)</th>
+        <th style="text-align: left; padding: 8px 0; font-family: var(--f-mono, 'IBM Plex Mono'); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #6b6b66;">{% if is_pl %}Brzmienie dyrektywy (EN){% else %}Directive text (verbatim){% endif %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in nis2_requirements %}
+      <tr style="border-bottom: 1px solid #e5e4df;">
+        <td style="padding: 10px 10px 10px 0; vertical-align: top; font-family: var(--f-mono, 'IBM Plex Mono'); font-size: 11px; font-weight: 500; color: #0A0A0A; white-space: nowrap;">
+          {{ r.article_ref }}
+        </td>
+        <td style="padding: 10px 0; vertical-align: top; color: #0A0A0A; line-height: 1.45;">
+          <em>{{ r.directive_text }}</em>
+          <div style="font-size: 10px; color: #6b6b66; margin-top: 3px; font-style: normal;">
+            {% if is_pl %}Podsumowanie Regula{% else %}Regula summary{% endif %}: {{ r.name }}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div style="margin-top: 20px; padding: 12px 14px; background: #F5F5F0; border-left: 2px solid #0A0A0A; font-size: 10px; line-height: 1.5; color: #3a3a35;">
+    {% if is_pl -%}
+      <b style="color: #0A0A0A;">Zastrzeżenia:</b>
+      Streszczenia w języku polskim oraz szacunki kosztów i czasu zostały przygotowane przez zespół Regula —
+      różnią się między krajami, dostawcami i obecną postawą firmy.
+      Ten raport jest <b>symulacją</b> opartą na wywiadzie z właścicielem firmy i nie zastępuje audytu prowadzonego przez
+      uprawnionego audytora ani porady prawnej.
+    {%- else -%}
+      <b style="color: #0A0A0A;">Disclaimers:</b>
+      Plain-language summaries, effort and cost estimates are written by the Regula team and vary by country,
+      vendor, and current posture. This report is a <b>simulation</b> based on a self-report interview with a business
+      owner and does not replace an audit by a qualified auditor or formal legal advice.
+    {%- endif %}
+  </div>
 </div>
 {% endif %}
 

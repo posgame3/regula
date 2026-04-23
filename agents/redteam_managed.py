@@ -255,9 +255,13 @@ async def run_managed_audit(
     return _build_redteam_result(verdict_payload)
 
 
-async def _wait_until_not_running(client: AsyncAnthropic, session_id: str, *, max_wait_s: float = 2.0):
-    """Pattern 6 — post-idle status-write race. Poll briefly before touching the session."""
-    delay = 0.15
+async def _wait_until_not_running(client: AsyncAnthropic, session_id: str, *, max_wait_s: float = 10.0):
+    """Pattern 6 — post-idle status-write race. Poll until the session leaves 'running'.
+
+    Bumped from 2s to 10s so network jitter on Anthropic's side doesn't cause us to
+    archive a still-running session (which would orphan tokens and break finalize).
+    """
+    delay = 0.25
     waited = 0.0
     while waited < max_wait_s:
         try:

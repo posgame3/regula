@@ -6,7 +6,8 @@ or where their gaps are. Consultants cost €1,500-4,000. Regula does it in
 15 minutes, in plain language, for free.
 
 ## What we build
-5-agent pipeline: Qualifier → Interviewer → Analyzer → Red Team → Drafter → PDF
+8-agent pipeline: Qualifier → Interviewer → Analyzer → Red Team (Managed Agents) → Drafter → Threat Actor → Board Presenter → Remediation (tool-use) → PDF
+Plus a standalone Regulatory Monitor (Managed Agents) that watches sources for gap-relevant alerts.
 
 ## Stack
 - Python 3.11+
@@ -18,16 +19,24 @@ or where their gaps are. Consultants cost €1,500-4,000. Regula does it in
 
 ## Project structure
 regula/
-├── main.py
+├── app.py                    # FastAPI + WebSocket pipeline (single entry point)
 ├── agents/
 │   ├── qualifier.py
 │   ├── interviewer.py
 │   ├── analyzer.py
-│   ├── redteam.py
-│   └── drafter.py
-├── data/frameworks/nis2.json
-├── utils/pdf.py
-├── static/index.html
+│   ├── redteam.py            # legacy one-shot auditor (fallback)
+│   ├── redteam_managed.py    # Managed Agents auditor (primary)
+│   ├── monitor_managed.py    # Regulatory monitor (Managed Agents)
+│   ├── drafter.py
+│   ├── threat_actor.py
+│   └── board_presenter.py
+├── data/frameworks/
+│   ├── nis2.json             # summarised index used by analyzer/drafter
+│   └── nis2_directive.json   # verbatim Art. 21(2) text (EUR-Lex)
+├── utils/{pdf.py, profile_store.py, tools.py}
+├── templates/report.html     # PDF report (WeasyPrint)
+├── static/index.html         # landing + chat SPA
+├── scripts/setup_managed_agents.py
 ├── .env
 └── requirements.txt
 

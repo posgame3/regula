@@ -1,5 +1,7 @@
 import asyncio
 import json
+import logging
+import logging.handlers
 import os
 import re
 from pathlib import Path
@@ -12,6 +14,53 @@ from pydantic import BaseModel
 
 load_dotenv()
 
+
+# ────────────────────────── Logging ──────────────────────────
+# File + stderr, structured format, rotating. Replaces the earlier print()-only
+# approach so post-mortem debugging of a demo is possible.
+def _configure_logging() -> None:
+    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    root = logging.getLogger()
+    if getattr(root, "_regula_configured", False):
+        return
+    root.setLevel(level)
+    for h in list(root.handlers):
+        root.removeHandler(h)
+
+    fmt = logging.Formatter(
+        fmt="%(asctime)s %(levelname)-5s %(name)s — %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    stderr = logging.StreamHandler()
+    stderr.setFormatter(fmt)
+    root.addHandler(stderr)
+
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            os.path.join(log_dir, "regula.log"),
+            maxBytes=1_000_000, backupCount=3, encoding="utf-8",
+        )
+        file_handler.setFormatter(fmt)
+        root.addHandler(file_handler)
+    except OSError:
+        # Read-only FS (e.g. some container setups) — stderr-only is fine.
+        pass
+
+    # Quiet down the very chatty libraries by default.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("fontTools").setLevel(logging.WARNING)
+    logging.getLogger("weasyprint").setLevel(logging.WARNING)
+
+    root._regula_configured = True  # type: ignore[attr-defined]
+
+
+_configure_logging()
+log = logging.getLogger("regula")
+
 from agents.qualifier import build_qualifier_system
 from agents.interviewer import build_interview_system
 from agents.analyzer import build_analyzer_system, build_analyzer_system_with_thinking
@@ -21,7 +70,7 @@ from agents.monitor_managed import run_managed_monitor
 from agents.drafter import build_drafter_system
 from agents.threat_actor import build_threat_actor_system
 from agents.board_presenter import build_board_presenter_system
-from utils import profile_store
+from utils import benchmark, profile_store, session_store
 from utils.pdf import generate_report_pdf
 from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist, search_enisa_guidance
 
@@ -42,6 +91,40 @@ REDTEAM_MANAGED_READY = bool(MANAGED_AGENTS and MANAGED_ENV_ID and REDTEAM_AGENT
 MONITOR_MANAGED_READY = bool(MANAGED_ENV_ID and MONITOR_AGENT_ID)  # monitor is user-triggered, works even if MANAGED_AGENTS flag off
 
 sessions: dict = {}
+
+# Input-sanitization limits. Generous enough that real answers never trip them,
+# tight enough that a malicious user can't flood the model context or the db.
+MAX_USER_MESSAGE_CHARS = 1500         # typical interview answer is <200 chars
+MAX_USER_MESSAGES_PER_SESSION = 80    # pipeline never needs more than ~30
+
+
+def _sanitize_user_text(raw: str) -> str:
+    """Trim length, strip control chars / zero-width tricks, return clean text.
+    Returns '' if nothing usable is left — caller should treat that as 'ignore'."""
+    if not raw:
+        return ""
+    # Drop C0 control chars except \n \r \t; drop zero-width + BOM.
+    cleaned_chars: list[str] = []
+    for ch in raw:
+        cp = ord(ch)
+        if cp < 32 and ch not in "\n\r\t":
+            continue
+        if cp in (0x200B, 0x200C, 0x200D, 0xFEFF):  # ZWSP, ZWNJ, ZWJ, BOM
+            continue
+        cleaned_chars.append(ch)
+    cleaned = "".join(cleaned_chars).strip()
+    if len(cleaned) > MAX_USER_MESSAGE_CHARS:
+        cleaned = cleaned[:MAX_USER_MESSAGE_CHARS].rstrip() + " [...]"
+    return cleaned
+
+
+def _persist(session: dict) -> None:
+    """Write-through to SQLite so /report/{id} survives server restarts.
+    Swallows errors — persistence is best-effort, never blocks the pipeline."""
+    try:
+        session_store.save(session)
+    except Exception as exc:
+        log.warning("session_store save failed (non-fatal): %s", exc)
 
 # ---------------------------------------------------------------------------
 # Mock responses — used when MOCK_MODE=1 to skip all API calls
@@ -256,29 +339,40 @@ def _mock_response(system: str) -> str:
     return json.dumps({"mock": True, "unknown_stage": True})
 
 MAREK_PERSONA_SYSTEM = """
-You are Marek, owner of a mid-sized Polish company.
-Company profile:
+You are Marek Nowak, owner of a mid-sized Polish company.
+
+## YOUR COMPANY — these are the ONLY facts you know about your business:
 - Name: DataMed Sp. z o.o.
-- Sector: Healthcare IT — you provide a SaaS platform for
-  managing patient records for 15 private clinics and 3 hospitals
+- Sector: Healthcare IT — SaaS for managing patient records
+- Customers: 15 private clinics and 3 hospitals
 - Size: 45 employees
-- Revenue: ~8 million PLN/year
-- Tech: cloud-based (AWS), web app, mobile app for doctors
+- Revenue: ~8 million PLN/year (about €1.8M/year)
+- Tech stack: cloud-based on AWS, web app + mobile app for doctors
+- IT: one external contractor named Piotr handles everything
 
-Security posture (answer honestly when asked):
-- No MFA on admin accounts
-- Passwords shared via WhatsApp sometimes
-- One IT contractor (Piotr) handles everything
-- Backups exist but never tested
-- No written security policies
-- No incident response plan
-- No employee security training ever
-- Laptops not encrypted
-- No formal access revocation when staff leave
+## YOUR SECURITY POSTURE — these are the ONLY security facts you know:
+- MFA: NOT enabled on admin accounts
+- Passwords: sometimes shared via WhatsApp between staff
+- IT staff: just Piotr (one external contractor), no in-house security
+- Backups: exist, never tested, Piotr set them up last year
+- Security policies: NONE written down
+- Incident response plan: NONE
+- Employee security training: NEVER happened
+- Laptops: NOT encrypted
+- Access revocation: NO formal process when staff leave
+- Access logs: no idea if they exist
+- Vendor / supply chain security: never reviewed
+- Risk assessment: never done formally
 
-You are non-technical but understand the business.
-Answer in 1-2 sentences. {lang_instruction}
-Never volunteer info not asked about.
+## HARD CONSTRAINTS — DO NOT VIOLATE:
+1. NEVER invent security controls, policies, or practices that are not in the list above.
+   If asked about something not listed (e.g. firewalls, VPN, SOC2, pen-testing, encryption-at-rest):
+   answer that you don't know or haven't thought about it, or "you'd have to ask Piotr".
+2. NEVER invent numbers, dates, vendor names, certifications beyond what's stated above.
+3. NEVER claim NIS2 compliance. You're here because you don't know if it applies.
+4. You are non-technical but pragmatic and honest.
+5. Answer in 1-2 sentences max. Plain language. Never volunteer info not asked about.
+6. {lang_instruction}
 """
 
 GREETINGS = {
@@ -326,6 +420,65 @@ def extract_json(text: str) -> dict:
             pass
 
     raise ValueError("Could not extract JSON from model response")
+
+
+def _looks_truncated(text: str) -> bool:
+    """Heuristic: open braces/brackets outnumber close → model hit max_tokens mid-JSON."""
+    if len(text) < 50:
+        return False
+    # Strip string contents so braces inside strings don't count.
+    # Not perfect, but good enough to catch the common truncation case.
+    no_strings = re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
+    return (no_strings.count('{') > no_strings.count('}')
+            or no_strings.count('[') > no_strings.count(']'))
+
+
+async def parse_json_with_retry(
+    client: AsyncAnthropic,
+    system: str,
+    messages: list,
+    initial_text: str,
+    max_tokens: int,
+    *,
+    stage: str,
+    expected_key: str | None = None,
+) -> dict:
+    """Parse JSON from model output; retry once with an explicit completion prompt if it fails.
+
+    On truncation or missing expected_key, we ask the model to output ONLY the valid JSON,
+    no prose. Better than the old brace-counting repair which produced malformed output.
+    Raises ValueError if both attempts fail.
+    """
+    try:
+        parsed = extract_json(initial_text)
+        if expected_key is None or expected_key in parsed:
+            return parsed
+        log.info("[%s] missing expected key '%s' — triggering retry", stage, expected_key)
+    except ValueError:
+        log.info("[%s] initial JSON parse failed (truncated=%s) — retrying",
+                 stage, _looks_truncated(initial_text))
+
+    if MOCK_MODE:
+        # In mock mode, the initial response IS the canonical output; no retry available.
+        raise ValueError(f"[{stage}] mock JSON parse failed")
+
+    retry_messages = list(messages) + [
+        {"role": "assistant", "content": initial_text},
+        {
+            "role": "user",
+            "content": (
+                f"Your last response could not be parsed as JSON"
+                + (f" or was missing the '{expected_key}' field." if expected_key else ".")
+                + " Output ONLY the complete valid JSON object now — no prose, no markdown fences, no prefix."
+                + " Start with '{' and end with '}'. Preserve all data from your last attempt."
+            ),
+        },
+    ]
+    retry_text = await stream_silent(client, system, retry_messages, max_tokens)
+    parsed = extract_json(retry_text)  # raises ValueError if still bad — caller handles
+    if expected_key and expected_key not in parsed:
+        raise ValueError(f"[{stage}] retry succeeded but still missing '{expected_key}'")
+    return parsed
 
 
 def parse_after_json(text: str) -> tuple:
@@ -406,12 +559,13 @@ async def call_with_thinking(
 
 
 async def generate_demo_response(client: AsyncAnthropic, question: str, language: str) -> str:
-    lang_instruction = "Use Polish language only." if language == "pl" else "Use English language only."
+    lang_instruction = "Respond in Polish only." if language == "pl" else "Respond in English only."
     response = await client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=100,
+        max_tokens=120,
+        temperature=0,  # deterministic demo — same question → same Marek answer
         system=MAREK_PERSONA_SYSTEM.format(lang_instruction=lang_instruction),
-        messages=[{"role": "user", "content": f"The assessor just asked: {question}\nYour one-sentence answer:"}],
+        messages=[{"role": "user", "content": f"The assessor just asked: {question}\nYour one-sentence answer (stay strictly within the facts listed in your persona):"}],
     )
     return response.content[0].text.strip()
 
@@ -507,13 +661,36 @@ async def list_alerts(user_id: str):
     }
 
 
+@app.get("/api/benchmark")
+async def benchmark_lookup(sector: str, size_bucket: str, user_score: int):
+    """Public, anonymized. Used by the frontend after 'complete' and potentially
+    by external tooling that wants to compare against the peer baseline."""
+    if not (0 <= user_score <= 100):
+        raise HTTPException(status_code=400, detail="user_score must be 0-100")
+    canonical_sector = benchmark.normalize_sector(sector)
+    stats = benchmark.compute_percentiles(canonical_sector, size_bucket, user_score)
+    return {
+        "user_score": user_score,
+        "sector": canonical_sector,
+        "size_bucket": size_bucket,
+        **stats,
+    }
+
+
 @app.get("/report/{session_id}")
 async def download_report(session_id: str):
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-    session = sessions[session_id]
-    print(f"[report] session={session_id[:8]}, stage={session.get('stage')}")
-    print(f"[report] analyzer={type(session.get('gap_analysis'))}, redteam={type(session.get('redteam_result'))}, drafter={type(session.get('drafter_result'))}")
+    # Prefer in-memory cache (hot sessions); fall back to SQLite so restarted
+    # servers can still serve reports for completed assessments.
+    session = sessions.get(session_id)
+    if session is None:
+        session = session_store.load(session_id)
+        if session is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+    log.info("[report] session=%s stage=%s", session_id[:8], session.get("stage"))
+    log.debug("[report] analyzer=%s redteam=%s drafter=%s",
+              type(session.get("gap_analysis")).__name__,
+              type(session.get("redteam_result")).__name__,
+              type(session.get("drafter_result")).__name__)
     if session.get("stage") != "complete":
         raise HTTPException(status_code=400, detail="Report not ready yet")
     missing = [k for k in ['gap_analysis', 'redteam_result', 'drafter_result'] if not session.get(k)]
@@ -680,6 +857,7 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         "generated_files": {},
         "language": "en",
         "question_count": 0,
+        "user_message_count": 0,
         "busy": False,
         "greeted": False,
         "demo_mode": False,
@@ -727,8 +905,22 @@ async def ws_handler(websocket: WebSocket, session_id: str):
             if data.get("type") != "message":
                 continue
 
-            user_text = data.get("text", "").strip()
+            user_text = _sanitize_user_text(data.get("text", ""))
             if not user_text or session["busy"]:
+                continue
+
+            # Rate limit per session — protect the model context and DB from flood.
+            session["user_message_count"] = session.get("user_message_count", 0) + 1
+            if session["user_message_count"] > MAX_USER_MESSAGES_PER_SESSION:
+                is_pl = session.get("language") == "pl"
+                await send({
+                    "type": "error",
+                    "text": (
+                        "Osiągnięto limit wiadomości dla tej sesji. Rozpocznij nową ocenę."
+                        if is_pl else
+                        "Message limit reached for this session. Please start a new assessment."
+                    ),
+                })
                 continue
 
             if "language" in data:
@@ -779,12 +971,36 @@ async def _dispatch(client, session, reqs, user_text, send):
         q_count = session["question_count"]
 
         # HARD GUARD: interview cannot end before 8 questions.
-        # If model emitted marker prematurely, strip it (and the JSON) and scrub history,
-        # so the model doesn't see its own premature close on the next turn.
+        # If model emitted marker prematurely, do a corrective retry asking for ONE new
+        # question (no closing, no JSON, no marker). If retry also closes, strip and
+        # fall back to a generic nudge. We never advance to analysis before 8 questions.
         if q_count < 8:
             if COMPLETE_MARKER in text:
-                head = text.split(COMPLETE_MARKER, 1)[0].strip()
-                text = head or ("Zadam jeszcze jedno pytanie..." if session["language"] == "pl" else "Let me ask one more thing...")
+                log.info("[interview] model emitted [INTERVIEW_COMPLETE] at q=%d — forcing retry", q_count)
+                retry_system = system + (
+                    "\n\n## OVERRIDE — YOU JUST TRIED TO CLOSE TOO EARLY.\n"
+                    f"You are at question {q_count} of a minimum 8. You are FORBIDDEN from\n"
+                    "outputting [INTERVIEW_COMPLETE], any JSON, or any closing phrase. Ask ONE\n"
+                    "new plain-language question targeting an Article 21(2) sub-paragraph not\n"
+                    "yet covered. Output ONLY the question — no marker, no JSON, no preamble."
+                )
+                # Remove the bad assistant turn before retry so model doesn't see its own close.
+                retry_messages = list(session["messages"][:-1])
+                try:
+                    retry_text = await stream_silent(client, retry_system, retry_messages, 512)
+                except Exception as exc:
+                    log.warning("[interview] retry failed: %s", exc)
+                    retry_text = ""
+                if retry_text and COMPLETE_MARKER not in retry_text:
+                    text = retry_text.strip()
+                else:
+                    # Retry also misbehaved — strip marker from original and show something.
+                    head = text.split(COMPLETE_MARKER, 1)[0].strip()
+                    text = head or (
+                        "Zadam jeszcze jedno pytanie — jak wygląda u Was szkolenie pracowników z cyberbezpieczeństwa?"
+                        if session["language"] == "pl" else
+                        "Let me ask one more thing — how do you handle cybersecurity training for your staff?"
+                    )
                 if session["messages"] and session["messages"][-1]["role"] == "assistant":
                     session["messages"][-1]["content"] = text
             await send({"type": "agent_message", "text": text, "stage": "interview"})
@@ -802,7 +1018,10 @@ async def _dispatch(client, session, reqs, user_text, send):
                 findings = extract_json(text[idx + len(COMPLETE_MARKER):].strip())
                 await _run_analysis_pipeline(findings, session, reqs, client, send)
             except ValueError:
-                await send({"type": "error", "text": "Could not parse interview results."})
+                err = ("Nie udało się odczytać podsumowania wywiadu."
+                       if session["language"] == "pl"
+                       else "Could not parse interview results.")
+                await send({"type": "error", "text": err})
         else:
             _closing_words = {"dziękuję", "thank you", "podsumowując", "summary",
                               "za chwilę dostaniesz", "you'll receive", "dziękuje"}
@@ -863,11 +1082,11 @@ async def _dispatch(client, session, reqs, user_text, send):
         # Store full content blocks so conversation threading works
         session["messages"].append({"role": "assistant", "content": content_blocks})
 
-        if len(text) > 100 and text.count('{') > text.count('}'):
-            print(f"[redteam] WARNING: JSON appears truncated. Length: {len(text)}")
-            text = text + '"}]}'
         try:
-            result = extract_json(text)
+            result = await parse_json_with_retry(
+                client, system, session["messages"][:-1], text,
+                max_tokens=10000, stage="redteam", expected_key="verdict",
+            )
         except ValueError:
             result = None
 
@@ -881,18 +1100,20 @@ async def _dispatch(client, session, reqs, user_text, send):
             prep = text[text.rfind("}") + 1:].strip() if "}" in text else ""
             if prep:
                 await send({"type": "agent_message", "text": prep, "stage": "redteam"})
-            await send({
-                "type": "agent_message",
-                "text": "─── Audit simulation complete. Preparing your full report... ───",
-                "stage": "redteam",
-            })
+            audit_done_text = (
+                "─── Symulacja audytu zakończona. Przygotowuję pełny raport... ───"
+                if session["language"] == "pl"
+                else "─── Audit simulation complete. Preparing your full report... ───"
+            )
+            await send({"type": "agent_message", "text": audit_done_text, "stage": "redteam"})
             session["redteam_result"] = {"verdict": result, "preparation": prep}
-            print(f"[redteam] stored: {list(session['redteam_result'].keys()) if isinstance(session['redteam_result'], dict) else str(session['redteam_result'])[:100]}")
+            log.info("[redteam] stored: keys=%s", list(session["redteam_result"].keys()))
             session["stage"] = "draft"
+            _persist(session)
             await _run_drafter(session, client, send)
         else:
             if result:
-                print(f"[redteam] unexpected JSON (no verdict key). Raw: {text[:200]}")
+                log.warning("[redteam] unexpected JSON (no verdict key). Raw: %s", text[:200])
             await send({"type": "agent_message", "text": text, "stage": "redteam"})
             session["last_question"] = text
             if session.get("demo_mode"):
@@ -901,6 +1122,7 @@ async def _dispatch(client, session, reqs, user_text, send):
 
 async def _handle_qualifier_result(parsed, session, reqs, client, send):
     session["qualifier_result"] = parsed
+    _persist(session)
     should_proceed = parsed.get("proceed", parsed.get("applies", False))
     if not should_proceed:
         msg = parsed.get("reasoning", "NIS2 does not appear to apply to your organization.")
@@ -926,6 +1148,7 @@ async def _handle_qualifier_result(parsed, session, reqs, client, send):
 
 async def _run_analysis_pipeline(findings, session, reqs, client, send):
     session["interview_findings"] = findings
+    _persist(session)
     lang = session["language"]
 
     await send({"type": "stage_change", "stage": "analyze", "label": "Analyzing"})
@@ -945,37 +1168,41 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     )
     text = "".join(b.text for b in response.content if hasattr(b, "text"))
     thinking_text = ""
-    if len(text) > 100 and text.count('{') > text.count('}'):
-        print(f"[analyzer] WARNING: JSON appears truncated. Length: {len(text)}")
-        text = text + '"}]}'
     try:
-        gaps = extract_json(text)
-        if "gaps" not in gaps:
-            print(f"[analyzer] unexpected JSON (no gaps key). Raw: {text[:200]}")
-            raise ValueError("no gaps key")
+        gaps = await parse_json_with_retry(
+            client, system, messages, text,
+            max_tokens=10000, stage="analyzer", expected_key="gaps",
+        )
     except ValueError:
-        print(f"[analyzer] parse error. Raw: {text[:200]}")
+        log.error("[analyzer] parse error after retry. Raw: %s", text[:200])
+        err_headline = (
+            "Nie udało się wygenerować analizy luk — spróbuj ponownie"
+            if lang == "pl" else
+            "Analysis could not be parsed — please try again"
+        )
         await send({
             "type": "analysis_result",
             "data": {
                 "overall_risk": "high",
-                "headline": "Analysis could not be parsed — please try again",
+                "headline": err_headline,
                 "gaps": [],
                 "priority_3": [],
                 "good_news": "",
                 "board_summary": "",
             },
         })
+        await send({"type": "error", "text": err_headline})
         return
 
     # Reveal analyzer's reasoning before showing the gap analysis card
     if thinking_text:
         await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
     session["gap_analysis"] = gaps
-    print(f"[analyzer] stored: {list(gaps.keys()) if isinstance(gaps, dict) else str(gaps)[:100]}")
+    log.info("[analyzer] stored: keys=%s", list(gaps.keys()) if isinstance(gaps, dict) else gaps)
     await send({"type": "analysis_result", "data": gaps})
     await send({"type": "stage_change", "stage": "redteam", "label": "Audit Simulation"})
     session["stage"] = "redteam"
+    _persist(session)
 
     if REDTEAM_MANAGED_READY:
         await _run_managed_audit(session, client, send)
@@ -998,7 +1225,8 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
         result = extract_json(q1)
         if "verdict" in result:
             session["redteam_result"] = {"verdict": result, "preparation": ""}
-            print(f"[redteam] stored (early): {list(session['redteam_result'].keys()) if isinstance(session['redteam_result'], dict) else str(session['redteam_result'])[:100]}")
+            log.info("[redteam] stored (early verdict): keys=%s", list(session["redteam_result"].keys()))
+            _persist(session)
             await _run_drafter(session, client, send)
             return
     except ValueError:
@@ -1041,7 +1269,7 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
                 "label": labels.get(tool_name, tool_name),
             })
         except Exception as exc:
-            print(f"[remediation] tool {tool_name} failed: {exc}")
+            log.warning("[remediation] tool %s failed: %s", tool_name, exc)
 
     async def _execute_enisa_search(tool_input: dict) -> None:
         await send({"type": "tool_generating", "tool": "search_enisa_guidance"})
@@ -1054,7 +1282,7 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
             resources = await search_enisa_guidance(gaps_to_search, sector, lang)
             await send({"type": "tool_ready", "tool": "search_enisa_guidance", "resources": resources})
         except Exception as exc:
-            print(f"[remediation] search_enisa_guidance failed: {exc}")
+            log.warning("[remediation] search_enisa_guidance failed: %s", exc)
 
     if MOCK_MODE:
         for tool_name in _TOOL_GENERATORS:
@@ -1101,7 +1329,7 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
             messages=[{"role": "user", "content": user_content}],
         )
     except Exception as exc:
-        print(f"[remediation] API call failed: {exc}")
+        log.error("[remediation] API call failed: %s", exc, exc_info=True)
         return
 
     explanation_parts = []
@@ -1147,27 +1375,23 @@ async def _run_managed_audit(session, client, send):
             send_ws=send,
         )
     except Exception as exc:
-        print(f"[managed-audit] failed: {exc}")
+        # Full traceback to stderr — silent swallow was hiding real failures in demos.
+        log.error("[managed-audit] FAILED with %s: %s", type(exc).__name__, exc, exc_info=True)
         await send({
             "type": "agent_message",
             "text": (
-                "Audytor miał problem techniczny. Kontynuuję bez pełnej symulacji audytu."
+                "⚠ Managed Agents audytor nie odpowiedział — przełączam się na audytora lokalnego (one-shot)."
                 if lang == "pl" else
-                "The auditor hit a technical snag. Continuing without full audit simulation."
+                "⚠ Managed Agents auditor did not respond — falling back to local one-shot auditor."
             ),
             "stage": "redteam",
         })
-        session["redteam_result"] = {
-            "verdict": {"verdict": "WOULD FAIL AUDIT", "auditor_summary": "", "critical_failures": []},
-            "preparation": "",
-        }
-        print(f"[redteam] stored (fallback): {list(session['redteam_result'].keys())}")
-        session["stage"] = "draft"
-        await _run_drafter(session, client, send)
+        await _run_legacy_redteam_oneshot(session, client, send)
         return
 
     session["redteam_result"] = result
-    print(f"[redteam] stored (managed): {list(result.keys()) if isinstance(result, dict) else str(result)[:100]}")
+    _persist(session)
+    log.info("[redteam] stored (managed): keys=%s", list(result.keys()) if isinstance(result, dict) else result)
 
     # Short human-readable summary for chat before we move to drafter
     verdict_label = {
@@ -1181,11 +1405,97 @@ async def _run_managed_audit(session, client, send):
         "text": f"**{verdict_label}**\n\n{summary}",
         "stage": "redteam",
     })
+    audit_done_text = (
+        "─── Symulacja audytu zakończona. Przygotowuję pełny raport... ───"
+        if lang == "pl"
+        else "─── Audit simulation complete. Preparing your full report... ───"
+    )
+    await send({"type": "agent_message", "text": audit_done_text, "stage": "redteam"})
+    session["stage"] = "draft"
+    await _run_drafter(session, client, send)
+
+
+async def _run_legacy_redteam_oneshot(session, client, send):
+    """Fallback when Managed Agents fails: produce a full verdict in one shot,
+    not a multi-turn Q&A (the session already has no user to ask).
+
+    Shape matches what _run_managed_audit stores, so drafter/PDF are unchanged.
+    """
+    lang = session["language"]
+    gap_analysis = session["gap_analysis"] or {}
+    qualifier_result = session["qualifier_result"] or {}
+    findings = session["interview_findings"] or {}
+
+    lang_instruction = "Polish (język polski)" if lang == "pl" else "English"
+    system = (
+        f"CRITICAL: Respond ONLY in {lang_instruction}. Output VALID JSON only — no prose, "
+        f"no markdown fences, no prefix. Start with '{{' and end with '}}'.\n\n"
+        "You are a strict NIS2 auditor performing a desk audit against Article 21(2) of "
+        "Directive (EU) 2022/2555. You have the company's gap analysis and interview "
+        "findings below. Produce a final verdict WITHOUT asking questions — cross-reference "
+        "the gaps against the 10 Art. 21(2) sub-paragraphs (a-j) and render judgment.\n\n"
+        f"Company profile:\n{json.dumps(qualifier_result, ensure_ascii=False, indent=2)}\n\n"
+        f"Gap analysis:\n{json.dumps(gap_analysis, ensure_ascii=False, indent=2)}\n\n"
+        f"Interview findings (key_quotes and biggest_concern):\n"
+        f"{json.dumps({k: findings.get(k) for k in ('key_quotes', 'biggest_concern')}, ensure_ascii=False, indent=2)}\n\n"
+        "Output this exact JSON schema:\n"
+        '{\n'
+        '  "verdict": "WOULD FAIL AUDIT" | "WOULD PASS WITH CONDITIONS" | "WOULD PASS AUDIT",\n'
+        '  "auditor_summary": "3 sentences: which Art. 21(2) sub-paragraphs failed, fine risk under Art. 34, what must be fixed before re-inspection",\n'
+        '  "critical_failures": ["Art. 21(2)(x) — specific failure: why it fails"],\n'
+        '  "passed_checks": ["Art. 21(2)(x) — what this company does have in place"],\n'
+        '  "preparation": "3 numbered concrete steps this company can take in 30 days, each citing Art. 21(2)(x)"\n'
+        '}'
+    )
+    messages = [{"role": "user", "content": "Render the audit verdict now. JSON only."}]
+
+    try:
+        text = await stream_silent(client, system, messages, max_tokens=4096)
+        verdict = await parse_json_with_retry(
+            client, system, messages, text,
+            max_tokens=4096, stage="redteam_oneshot", expected_key="verdict",
+        )
+    except Exception as exc:
+        log.error("[redteam_oneshot] also failed: %s: %s", type(exc).__name__, exc, exc_info=True)
+        verdict = {
+            "verdict": "WOULD FAIL AUDIT",
+            "auditor_summary": (
+                "Audyt nie mógł zostać przeprowadzony automatycznie — na podstawie luk wysokiego ryzyka "
+                "firma najprawdopodobniej nie przeszłaby realnego audytu NIS2 bez pilnych działań naprawczych."
+                if lang == "pl" else
+                "The audit could not be performed automatically — based on the identified high-risk gaps, "
+                "this company would most likely not pass a real NIS2 audit without urgent remediation."
+            ),
+            "critical_failures": [],
+            "passed_checks": [],
+        }
+        preparation = ""
+    else:
+        preparation = verdict.pop("preparation", "") or ""
+
+    session["redteam_result"] = {"verdict": verdict, "preparation": preparation}
+    _persist(session)
+    log.info("[redteam] stored (legacy-oneshot): keys=%s", list(session["redteam_result"].keys()))
+
+    verdict_label_map = {
+        "WOULD FAIL AUDIT": ("NIE PRZESZEDŁBY AUDYTU" if lang == "pl" else "WOULD FAIL AUDIT"),
+        "WOULD PASS WITH CONDITIONS": ("AUDYT POD WARUNKAMI" if lang == "pl" else "CONDITIONAL PASS"),
+        "WOULD PASS AUDIT": ("PRZESZEDŁBY AUDYT" if lang == "pl" else "WOULD PASS AUDIT"),
+        "WOULD PASS": ("PRZESZEDŁBY AUDYT" if lang == "pl" else "WOULD PASS"),
+    }
+    verdict_label = verdict_label_map.get(verdict.get("verdict") or "", "WOULD FAIL AUDIT")
+    summary = verdict.get("auditor_summary") or ""
     await send({
         "type": "agent_message",
-        "text": "─── Audit simulation complete. Preparing your full report... ───",
+        "text": f"**{verdict_label}**\n\n{summary}",
         "stage": "redteam",
     })
+    audit_done_text = (
+        "─── Symulacja audytu zakończona. Przygotowuję pełny raport... ───"
+        if lang == "pl"
+        else "─── Audit simulation complete. Preparing your full report... ───"
+    )
+    await send({"type": "agent_message", "text": audit_done_text, "stage": "redteam"})
     session["stage"] = "draft"
     await _run_drafter(session, client, send)
 
@@ -1205,20 +1515,23 @@ async def _run_drafter(session, client, send):
         messages=messages,
     )
     text = "".join(b.text for b in response.content if hasattr(b, "text"))
-    if text.count('{') > text.count('}'):
-        print(f"[drafter] WARNING: truncated JSON, attempting repair")
-        text = text + '"]}'
     try:
-        policies = extract_json(text)
-        if "policies" not in policies:
-            print(f"[drafter] unexpected JSON (no policies key). Raw: {text[:200]}")
-            raise ValueError("no policies key")
+        policies = await parse_json_with_retry(
+            client, system, messages, text,
+            max_tokens=10000, stage="drafter", expected_key="policies",
+        )
     except ValueError:
-        print(f"[drafter] parse error. Raw: {text[:200]}")
-        await send({"type": "error", "text": "Could not generate policy drafts."})
+        log.error("[drafter] parse error after retry. Raw: %s", text[:200])
+        err_msg = (
+            "Nie udało się wygenerować szkiców polityk."
+            if lang == "pl" else
+            "Could not generate policy drafts."
+        )
+        await send({"type": "error", "text": err_msg})
         return
     session["drafter_result"] = policies
-    print(f"[drafter] stored: {list(policies.keys()) if isinstance(policies, dict) else str(policies)[:100]}")
+    _persist(session)
+    log.info("[drafter] stored: keys=%s", list(policies.keys()) if isinstance(policies, dict) else policies)
 
     # Threat Actor — extended thinking, model=claude-opus-4-7 (MODEL constant)
     lang = session["language"]
@@ -1237,15 +1550,16 @@ async def _run_drafter(session, client, send):
         client, system, messages, max_tokens=16000, budget_tokens=8000, session=session
     )
     try:
-        threat_scenarios = extract_json(text)
-        if "scenarios" not in threat_scenarios:
-            print(f"[threat_actor] unexpected JSON (no scenarios key). Raw: {text[:200]}")
-            threat_scenarios = {"scenarios": [], "summary": ""}
+        threat_scenarios = await parse_json_with_retry(
+            client, system, messages, text,
+            max_tokens=4096, stage="threat_actor", expected_key="scenarios",
+        )
     except ValueError:
-        print(f"[threat_actor] parse error. Raw: {text[:200]}")
+        log.warning("[threat_actor] parse error after retry. Raw: %s", text[:200])
         threat_scenarios = {"scenarios": [], "summary": ""}
     session["threat_actor_result"] = threat_scenarios
-    print(f"[threat_actor] stored: {list(threat_scenarios.keys()) if isinstance(threat_scenarios, dict) else str(threat_scenarios)[:100]}")
+    _persist(session)
+    log.info("[threat_actor] stored: keys=%s", list(threat_scenarios.keys()) if isinstance(threat_scenarios, dict) else threat_scenarios)
 
     # Board Presenter — model=claude-opus-4-7 (MODEL constant)
     await send({"type": "agent_message", "text": board_msg, "stage": "board"})
@@ -1258,18 +1572,24 @@ async def _run_drafter(session, client, send):
     messages = [{"role": "user", "content": "Generate the 5-slide board presentation."}]
     text = await stream_silent(client, system, messages, 4096)
     try:
-        board_slides = extract_json(text)
-        if "slides" not in board_slides:
-            print(f"[board_presenter] unexpected JSON (no slides key). Raw: {text[:200]}")
-            board_slides = {"slides": []}
+        board_slides = await parse_json_with_retry(
+            client, system, messages, text,
+            max_tokens=4096, stage="board_presenter", expected_key="slides",
+        )
     except ValueError:
-        print(f"[board_presenter] parse error. Raw: {text[:200]}")
+        log.warning("[board_presenter] parse error after retry. Raw: %s", text[:200])
         board_slides = {"slides": []}
     session["board_slides"] = board_slides
-    print(f"[board_presenter] stored: {list(board_slides.keys()) if isinstance(board_slides, dict) else str(board_slides)[:100]}")
+    _persist(session)
+    log.info("[board_presenter] stored: keys=%s", list(board_slides.keys()) if isinstance(board_slides, dict) else board_slides)
 
     # Remediation Agent — generates policy docs via tool_use
     await run_remediation_agent(session, client, send)
+
+    # Benchmark — anonymized percentile ranking. Derive score + record sample,
+    # then compute peer percentiles and ship them in the 'complete' payload so
+    # the UI can render the comparison card without a second round-trip.
+    benchmark_data = _compute_benchmark_payload(session)
 
     await send({
         "type": "complete",
@@ -1282,6 +1602,43 @@ async def _run_drafter(session, client, send):
             "threat_actor_result": threat_scenarios,
             "board_slides": board_slides,
             "language": session["language"],
+            "benchmark": benchmark_data,
         },
     })
     session["stage"] = "complete"
+    session["benchmark"] = benchmark_data
+    _persist(session)
+
+
+def _compute_benchmark_payload(session: dict) -> dict | None:
+    """Record the session's score + return peer-group stats. Best-effort."""
+    try:
+        findings = session.get("interview_findings") or {}
+        qualifier = session.get("qualifier_result") or {}
+        score = benchmark.derive_score(session)
+        if score is None:
+            return None
+        sector = benchmark.normalize_sector(
+            findings.get("sector") or qualifier.get("sector")
+        )
+        employee_count = findings.get("employee_count")
+        if isinstance(employee_count, str):
+            try:
+                employee_count = int(employee_count)
+            except ValueError:
+                employee_count = None
+        size_bucket = benchmark.size_bucket_for(employee_count)
+        # Only record samples where the pipeline produced a full gap analysis —
+        # partial / errored runs would skew percentiles.
+        if session.get("gap_analysis") and session["gap_analysis"].get("gaps"):
+            benchmark.record(sector, size_bucket, score)
+        stats = benchmark.compute_percentiles(sector, size_bucket, score)
+        return {
+            "user_score": score,
+            "sector": sector,
+            "size_bucket": size_bucket,
+            **stats,
+        }
+    except Exception as exc:
+        log.warning("[benchmark] compute failed: %s", exc, exc_info=True)
+        return None

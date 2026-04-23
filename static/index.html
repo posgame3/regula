@@ -380,6 +380,13 @@
       transition: background 0.15s, color 0.15s;
     }
     .sys-demo:hover { background: var(--ink); color: var(--paper); }
+    .sys-thinking {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.04em;
+      color: var(--muted); cursor: pointer; user-select: none;
+    }
+    .sys-thinking input { cursor: pointer; accent-color: var(--ink); }
+    .sys-thinking.on { color: var(--ink); font-weight: 600; }
 
     /* Sticky demo-mode banner — shown whenever the simulated Marek persona is active */
     .demo-mode-banner {
@@ -1350,6 +1357,10 @@
     <div class="ref">Ref. <b id="session-ref">—</b></div>
     <div class="status"><span class="live-dot"></span> <span><b data-lang-key-chat="status_title">Assessment in progress</b></span></div>
     <div class="controls">
+      <label class="sys-thinking" id="thinking-toggle" title="Show Opus 4.7 extended thinking steps before each analysis (slower, but you see how the model reasons)">
+        <input type="checkbox" id="show-thinking" onchange="toggleShowThinking()">
+        <span data-lang-key-chat="thinking_toggle">Show reasoning</span>
+      </label>
       <button class="sys-demo" id="btn-demo" onclick="runDemo()">▶ Demo: Marek / DataMed</button>
       <div class="sys-lang">
         <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
@@ -1518,6 +1529,7 @@ const CHAT_TEXT = {
     hint_l_html: '<span class="kbd">Enter</span> to send · <span class="kbd">Shift</span>+<span class="kbd">Enter</span> for newline',
     hint_r: 'Data stays on server · No egress',
     demo_btn: '▶ Demo: Marek / DataMed',
+    thinking_toggle: 'Show reasoning',
   },
   pl: {
     status_title: 'Ocena w toku',
@@ -1528,6 +1540,7 @@ const CHAT_TEXT = {
     hint_l_html: '<span class="kbd">Enter</span> by wysłać · <span class="kbd">Shift</span>+<span class="kbd">Enter</span> nowa linia',
     hint_r: 'Dane na serwerze · Brak transferu',
     demo_btn: '▶ Demo: Historia Marka z DataMed',
+    thinking_toggle: 'Pokaż rozumowanie',
   }
 };
 
@@ -2151,6 +2164,28 @@ function hideDemoBanner() {
   if (banner) banner.classList.remove('active');
 }
 
+function toggleShowThinking() {
+  const cb = document.getElementById('show-thinking');
+  const enabled = !!cb.checked;
+  document.getElementById('thinking-toggle').classList.toggle('on', enabled);
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'set_show_thinking', enabled }));
+  }
+  try { localStorage.setItem('regula_show_thinking', enabled ? '1' : '0'); } catch (_) {}
+}
+
+function restoreShowThinking() {
+  let saved = '0';
+  try { saved = localStorage.getItem('regula_show_thinking') || '0'; } catch (_) {}
+  const enabled = saved === '1';
+  const cb = document.getElementById('show-thinking');
+  if (cb) cb.checked = enabled;
+  document.getElementById('thinking-toggle')?.classList.toggle('on', enabled);
+  if (enabled && ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'set_show_thinking', enabled: true }));
+  }
+}
+
 function runDemo() {
   if (demoRunning || conversationStarted) return;
   demoRunning = true;
@@ -2362,6 +2397,7 @@ function connect() {
   ws.onopen = () => {
     setProcessing(true);
     ws.send(JSON.stringify({ type: 'set_language', language: lang }));
+    restoreShowThinking();
   };
 
   ws.onmessage = ({ data }) => {

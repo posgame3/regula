@@ -113,14 +113,6 @@ article_ref must follow the format: "Article 21(2)(x) — [name]" using the exac
     return _STATIC_BLOCK
 
 
-def build_analyzer_system_with_thinking(
-    interview_findings: dict,
-    requirements: list,
-    language: str,
-) -> list[dict]:
-    return build_analyzer_system(interview_findings, requirements, language)
-
-
 def build_analyzer_system(
     interview_findings: dict,
     requirements: list,

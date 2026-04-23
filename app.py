@@ -63,7 +63,7 @@ log = logging.getLogger("regula")
 
 from agents.qualifier import build_qualifier_system
 from agents.interviewer import build_interview_system
-from agents.analyzer import build_analyzer_system, build_analyzer_system_with_thinking
+from agents.analyzer import build_analyzer_system
 from agents.redteam import build_redteam_system
 from agents.redteam_managed import run_managed_audit
 from agents.monitor_managed import run_managed_monitor
@@ -519,6 +519,8 @@ async def stream_silent(client: AsyncAnthropic, system: "str | list", messages: 
     ) as stream:
         async for token in stream.text_stream:
             full_text += token
+        final_msg = await stream.get_final_message()
+    _log_usage("stream", final_msg)
     return full_text
 
 
@@ -532,10 +534,17 @@ async def call_with_thinking(
     test_max_tokens: int = 8192,
 ) -> tuple[str, str, list]:
     """Call with extended thinking enabled. Returns (thinking_text, result_text, full_content_blocks).
-    In demo mode, skips extended thinking for speed."""
+
+    Thinking is skipped (for speed) in demo_mode / TEST_MODE unless the session has
+    show_thinking=True — this is the 'Show reasoning' toggle surfaced in the UI.
+    """
     if MOCK_MODE:
         return "", _mock_response(system), []
-    if TEST_MODE or (session and session.get("demo_mode")):
+
+    show_thinking = bool(session and session.get("show_thinking"))
+    skip_thinking = (TEST_MODE or (session and session.get("demo_mode"))) and not show_thinking
+
+    if skip_thinking:
         response = await client.messages.create(
             model=MODEL,
             max_tokens=test_max_tokens,
@@ -561,9 +570,24 @@ async def call_with_thinking(
             thinking_text = block.thinking
         elif block.type == "text":
             result_text += block.text
-    # Convert SDK objects to dicts so they can be passed back as conversation history
     content_blocks = [b.model_dump() for b in response.content]
+    _log_usage("call_with_thinking", response)
     return thinking_text, result_text, content_blocks
+
+
+def _log_usage(stage: str, response) -> None:
+    """Log cache hit rates and token counts — proof prompt caching is working."""
+    u = getattr(response, "usage", None)
+    if not u:
+        return
+    log.info(
+        "[%s] tokens: in=%s out=%s cache_read=%s cache_create=%s",
+        stage,
+        getattr(u, "input_tokens", 0),
+        getattr(u, "output_tokens", 0),
+        getattr(u, "cache_read_input_tokens", 0) or 0,
+        getattr(u, "cache_creation_input_tokens", 0) or 0,
+    )
 
 
 async def generate_demo_response(client: AsyncAnthropic, question: str, language: str) -> str:
@@ -882,6 +906,7 @@ async def ws_handler(websocket: WebSocket, session_id: str):
         "busy": False,
         "greeted": False,
         "demo_mode": False,
+        "show_thinking": False,
         "last_question": None,
     }
     sessions[session_id] = session
@@ -907,6 +932,11 @@ async def ws_handler(websocket: WebSocket, session_id: str):
                     ]
                     session["last_question"] = greeting
                     await send({"type": "agent_message", "text": greeting, "stage": "qualifier"})
+                continue
+
+            if data.get("type") == "set_show_thinking":
+                session["show_thinking"] = bool(data.get("enabled"))
+                log.info("[session] show_thinking=%s", session["show_thinking"])
                 continue
 
             if data.get("type") == "demo_mode":
@@ -1099,8 +1129,8 @@ async def _dispatch(client, session, reqs, user_text, send):
             messages=session["messages"],
         )
         text = "".join(b.text for b in response.content if hasattr(b, "text"))
-        thinking_text = ""
         content_blocks = [b.model_dump() for b in response.content]
+        _log_usage("redteam", response)
         # Store full content blocks so conversation threading works
         session["messages"].append({"role": "assistant", "content": content_blocks})
 
@@ -1113,9 +1143,6 @@ async def _dispatch(client, session, reqs, user_text, send):
             result = None
 
         if result and "verdict" in result:
-            # Show auditor's reasoning before the verdict — most interesting thinking to reveal
-            if thinking_text:
-                await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
             pre_json = text[:text.find("{")].strip() if "{" in text else ""
             if pre_json:
                 await send({"type": "agent_message", "text": pre_json, "stage": "redteam"})
@@ -1180,16 +1207,13 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
         analyzing_msg = "⏳ Analyzing your responses... this takes 30-60 seconds"
     await send({"type": "agent_message", "text": analyzing_msg, "stage": "analyze"})
 
-    system = build_analyzer_system_with_thinking(findings, reqs, lang)
+    system = build_analyzer_system(findings, reqs, lang)
     messages = [{"role": "user", "content": "Przeanalizuj te wyniki wywiadu i przygotuj pełną analizę luk." if lang == "pl" else "Please analyze these interview findings and produce the complete gap analysis."}]
-    response = await client.messages.create(
-        model=MODEL,
-        max_tokens=10000,
-        system=system,
-        messages=messages,
+    thinking_text, text, _ = await call_with_thinking(
+        client, system, messages,
+        max_tokens=10000, budget_tokens=6000,
+        session=session, test_max_tokens=10000,
     )
-    text = "".join(b.text for b in response.content if hasattr(b, "text"))
-    thinking_text = ""
     try:
         gaps = await parse_json_with_retry(
             client, system, messages, text,
@@ -1537,6 +1561,7 @@ async def _run_drafter(session, client, send):
         messages=messages,
     )
     text = "".join(b.text for b in response.content if hasattr(b, "text"))
+    _log_usage("drafter", response)
     try:
         policies = await parse_json_with_retry(
             client, system, messages, text,
@@ -1568,9 +1593,11 @@ async def _run_drafter(session, client, send):
         session["gap_analysis"], session["qualifier_result"], session["language"]
     )
     messages = [{"role": "user", "content": "Analyze the company's gaps and show how a real attacker would exploit them."}]
-    _, text, _ = await call_with_thinking(
+    thinking_text, text, _ = await call_with_thinking(
         client, system, messages, max_tokens=16000, budget_tokens=8000, session=session
     )
+    if thinking_text:
+        await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
     try:
         threat_scenarios = await parse_json_with_retry(
             client, system, messages, text,

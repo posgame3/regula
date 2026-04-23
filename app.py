@@ -512,8 +512,14 @@ async def download_report(session_id: str):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     session = sessions[session_id]
+    print(f"[report] session={session_id[:8]}, stage={session.get('stage')}")
+    print(f"[report] analyzer={type(session.get('gap_analysis'))}, redteam={type(session.get('redteam_result'))}, drafter={type(session.get('drafter_result'))}")
     if session.get("stage") != "complete":
         raise HTTPException(status_code=400, detail="Report not ready yet")
+    missing = [k for k in ['gap_analysis', 'redteam_result', 'drafter_result'] if not session.get(k)]
+    if missing:
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"error": f"Missing pipeline data: {missing}"}, status_code=422)
     pdf_bytes = generate_report_pdf(session, session.get("language", "en"))
     return Response(
         content=pdf_bytes,
@@ -741,8 +747,7 @@ async def ws_handler(websocket: WebSocket, session_id: str):
     except WebSocketDisconnect:
         pass
     finally:
-        if sessions.get(session_id, {}).get("stage") != "complete":
-            sessions.pop(session_id, None)
+        pass  # keep session in memory so /report/{session_id} can access it
 
 
 async def _dispatch(client, session, reqs, user_text, send):
@@ -882,6 +887,7 @@ async def _dispatch(client, session, reqs, user_text, send):
                 "stage": "redteam",
             })
             session["redteam_result"] = {"verdict": result, "preparation": prep}
+            print(f"[redteam] stored: {list(session['redteam_result'].keys()) if isinstance(session['redteam_result'], dict) else str(session['redteam_result'])[:100]}")
             session["stage"] = "draft"
             await _run_drafter(session, client, send)
         else:
@@ -966,6 +972,7 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     if thinking_text:
         await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
     session["gap_analysis"] = gaps
+    print(f"[analyzer] stored: {list(gaps.keys()) if isinstance(gaps, dict) else str(gaps)[:100]}")
     await send({"type": "analysis_result", "data": gaps})
     await send({"type": "stage_change", "stage": "redteam", "label": "Audit Simulation"})
     session["stage"] = "redteam"
@@ -991,6 +998,7 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
         result = extract_json(q1)
         if "verdict" in result:
             session["redteam_result"] = {"verdict": result, "preparation": ""}
+            print(f"[redteam] stored (early): {list(session['redteam_result'].keys()) if isinstance(session['redteam_result'], dict) else str(session['redteam_result'])[:100]}")
             await _run_drafter(session, client, send)
             return
     except ValueError:
@@ -1153,11 +1161,13 @@ async def _run_managed_audit(session, client, send):
             "verdict": {"verdict": "WOULD FAIL AUDIT", "auditor_summary": "", "critical_failures": []},
             "preparation": "",
         }
+        print(f"[redteam] stored (fallback): {list(session['redteam_result'].keys())}")
         session["stage"] = "draft"
         await _run_drafter(session, client, send)
         return
 
     session["redteam_result"] = result
+    print(f"[redteam] stored (managed): {list(result.keys()) if isinstance(result, dict) else str(result)[:100]}")
 
     # Short human-readable summary for chat before we move to drafter
     verdict_label = {
@@ -1188,7 +1198,16 @@ async def _run_drafter(session, client, send):
         session["gap_analysis"], session["qualifier_result"], lang
     )
     messages = [{"role": "user", "content": "Wygeneruj szkice polityk dla luk krytycznych i wysokiego ryzyka." if lang == "pl" else "Please generate the policy outlines for the critical and high risk gaps."}]
-    text = await stream_silent(client, system, messages, 6000)
+    response = await client.messages.create(
+        model=MODEL,
+        max_tokens=10000,
+        system=system,
+        messages=messages,
+    )
+    text = "".join(b.text for b in response.content if hasattr(b, "text"))
+    if text.count('{') > text.count('}'):
+        print(f"[drafter] WARNING: truncated JSON, attempting repair")
+        text = text + '"]}'
     try:
         policies = extract_json(text)
         if "policies" not in policies:
@@ -1199,6 +1218,7 @@ async def _run_drafter(session, client, send):
         await send({"type": "error", "text": "Could not generate policy drafts."})
         return
     session["drafter_result"] = policies
+    print(f"[drafter] stored: {list(policies.keys()) if isinstance(policies, dict) else str(policies)[:100]}")
 
     # Threat Actor — extended thinking, model=claude-opus-4-7 (MODEL constant)
     lang = session["language"]
@@ -1225,6 +1245,7 @@ async def _run_drafter(session, client, send):
         print(f"[threat_actor] parse error. Raw: {text[:200]}")
         threat_scenarios = {"scenarios": [], "summary": ""}
     session["threat_actor_result"] = threat_scenarios
+    print(f"[threat_actor] stored: {list(threat_scenarios.keys()) if isinstance(threat_scenarios, dict) else str(threat_scenarios)[:100]}")
 
     # Board Presenter — model=claude-opus-4-7 (MODEL constant)
     await send({"type": "agent_message", "text": board_msg, "stage": "board"})
@@ -1245,6 +1266,7 @@ async def _run_drafter(session, client, send):
         print(f"[board_presenter] parse error. Raw: {text[:200]}")
         board_slides = {"slides": []}
     session["board_slides"] = board_slides
+    print(f"[board_presenter] stored: {list(board_slides.keys()) if isinstance(board_slides, dict) else str(board_slides)[:100]}")
 
     # Remediation Agent — generates policy docs via tool_use
     await run_remediation_agent(session, client, send)

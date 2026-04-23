@@ -19,7 +19,7 @@ from agents.drafter import build_drafter_system
 from agents.threat_actor import build_threat_actor_system
 from agents.board_presenter import build_board_presenter_system
 from utils.pdf import generate_report_pdf
-from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist
+from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist, search_enisa_guidance
 
 app = FastAPI()
 TEST_MODE = bool(os.getenv("TEST_MODE"))
@@ -447,6 +447,23 @@ REMEDIATION_TOOLS = [
             "required": ["company_name", "reason"],
         },
     },
+    {
+        "name": "search_enisa_guidance",
+        "description": "Search for real ENISA and national cybersecurity agency resources relevant to this company's specific gaps",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "top_gaps": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of article references to search for, e.g. ['Art. 21(2)(j)', 'Art. 21(2)(b)']",
+                },
+                "sector": {"type": "string"},
+                "reason": {"type": "string"},
+            },
+            "required": ["top_gaps", "sector", "reason"],
+        },
+    },
 ]
 
 _REMEDIATION_LABELS = {
@@ -846,9 +863,27 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
         except Exception as exc:
             print(f"[remediation] tool {tool_name} failed: {exc}")
 
+    async def _execute_enisa_search(tool_input: dict) -> None:
+        await send({"type": "tool_generating", "tool": "search_enisa_guidance"})
+        try:
+            top_gap_refs = tool_input.get("top_gaps", [])
+            sector = tool_input.get("sector", findings.get("sector", ""))
+            all_gaps = gaps_data.get("gaps", [])
+            matched = [g for g in all_gaps if g.get("article", "") in top_gap_refs]
+            gaps_to_search = matched if matched else all_gaps[:3]
+            resources = await search_enisa_guidance(gaps_to_search, sector, lang)
+            await send({"type": "tool_ready", "tool": "search_enisa_guidance", "resources": resources})
+        except Exception as exc:
+            print(f"[remediation] search_enisa_guidance failed: {exc}")
+
     if MOCK_MODE:
         for tool_name in _TOOL_GENERATORS:
             await _execute_tool(tool_name)
+        await _execute_enisa_search({
+            "top_gaps": [g.get("article", "") for g in gaps_data.get("gaps", [])[:3]],
+            "sector": findings.get("sector", ""),
+            "reason": "mock",
+        })
         mock_msg = (
             "Wygenerowałem trzy dokumenty startowe na podstawie wyników audytu: "
             "politykę bezpieczeństwa, procedurę reagowania na incydenty oraz plan remediacji."
@@ -896,6 +931,8 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
         elif block.type == "tool_use":
             if block.name in _TOOL_GENERATORS:
                 await _execute_tool(block.name)
+            elif block.name == "search_enisa_guidance":
+                await _execute_enisa_search(block.input)
 
     explanation = "\n\n".join(explanation_parts).strip()
     if explanation:

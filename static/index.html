@@ -250,6 +250,7 @@ const TOOL_DISPLAY = {
   generate_security_policy:       { pl: 'Polityka bezpieczeństwa',           en: 'Security Policy'          },
   generate_incident_plan:         { pl: 'Procedura reagowania na incydenty',  en: 'Incident Response Plan'   },
   generate_remediation_checklist: { pl: 'Plan remediacji NIS2',              en: 'NIS2 Remediation Plan'    },
+  search_enisa_guidance:          { pl: 'Zasoby ENISA dla Twojej firmy',     en: 'ENISA Resources for Your Company' },
 };
 
 const RISK_COLORS = {
@@ -667,16 +668,37 @@ function addToolGenerating(toolName) {
   scrollBottom();
 }
 
-function updateToolReady(toolName, url, label) {
+function updateToolReady(toolName, url, label, resources) {
   const wrap = document.getElementById('tool-wrap-' + toolName);
-  const html = `
-    <div class="flex items-end gap-2">
-      <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
-      <a href="${esc(url)}" target="_blank"
-        class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-2xl rounded-bl-none px-4 py-2.5 text-sm font-semibold transition-colors no-underline">
-        ⬇️ <span>${esc(label)}</span>
-      </a>
-    </div>`;
+  let html;
+
+  if (toolName === 'search_enisa_guidance' && resources && resources.length) {
+    const heading = lang === 'pl' ? '📚 Zasoby ENISA dla Twojej firmy:' : '📚 ENISA Resources for Your Company:';
+    const links = resources.map(r => `
+      <a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer"
+        class="flex items-start gap-2 text-blue-700 hover:text-blue-900 hover:underline text-sm py-0.5 no-underline">
+        <span class="mt-0.5 flex-shrink-0">↗</span>
+        <span class="font-medium">${esc(r.title)}${r.description ? `<span class="block text-xs text-slate-500 font-normal">${esc(r.description)}</span>` : ''}</span>
+      </a>`).join('');
+    html = `
+      <div class="flex items-end gap-2">
+        <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
+        <div class="bg-blue-50 border border-blue-200 rounded-2xl rounded-bl-none px-4 py-3 max-w-sm">
+          <p class="text-sm font-semibold text-blue-800 mb-2">${esc(heading)}</p>
+          <div class="flex flex-col gap-1">${links}</div>
+        </div>
+      </div>`;
+  } else {
+    html = `
+      <div class="flex items-end gap-2">
+        <div class="w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">R</div>
+        <a href="${esc(url)}" target="_blank"
+          class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-2xl rounded-bl-none px-4 py-2.5 text-sm font-semibold transition-colors no-underline">
+          ⬇️ <span>${esc(label)}</span>
+        </a>
+      </div>`;
+  }
+
   if (wrap) {
     wrap.innerHTML = html;
   } else {
@@ -839,7 +861,7 @@ function connect() {
     } else if (msg.type === 'tool_generating') {
       addToolGenerating(msg.tool);
     } else if (msg.type === 'tool_ready') {
-      updateToolReady(msg.tool, msg.url, msg.label);
+      updateToolReady(msg.tool, msg.url, msg.label, msg.resources);
     } else if (msg.type === 'complete') {
       setProcessing(false);
       demoRunning = false;

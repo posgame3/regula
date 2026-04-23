@@ -77,13 +77,15 @@ rather than a live subscription.
 ## Key features
 
 - **Grounded in real NIS2 directive text** — Art. 21 exact text + Annex I/II sectors from EUR-Lex
-- **Extended Thinking** — Analyzer and Threat Actor use adaptive thinking for deep reasoning
+- **Extended Thinking on the reasoning agents** — Analyzer, Red Team, and Threat Actor use adaptive thinking with `display: "summarized"`, surfaced in the UI behind a "Show reasoning" toggle
+- **Prompt caching on all 6 in-process agents** — each system prompt carries a `cache_control: ephemeral` breakpoint; cache-read tokens are logged per call for honest benchmarking
 - **Supply chain indirect scope** — Small companies supplying NIS2-covered clients get flagged (Art. 21(2)(d))
 - **Bilingual** — Full PL/EN support, language auto-detected
 - **Demo mode** — "Marek's story" button: Sonnet 4.6 plays the role of a Polish truck company owner
 - **PDF report, redesigned** — Full 7-section compliance report in the editorial landing-page
   design language (Archivo + IBM Plex Mono, paper/ink/signal palette, flat layout)
 - **Remediation documents** — Security policy, incident response plan, remediation checklist (PDF)
+- **Demo-safe hardening** — 180s API timeout + `max_retries=1`, 300s managed-audit stream timeout with legacy fallback, 45s PDF generation timeout, WebSocket auto-reconnect
 - **Mock mode** — Full pipeline in 5 seconds for testing (`MOCK_MODE=1`)
 
 ## Tech stack
@@ -91,7 +93,8 @@ rather than a live subscription.
 - **Backend:** FastAPI + WebSocket (Python)
 - **AI:** Claude Opus 4.7 (all agents), Claude Sonnet 4.6 (demo persona)
 - **Managed Agents:** `client.beta.agents` / `client.beta.sessions` with custom tools + built-in `web_search`
-- **Extended Thinking:** `thinking={"type": "adaptive"}, output_config={"effort": "high"}`
+- **Extended Thinking:** `thinking={"type": "adaptive", "display": "summarized"}, output_config={"effort": "high"}`
+- **Prompt caching:** `cache_control={"type": "ephemeral"}` on every agent's static system block — cache hits tracked via `cache_read_input_tokens`
 - **PDF:** WeasyPrint + Jinja2, Archivo + IBM Plex Mono TTFs embedded
 - **Frontend:** Vanilla JS + Tailwind CSS
 - **NIS2 grounding:** EUR-Lex directive PDF parsed with pypdf → `data/frameworks/nis2_directive.json`; each requirement in `nis2.json` carries its `article_ref` + `eurlex_url` + verbatim `directive_text`
@@ -109,6 +112,13 @@ cp .env.example .env
 
 uvicorn app:app --reload
 # Open http://localhost:8000
+```
+
+For demo / long assessments, add WebSocket keepalive flags so the browser tab
+doesn't get dropped mid-pipeline:
+
+```bash
+uvicorn app:app --reload --ws-ping-interval 30 --ws-ping-timeout 60
 ```
 
 ### Enabling the Managed Agents features

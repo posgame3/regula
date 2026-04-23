@@ -1728,6 +1728,14 @@ async def _run_closure_planner(session, client, send) -> None:
     stage_label = "Plan zamknięcia luk" if lang == "pl" else "Closure Plan"
     await send({"type": "stage_change", "stage": "closure", "label": stage_label})
 
+    n = len(top_gaps)
+    closure_msg = (
+        f"⏳ Generuję plan zamknięcia luk ({n} luk × ~14 dni, dopasowany do stacku firmy)..."
+        if lang == "pl" else
+        f"⏳ Generating closure plan ({n} gaps × ~14 days, adapted to your stack)..."
+    )
+    await send({"type": "agent_message", "text": closure_msg, "stage": "closure"})
+
     findings = session.get("interview_findings") or {}
     company_profile = session.get("qualifier_result") or {}
     key_quotes = findings.get("key_quotes", []) if isinstance(findings, dict) else []
@@ -1774,6 +1782,12 @@ async def _run_drafter(session, client, send):
     await send({"type": "stage_change", "stage": "draft", "label": "Report"})
 
     lang = session["language"]
+    draft_msg = (
+        "⏳ Piszę szkice polityk dla luk krytycznych i wysokiego ryzyka..."
+        if lang == "pl" else
+        "⏳ Drafting policy outlines for critical and high-risk gaps..."
+    )
+    await send({"type": "agent_message", "text": draft_msg, "stage": "draft"})
     system = build_drafter_system(
         session["gap_analysis"], session["qualifier_result"], lang
     )

@@ -15,7 +15,109 @@
     }
   </style>
 </head>
-<body class="h-screen flex flex-col bg-white overflow-hidden">
+<body>
+
+<!-- LANDING PAGE -->
+<div id="landing" class="min-h-screen bg-[#0A1628] text-white flex flex-col">
+
+  <!-- Language toggle top-right -->
+  <div class="flex justify-end px-6 pt-5">
+    <div class="flex items-center gap-1 bg-white/10 rounded-lg p-1">
+      <button id="landing-btn-pl" onclick="startAssessment('pl')"
+        class="px-3 py-1 rounded text-sm font-semibold text-white/60 hover:text-white transition-colors">PL</button>
+      <button id="landing-btn-en" onclick="startAssessment('en')"
+        class="px-3 py-1 rounded text-sm font-semibold text-white/60 hover:text-white transition-colors">EN</button>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="flex flex-col items-center justify-center flex-1 px-6 py-20 text-center">
+    <div class="text-[#D4AF77] text-sm font-mono tracking-widest uppercase mb-4">
+      NIS2 Compliance Assessment
+    </div>
+    <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+      Sprawdź zgodność z NIS2<br>
+      <span class="text-[#D4AF77]">w 15 minut</span>
+    </h1>
+    <p class="text-lg text-white/70 max-w-2xl mb-10">
+      Regula prowadzi Cię przez ocenę jak doświadczony konsultant —
+      i generuje dokumenty które możesz wdrożyć od razu.
+      Bez rejestracji, bez opłat.
+    </p>
+    <button onclick="startAssessment()"
+      class="bg-[#D4AF77] hover:bg-[#c49d66] text-[#0A1628] font-bold
+             text-lg px-10 py-4 rounded-lg transition-all duration-200
+             shadow-lg hover:shadow-[#D4AF77]/30 hover:shadow-xl">
+      Rozpocznij ocenę →
+    </button>
+    <p class="text-white/40 text-sm mt-4">Bezpłatne · Open source MIT · Twoje dane nie opuszczają serwera</p>
+  </div>
+
+  <!-- 3 Feature Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-6 pb-16">
+    <div class="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div class="text-3xl mb-3">🎯</div>
+      <h3 class="font-bold text-lg mb-2">Czy NIS2 Cię dotyczy?</h3>
+      <p class="text-white/60 text-sm">Bezpośrednio lub przez łańcuch dostaw — sprawdzimy oba przypadki zanim zaczniesz ocenę.</p>
+    </div>
+    <div class="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div class="text-3xl mb-3">🔍</div>
+      <h3 class="font-bold text-lg mb-2">Symulacja audytu</h3>
+      <p class="text-white/60 text-sm">Zobaczyć co zapyta inspektor NIS2 zanim naprawdę przyjdzie. Wyrok PASS/FAIL z cytowaniem artykułów.</p>
+    </div>
+    <div class="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div class="text-3xl mb-3">📄</div>
+      <h3 class="font-bold text-lg mb-2">Gotowe dokumenty</h3>
+      <p class="text-white/60 text-sm">Polityka bezpieczeństwa, plan incydentów, checklista remediacji — do pobrania od razu po ocenie.</p>
+    </div>
+  </div>
+
+  <!-- What you get -->
+  <div class="max-w-3xl mx-auto px-6 pb-20 w-full">
+    <h2 class="text-2xl font-bold text-center mb-8 text-[#D4AF77]">Co otrzymujesz na końcu</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="flex items-start gap-3 text-white/80 text-sm">
+        <span class="text-green-400 mt-0.5">✓</span>
+        <span>Raport PDF z oceną zgodności i score 0–100</span>
+      </div>
+      <div class="flex items-start gap-3 text-white/80 text-sm">
+        <span class="text-green-400 mt-0.5">✓</span>
+        <span>Tabelę luk z priorytetami i kosztami remediacji</span>
+      </div>
+      <div class="flex items-start gap-3 text-white/80 text-sm">
+        <span class="text-green-400 mt-0.5">✓</span>
+        <span>Symulację audytu z wyrokiem PASS/FAIL</span>
+      </div>
+      <div class="flex items-start gap-3 text-white/80 text-sm">
+        <span class="text-green-400 mt-0.5">✓</span>
+        <span>Scenariusze ataków personalizowane pod Twoją firmę</span>
+      </div>
+      <div class="flex items-start gap-3 text-white/80 text-sm">
+        <span class="text-green-400 mt-0.5">✓</span>
+        <span>Prezentację dla zarządu (5 slajdów)</span>
+      </div>
+      <div class="flex items-start gap-3 text-white/80 text-sm">
+        <span class="text-green-400 mt-0.5">✓</span>
+        <span>Politykę bezpieczeństwa gotową do podpisu</span>
+      </div>
+      <div class="flex items-start gap-3 text-white/80 text-sm">
+        <span class="text-green-400 mt-0.5">✓</span>
+        <span>Plan reagowania na incydenty</span>
+      </div>
+      <div class="flex items-start gap-3 text-white/80 text-sm">
+        <span class="text-green-400 mt-0.5">✓</span>
+        <span>Zasoby ENISA dopasowane do Twoich luk</span>
+      </div>
+    </div>
+    <p class="text-white/30 text-xs text-center mt-10">
+      Regula jest punktem startowym do przeglądu prawnego — nie zastępuje konsultanta.
+      Kod open source MIT · github.com/posgame3/regula
+    </p>
+  </div>
+</div>
+
+<!-- CHAT APP (hidden initially) -->
+<div id="chat-app" class="hidden h-screen flex flex-col bg-white overflow-hidden">
 
   <!-- Header -->
   <header class="bg-[#0A2540] text-white px-6 py-3 flex items-center justify-between flex-shrink-0 shadow-lg">
@@ -69,11 +171,13 @@
     </div>
   </div>
 
+</div><!-- end #chat-app -->
+
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let currentSessionId = crypto.randomUUID();
 let ws = null;
-let lang = 'en';
+let lang = 'pl';
 let stage = 'qualifier';
 let busy = false;
 let conversationStarted = false;
@@ -101,6 +205,16 @@ const RISK_COLORS = {
   medium:   { badge:'bg-yellow-400 text-slate-800',  tag:'bg-yellow-100 text-yellow-700'  },
   low:      { badge:'bg-green-500 text-white',       tag:'bg-green-100 text-green-700'    },
 };
+
+// ── Landing page ───────────────────────────────────────────────────────────
+function startAssessment(newLang) {
+  if (newLang) lang = newLang;
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('chat-app').classList.remove('hidden');
+  updateLangButtons();
+  renderProgress();
+  connect();
+}
 
 // ── Progress bar ───────────────────────────────────────────────────────────
 function renderProgress() {
@@ -686,10 +800,8 @@ function sendMessage() {
   setProcessing(true);
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// ── Init (no connect here — deferred until startAssessment) ───────────────
 updateLangButtons();
-renderProgress();
-connect();
 </script>
 </body>
 </html>

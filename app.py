@@ -262,7 +262,7 @@ Security posture (answer honestly when asked):
 - No formal access revocation when staff leave
 
 You are non-technical but understand the business.
-Answer in 1-2 sentences. Polish only.
+Answer in 1-2 sentences. {lang_instruction}
 Never volunteer info not asked about.
 """
 
@@ -391,11 +391,11 @@ async def call_with_thinking(
 
 
 async def generate_demo_response(client: AsyncAnthropic, question: str, language: str) -> str:
-    lang_name = "Polish" if language == "pl" else "English"
+    lang_instruction = "Use Polish language only." if language == "pl" else "Use English language only."
     response = await client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=100,
-        system=MAREK_PERSONA_SYSTEM.format(language=lang_name),
+        system=MAREK_PERSONA_SYSTEM.format(lang_instruction=lang_instruction),
         messages=[{"role": "user", "content": f"The assessor just asked: {question}\nYour one-sentence answer:"}],
     )
     return response.content[0].text.strip()

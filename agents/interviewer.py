@@ -27,7 +27,12 @@ def _format_art21(measures: list, fallback_requirements: list) -> str:
     return "\n".join(lines)
 
 
-_INTERVIEW_SYSTEM_TEMPLATE = """## HARD RULE — MINIMUM QUESTIONS
+_INTERVIEW_SYSTEM_TEMPLATE = """## CRITICAL — SESSION LANGUAGE
+The session language is {lang_name}. You MUST respond ONLY in {lang_name}.
+Ignore the language of user messages — always use the session language.
+Never switch languages mid-conversation.
+
+## HARD RULE — MINIMUM QUESTIONS
 You MUST ask AT LEAST 8 questions before ending the interview.
 Current question_count: {question_count}
 If question_count < 8, you CANNOT end the interview.
@@ -146,11 +151,14 @@ def build_interview_system(
     profile_json = json.dumps(company_profile, indent=2, ensure_ascii=False)
 
     if language == "pl":
+        lang_name = "Polish"
         lang_instruction = "Polish (język polski). All your responses must be in Polish."
     else:
+        lang_name = "English"
         lang_instruction = "English. All your responses must be in English."
 
     return _INTERVIEW_SYSTEM_TEMPLATE.format(
+        lang_name=lang_name,
         lang_instruction=lang_instruction,
         company_profile=profile_json,
         requirements=req_text,

@@ -1,4 +1,103 @@
 {% set is_pl = language == "pl" %}
+
+{# ── Translation variables ── #}
+{% if is_pl %}
+  {% set t_requirement  = "Wymóg" %}
+  {% set t_status       = "Status" %}
+  {% set t_risk         = "Ryzyko" %}
+  {% set t_what_to_do   = "Co zrobić" %}
+  {% set t_effort       = "Czas" %}
+  {% set t_cost         = "Koszt" %}
+  {% set t_nis2_applies = "NIS2 dotyczy firmy" %}
+  {% set t_entity_type  = "Typ podmiotu" %}
+  {% set t_confidence   = "Pewność oceny" %}
+  {% set t_article_ref  = "Podstawa prawna" %}
+  {% set t_reasoning    = "Uzasadnienie" %}
+  {% set t_overall_risk = "Poziom ryzyka" %}
+  {% set t_yes          = "TAK" %}
+  {% set t_no           = "NIE" %}
+  {% set t_date_label     = "Data" %}
+  {% set t_company_label  = "Firma" %}
+  {% set t_sector_label   = "Sektor" %}
+  {% set t_footer_left  = "Regula | Symulacja NIS2 | Punkt startowy do przeglądu prawnego" %}
+  {% set t_footer_right = "Wygenerowano: " ~ date ~ " | github.com/posgame3/regula" %}
+{% else %}
+  {% set t_requirement  = "Requirement" %}
+  {% set t_status       = "Status" %}
+  {% set t_risk         = "Risk" %}
+  {% set t_what_to_do   = "What to Do" %}
+  {% set t_effort       = "Effort" %}
+  {% set t_cost         = "Cost" %}
+  {% set t_nis2_applies = "NIS2 Applies" %}
+  {% set t_entity_type  = "Entity Type" %}
+  {% set t_confidence   = "Confidence" %}
+  {% set t_article_ref  = "Article Reference" %}
+  {% set t_reasoning    = "Reasoning" %}
+  {% set t_overall_risk = "Overall Risk" %}
+  {% set t_yes          = "YES" %}
+  {% set t_no           = "NO" %}
+  {% set t_date_label     = "Date" %}
+  {% set t_company_label  = "Company" %}
+  {% set t_sector_label   = "Sector" %}
+  {% set t_footer_left  = "Regula | NIS2 Simulation | Draft starting point for legal review" %}
+  {% set t_footer_right = "Generated: " ~ date ~ " | github.com/posgame3/regula" %}
+{% endif %}
+
+{# ── Translation macros ── #}
+{%- macro translate_status(s) -%}
+  {%- if is_pl -%}
+    {%- if s|lower == "missing" -%}BRAK
+    {%- elif s|lower == "partial" -%}CZĘŚCIOWE
+    {%- elif s|lower == "met" -%}SPEŁNIONE
+    {%- elif s|lower == "brak" -%}BRAK
+    {%- elif s|lower in ["spełnione", "spelnione"] -%}SPEŁNIONE
+    {%- else -%}{{ s }}{%- endif -%}
+  {%- else -%}
+    {%- if s|lower == "brak" -%}MISSING
+    {%- elif s|lower in ["spełnione", "spelnione"] -%}MET
+    {%- else -%}{{ s|upper }}{%- endif -%}
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro translate_risk(r) -%}
+  {%- if is_pl -%}
+    {%- if r|upper == "CRITICAL" -%}KRYTYCZNY
+    {%- elif r|upper == "HIGH" -%}WYSOKI
+    {%- elif r|upper == "MEDIUM" -%}ŚREDNI
+    {%- elif r|upper == "LOW" -%}NISKI
+    {%- elif r|upper == "SIGNIFICANT" -%}ISTOTNY
+    {%- else -%}{{ r }}{%- endif -%}
+  {%- else -%}{{ r|upper }}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro translate_scope(s) -%}
+  {%- if is_pl -%}
+    {%- if s == "supply_chain_indirect" -%}Pośredni — łańcuch dostaw
+    {%- elif s == "important" -%}Podmiot ważny (Aneks II)
+    {%- elif s == "essential" -%}Podmiot kluczowy (Aneks I)
+    {%- elif s == "out_of_scope" -%}Poza zakresem
+    {%- else -%}{{ s|replace('_', ' ')|title }}{%- endif -%}
+  {%- else -%}{{ s|replace('_', ' ')|title }}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro translate_confidence(c) -%}
+  {%- if is_pl -%}
+    {%- if c|lower == "high" -%}Wysoka
+    {%- elif c|lower == "medium" -%}Średnia
+    {%- elif c|lower == "low" -%}Niska
+    {%- else -%}{{ c|title }}{%- endif -%}
+  {%- else -%}{{ c|title }}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro translate_prob(p) -%}
+  {%- if is_pl -%}
+    {%- if p|upper == "HIGH" -%}WYSOKI
+    {%- elif p|upper == "MEDIUM" -%}ŚREDNI
+    {%- elif p|upper == "LOW" -%}NISKI
+    {%- else -%}{{ p }}{%- endif -%}
+  {%- else -%}{{ p|upper }}{%- endif -%}
+{%- endmacro -%}
+
 <!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
@@ -8,7 +107,7 @@
       size: A4;
       margin: 15mm 15mm 20mm 15mm;
       @bottom-left {
-        content: "Regula | Symulacja NIS2 | Punkt startowy do przeglądu prawnego";
+        content: "{{ t_footer_left }}";
         font-size: 7pt;
         color: #9ca3af;
         font-family: "DejaVu Sans", Arial, sans-serif;
@@ -16,7 +115,7 @@
         padding-top: 3px;
       }
       @bottom-right {
-        content: "Wygenerowano: {{ date }} | github.com/posgame3/regula";
+        content: "{{ t_footer_right }}";
         font-size: 7pt;
         color: #9ca3af;
         font-family: "DejaVu Sans", Arial, sans-serif;
@@ -195,21 +294,21 @@
       font-size: 10pt;
       font-family: "DejaVu Sans", Arial, sans-serif;
     }
-    .priority-content     { display: table-cell; padding-left: 8px; vertical-align: top; overflow: hidden; }
-    .priority-action      { font-weight: bold; font-size: 9.5pt; color: #0A2540; line-height: 1.35; }
-    .priority-explain     { font-size: 9pt; color: #475569; margin-top: 2px; line-height: 1.35; }
-    .priority-meta        { font-size: 7.5pt; color: #94a3b8; margin-top: 4px; }
+    .priority-content { display: table-cell; padding-left: 8px; vertical-align: top; overflow: hidden; }
+    .priority-action  { font-weight: bold; font-size: 9.5pt; color: #0A2540; line-height: 1.35; }
+    .priority-explain { font-size: 9pt; color: #475569; margin-top: 2px; line-height: 1.35; }
+    .priority-meta    { font-size: 7.5pt; color: #94a3b8; margin-top: 4px; }
 
     /* ── Audit Verdict ── */
     .verdict-fail       { border: 2px solid #fecaca; border-radius: 8px; padding: 14px; background: #fef2f2; }
     .verdict-pass       { border: 2px solid #bbf7d0; border-radius: 8px; padding: 14px; background: #f0fdf4; }
     .verdict-conditions { border: 2px solid #fde68a; border-radius: 8px; padding: 14px; background: #fffbeb; }
-    .verdict-headline   { font-size: 24pt; font-weight: bold; color: #dc2626; text-align: center; margin-bottom: 10px; font-family: "DejaVu Sans", Arial, sans-serif; }
+    .verdict-headline            { font-size: 24pt; font-weight: bold; color: #dc2626; text-align: center; margin-bottom: 10px; font-family: "DejaVu Sans", Arial, sans-serif; }
     .verdict-headline-pass       { font-size: 24pt; font-weight: bold; color: #16a34a; text-align: center; margin-bottom: 10px; font-family: "DejaVu Sans", Arial, sans-serif; }
     .verdict-headline-conditions { font-size: 24pt; font-weight: bold; color: #92400E; text-align: center; margin-bottom: 10px; font-family: "DejaVu Sans", Arial, sans-serif; }
     .verdict-summary { font-size: 8.5pt; color: #475569; margin-top: 8px; line-height: 1.4; }
-    .failures-label { font-weight: bold; font-size: 8.5pt; margin-bottom: 4px; color: #dc2626; margin-top: 10px; }
-    .failures-list  { margin: 0; padding-left: 0; list-style: none; }
+    .failures-label  { font-weight: bold; font-size: 8.5pt; margin-bottom: 4px; color: #dc2626; margin-top: 10px; }
+    .failures-list   { margin: 0; padding-left: 0; list-style: none; }
     .failures-list li {
       padding: 3px 0 3px 18px;
       font-size: 9pt;
@@ -249,13 +348,13 @@
     .badge-low-prob    { background: #eab308; color: #1a1a2e; }
 
     /* ── Policies ── */
-    .policy-box       { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; }
-    .policy-title     { font-weight: bold; font-size: 10pt; color: #0A2540; margin-bottom: 5px; }
-    .policy-why       { font-size: 8pt; color: #64748b; margin-bottom: 6px; font-style: italic; }
-    .policy-rules     { padding-left: 0; list-style: none; counter-reset: rule-counter; }
-    .policy-rules li  { counter-increment: rule-counter; padding: 3px 0 3px 20px; font-size: 8.5pt; position: relative; }
+    .policy-box        { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; }
+    .policy-title      { font-weight: bold; font-size: 10pt; color: #0A2540; margin-bottom: 5px; }
+    .policy-why        { font-size: 8pt; color: #64748b; margin-bottom: 6px; font-style: italic; }
+    .policy-rules      { padding-left: 0; list-style: none; counter-reset: rule-counter; }
+    .policy-rules li   { counter-increment: rule-counter; padding: 3px 0 3px 20px; font-size: 8.5pt; position: relative; }
     .policy-rules li:before { content: counter(rule-counter) "."; position: absolute; left: 0; font-weight: bold; color: #0A2540; }
-    .policy-meta      { font-size: 7.5pt; color: #64748b; margin-top: 6px; }
+    .policy-meta       { font-size: 7.5pt; color: #64748b; margin-top: 6px; }
     .policy-disclaimer { font-size: 7pt; color: #94a3b8; margin-top: 4px; font-style: italic; }
 
     /* ── Section separator ── */
@@ -270,12 +369,12 @@
   <div class="header-title">NIS2 Compliance Assessment Report</div>
   <div class="header-sim">{% if is_pl %}DOKUMENT SYMULACYJNY — nie jest to oficjalny protokół kontrolny{% else %}SIMULATION DOCUMENT — this is not an official audit report{% endif %}</div>
   <div class="header-meta">
-    Date: {{ date }}
+    {{ t_date_label }}: {{ date }}
     {% if session.interview_findings and session.interview_findings.company_name and session.interview_findings.company_name != 'Unknown' %}
-    &nbsp;·&nbsp; Company: {{ session.interview_findings.company_name }}
+    &nbsp;·&nbsp; {{ t_company_label }}: {{ session.interview_findings.company_name }}
     {% endif %}
     {% if session.interview_findings and session.interview_findings.sector %}
-    &nbsp;·&nbsp; Sector: {{ session.interview_findings.sector }}
+    &nbsp;·&nbsp; {{ t_sector_label }}: {{ session.interview_findings.sector }}
     {% endif %}
   </div>
 </div>
@@ -291,34 +390,33 @@
   <div class="qual-card">
     <div class="qual-left">
       <div class="qual-item">
-        <div class="qual-key">{% if is_pl %}NIS2 dotyczy firmy{% else %}NIS2 Applies{% endif %}</div>
+        <div class="qual-key">{{ t_nis2_applies }}</div>
         <div class="qual-value">
           {% if session.qualifier_result.applies %}
-            <span class="badge badge-fail">{% if is_pl %}TAK{% else %}YES{% endif %}</span>
+            <span class="badge badge-fail">{{ t_yes }}</span>
           {% else %}
-            <span class="badge badge-pass">{% if is_pl %}NIE{% else %}NO{% endif %}</span>
+            <span class="badge badge-pass">{{ t_no }}</span>
           {% endif %}
         </div>
       </div>
       <div class="qual-item">
-        <div class="qual-key">{% if is_pl %}Typ podmiotu{% else %}Entity Type{% endif %}</div>
-        <div class="qual-value">{{ (session.qualifier_result.scope or '—') | replace('_', ' ') | title }}</div>
+        <div class="qual-key">{{ t_entity_type }}</div>
+        <div class="qual-value">{{ translate_scope(session.qualifier_result.scope or '—') }}</div>
       </div>
       <div class="qual-item">
-        <div class="qual-key">{% if is_pl %}Pewność oceny{% else %}Confidence{% endif %}</div>
-        <div class="qual-value">{{ (session.qualifier_result.confidence or '—') | title }}</div>
+        <div class="qual-key">{{ t_confidence }}</div>
+        <div class="qual-value">{{ translate_confidence(session.qualifier_result.confidence or '—') }}</div>
       </div>
       <div class="qual-item">
-        <div class="qual-key">{% if is_pl %}Podstawa prawna{% else %}Article Reference{% endif %}</div>
+        <div class="qual-key">{{ t_article_ref }}</div>
         <div class="qual-value" style="font-size: 9pt;">Directive (EU) 2022/2555, Art. 21</div>
       </div>
     </div>
     <div class="qual-right">
+      <div class="qual-reasoning-label">{{ t_reasoning }}</div>
       {% if session.qualifier_result.reasoning %}
-      <div class="qual-reasoning-label">{% if is_pl %}Uzasadnienie{% else %}Reasoning{% endif %}</div>
       <div class="qual-reasoning-text">{{ session.qualifier_result.reasoning }}</div>
       {% else %}
-      <div class="qual-reasoning-label">{% if is_pl %}Uzasadnienie{% else %}Reasoning{% endif %}</div>
       <div class="qual-reasoning-text" style="color: #94a3b8;">—</div>
       {% endif %}
     </div>
@@ -356,7 +454,7 @@
     <div class="score-label">/ 100</div>
     <div>
       <span class="score-pill" style="background: {{ pill_bg }}; color: {{ pill_color }}; border: 1px solid {{ gauge_color }};">
-        {% if is_pl %}Ryzyko ogólne:{% else %}Overall Risk:{% endif %} {{ risk | upper }}
+        {{ t_overall_risk }}: {{ translate_risk(risk) }}
       </span>
     </div>
     {% if session.gap_analysis.headline %}
@@ -380,12 +478,12 @@
   <table class="gap-table">
     <thead>
       <tr>
-        <th style="width:25%;">{% if is_pl %}Wymóg{% else %}Requirement{% endif %}</th>
-        <th style="width:10%;">{% if is_pl %}Status{% else %}Status{% endif %}</th>
-        <th style="width:10%;">{% if is_pl %}Ryzyko{% else %}Risk{% endif %}</th>
-        <th style="width:40%;">{% if is_pl %}Co zrobić{% else %}What to Do{% endif %}</th>
-        <th style="width:8%;">{% if is_pl %}Czas{% else %}Effort{% endif %}</th>
-        <th style="width:7%;">{% if is_pl %}Koszt{% else %}Cost{% endif %}</th>
+        <th style="width:25%;">{{ t_requirement }}</th>
+        <th style="width:10%;">{{ t_status }}</th>
+        <th style="width:10%;">{{ t_risk }}</th>
+        <th style="width:40%;">{{ t_what_to_do }}</th>
+        <th style="width:8%;">{{ t_effort }}</th>
+        <th style="width:7%;">{{ t_cost }}</th>
       </tr>
     </thead>
     <tbody>
@@ -403,8 +501,8 @@
           <div class="gap-req-name">{{ gap.requirement or '' }}</div>
           {% if gap.article_ref %}<div class="gap-req-article">{{ gap.article_ref }}</div>{% endif %}
         </td>
-        <td><span class="gap-status-{{ scls }}">{{ gap.status or '—' }}</span></td>
-        <td><span class="{{ rcls }}">{{ rl | upper }}</span></td>
+        <td><span class="gap-status-{{ scls }}">{{ translate_status(gap.status or 'partial') }}</span></td>
+        <td><span class="{{ rcls }}">{{ translate_risk(rl) }}</span></td>
         <td><div class="gap-todo">{{ gap.what_to_do or '' }}</div></td>
         <td>{{ gap.estimated_effort or '—' }}</td>
         <td>{{ gap.estimated_cost or '—' }}</td>
@@ -512,7 +610,7 @@
   <div class="scenario-box no-break">
     <div class="scenario-hdr">
       <div class="scenario-title-cell">{{ s.title or '' }}</div>
-      <div class="scenario-badge-cell"><span class="badge badge-{{ prob }}-prob">{{ prob | upper }}</span></div>
+      <div class="scenario-badge-cell"><span class="badge badge-{{ prob }}-prob">{{ translate_prob(prob) }}</span></div>
     </div>
     <div style="font-size: 7.5pt; color: #9f1239; margin-bottom: 5px;">{{ s.gap_exploited or '' }}</div>
     {% if s.how_it_starts %}

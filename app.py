@@ -685,6 +685,19 @@ async def benchmark_lookup(sector: str, size_bucket: str, user_score: int):
     }
 
 
+@app.get("/api/session/{session_id}/status")
+async def session_status(session_id: str):
+    """Lightweight check: did the pipeline finish? Used by the reconnect banner."""
+    session = sessions.get(session_id) or session_store.load(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="not found")
+    return {
+        "stage": session.get("stage"),
+        "complete": session.get("stage") == "complete",
+        "language": session.get("language", "en"),
+    }
+
+
 @app.get("/report/{session_id}")
 async def download_report(session_id: str):
     # Prefer in-memory cache (hot sessions); fall back to SQLite so restarted
@@ -1646,6 +1659,7 @@ def _compute_benchmark_payload(session: dict) -> dict | None:
             "user_score": score,
             "sector": sector,
             "size_bucket": size_bucket,
+            "early_data": stats.get("count", 0) < 30,
             **stats,
         }
     except Exception as exc:

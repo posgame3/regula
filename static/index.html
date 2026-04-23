@@ -394,6 +394,18 @@
     .demo-mode-banner b { font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
     .demo-mode-banner .sep { margin: 0 10px; color: #7a6a20; }
 
+    .reconnect-banner {
+      background: #E8F4FD; color: #1a1a1a;
+      border-bottom: 2px solid #1a1a1a;
+      padding: 10px var(--margin);
+      font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.04em;
+      text-align: center; flex-shrink: 0;
+      display: none;
+    }
+    .reconnect-banner.active { display: block; }
+    .reconnect-banner a { color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+    .reconnect-banner .sep { margin: 0 10px; color: #555; }
+
     /* Progress row */
     .progress-row {
       display: grid; grid-template-columns: repeat(12, 1fr);
@@ -1007,6 +1019,12 @@
     .bench-callout {
       font-size: 13px; color: var(--ink); margin-top: 10px; font-weight: 500;
     }
+    .bench-beta {
+      display: inline-block; margin-left: 8px; padding: 1px 6px;
+      font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      border: 1px solid var(--hairline); vertical-align: middle;
+    }
 
     /* Typing indicator */
     .typing {
@@ -1347,6 +1365,13 @@
     <span id="demo-banner-body">Marek is a simulated AI persona. Answers below are generated from a fixed persona profile — not a real company assessment.</span>
   </div>
 
+  <!-- Reconnect banner: shown if user reloads mid-pipeline and prior session completed -->
+  <div class="reconnect-banner" id="reconnect-banner" role="alert">
+    <span id="reconnect-msg"></span>
+    <span class="sep">·</span>
+    <a onclick="dismissReconnect()">✕ Dismiss</a>
+  </div>
+
   <!-- Progress -->
   <div class="progress-row">
     <div class="progress-label"><span data-lang-key-chat="stage">Stage</span> <b><span id="stage-idx">01</span> / 06</b> · <span id="stage-name">Qualify</span></div>
@@ -1509,6 +1534,7 @@ const CHAT_TEXT = {
 // ═══════════════════════════ State ═══════════════════════════
 window.selectedLanguage = 'en';
 let currentSessionId = crypto.randomUUID();
+const _PENDING_SESSION_KEY = 'regula_pending_session';
 let ws = null;
 let lang = 'en';
 let stage = 'qualifier';
@@ -1576,6 +1602,8 @@ function startAssessment() {
   updateLangButtons();
   renderProgress();
   connect();
+  // Check if a prior session completed while user was away (e.g. closed tab during analysis).
+  checkReconnect();
 }
 
 // ═══════════════════════════ Progress ═══════════════════════════
@@ -1797,6 +1825,7 @@ function addBenchmark(b) {
   if (!b || typeof b.user_score !== 'number' || b.median == null) return;
   const t = lang === 'pl' ? {
     head: 'Porównanie z branżą (anonimowo)',
+    beta_tip: 'Dane wstępne — model statystyczny oparty na bazowych danych branżowych. Dokładność wzrośnie wraz z kolejnymi ocenami.',
     you: 'Twój wynik',
     median: 'Mediana',
     top10: 'Top 10%',
@@ -1807,6 +1836,7 @@ function addBenchmark(b) {
     footer: (n, fb, group) => `Na podstawie ${n} anonimowych ocen · Grupa: ${group}${fb ? ' · przybliżone (brak wystarczających danych dla dokładnej grupy)' : ''}`,
   } : {
     head: 'Peer benchmark (anonymous)',
+    beta_tip: 'Early data — statistical model based on industry baseline. Accuracy improves as more companies complete assessments.',
     you: 'You',
     median: 'Peer median',
     top10: 'Top 10%',
@@ -1826,9 +1856,13 @@ function addBenchmark(b) {
   const medianFill = b.median;
   const top10Fill = b.top10;
 
+  const betaBadge = b.early_data
+    ? `<span class="bench-beta" title="${esc(t.beta_tip)}">beta</span>`
+    : '';
+
   append(`
     <div class="bench-card">
-      <div class="bench-head">${t.head}</div>
+      <div class="bench-head">${t.head}${betaBadge}</div>
 
       <div class="bench-row me">
         <div class="bench-label">${t.you}</div>
@@ -2225,6 +2259,8 @@ function resetSession() {
   demoRunning = false;
   busy = false;
   hideDemoBanner();
+  clearPendingSession();
+  document.getElementById('reconnect-banner')?.classList.remove('active');
   document.getElementById('chat').innerHTML = '';
   document.getElementById('input').disabled = false;
   document.getElementById('input').placeholder = CHAT_TEXT[lang].placeholder;
@@ -2278,6 +2314,46 @@ function cancelLangChange() {
   document.getElementById('lang-confirm')?.remove();
 }
 
+// ═══════════════════════════ Reconnect ═══════════════════════════
+function savePendingSession(sessionId, sessionLang) {
+  try {
+    localStorage.setItem(_PENDING_SESSION_KEY, JSON.stringify({ id: sessionId, lang: sessionLang, ts: Date.now() }));
+  } catch (_) {}
+}
+
+function clearPendingSession() {
+  try { localStorage.removeItem(_PENDING_SESSION_KEY); } catch (_) {}
+}
+
+function dismissReconnect() {
+  document.getElementById('reconnect-banner').classList.remove('active');
+  clearPendingSession();
+}
+
+async function checkReconnect() {
+  let pending;
+  try {
+    const raw = localStorage.getItem(_PENDING_SESSION_KEY);
+    if (!raw) return;
+    pending = JSON.parse(raw);
+  } catch (_) { return; }
+  // Only show reconnect within 2 hours of the session starting.
+  if (!pending?.id || Date.now() - (pending.ts || 0) > 7_200_000) { clearPendingSession(); return; }
+  try {
+    const res = await fetch(`/api/session/${pending.id}/status`);
+    if (!res.ok) { clearPendingSession(); return; }
+    const data = await res.json();
+    if (!data.complete) return;  // still in progress — no banner yet
+    const l = data.language || pending.lang || 'en';
+    const msg = l === 'pl'
+      ? `Twój poprzedni raport jest gotowy. <a onclick="window.open('/report/${pending.id}','_blank')">Pobierz PDF</a>`
+      : `Your previous report is ready. <a onclick="window.open('/report/${pending.id}','_blank')">Download PDF</a>`;
+    const banner = document.getElementById('reconnect-banner');
+    document.getElementById('reconnect-msg').innerHTML = msg;
+    banner.classList.add('active');
+  } catch (_) { /* ignore network errors */ }
+}
+
 // ═══════════════════════════ WebSocket ═══════════════════════════
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -2302,6 +2378,8 @@ function connect() {
       renderProgress();
       addDivider(msg.label || msg.stage);
       if (msg.stage === 'redteam') addRedteamDisclaimer();
+      // Persist session when analysis starts so reconnect can offer PDF if user navigates away.
+      if (msg.stage === 'analyze') savePendingSession(currentSessionId, lang);
       setProcessing(true, msg.stage);
     } else if (msg.type === 'analysis_result') {
       addAnalysis(msg.data);
@@ -2314,6 +2392,7 @@ function connect() {
     } else if (msg.type === 'complete') {
       setProcessing(false);
       demoRunning = false;
+      clearPendingSession();
       addComplete(msg.data);
     } else if (msg.type === 'error') {
       setProcessing(false);

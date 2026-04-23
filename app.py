@@ -1757,16 +1757,10 @@ async def _run_closure_planner(session, client, send) -> None:
         ),
     }]
     try:
-        thinking_text, text, _ = await call_with_thinking(
-            client, system, messages,
-            max_tokens=16000, budget_tokens=6000,
-            session=session, test_max_tokens=10000,
-        )
-        if thinking_text:
-            await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
+        text = await stream_silent(client, system, messages, max_tokens=8000)
         plans = await parse_json_with_retry(
             client, system, messages, text,
-            max_tokens=16000, stage="closure_planner", expected_key="closure_plans",
+            max_tokens=8000, stage="closure_planner", expected_key="closure_plans",
         )
     except Exception as exc:
         log.warning("[closure_planner] failed: %s — pipeline continues without closure plans", exc)

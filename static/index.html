@@ -26,7 +26,7 @@
     <div class="flex items-center gap-3">
       <button id="btn-demo" onclick="runDemo()"
         class="border border-slate-500 text-slate-300 px-3 py-1 rounded-lg text-xs font-medium hover:border-slate-200 hover:text-white transition-colors">
-        ▶️ Watch Marek's story
+        ▶️ Historia Marka z DataMed
       </button>
       <div class="flex items-center gap-1 bg-[#061929] rounded-lg p-1">
         <button id="btn-pl" onclick="setLang('pl')">PL</button>
@@ -508,7 +508,7 @@ function updateToolReady(toolName, url, label) {
 function updateDemoButton() {
   const btn = document.getElementById('btn-demo');
   if (!btn) return;
-  btn.textContent = lang === 'pl' ? '▶️ Historia Marka' : '▶️ Watch Marek\'s story';
+  btn.textContent = lang === 'pl' ? '▶️ Historia Marka z DataMed' : '▶️ Watch Marek from DataMed';
   btn.style.display = (conversationStarted || demoRunning) ? 'none' : '';
 }
 

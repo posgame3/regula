@@ -98,6 +98,32 @@
   {%- else -%}{{ p|upper }}{%- endif -%}
 {%- endmacro -%}
 
+{%- macro abbr_status(s) -%}
+  {%- if is_pl -%}
+    {%- set sl = s|lower -%}
+    {%- if sl == "missing" or sl == "brak" -%}BRAK
+    {%- elif sl == "partial" -%}CZĘŚĆ.
+    {%- elif sl == "met" or sl == "spełnione" or sl == "spelnione" -%}SPEŁ.
+    {%- else -%}{{ s|upper }}{%- endif -%}
+  {%- else -%}
+    {{- translate_status(s) -}}
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro abbr_risk(r) -%}
+  {%- if is_pl -%}
+    {%- set rl = r|lower -%}
+    {%- if rl == "critical" -%}KRYT.
+    {%- elif rl == "high" -%}WYS.
+    {%- elif rl == "significant" -%}ISTOT.
+    {%- elif rl == "medium" -%}ŚRED.
+    {%- elif rl == "low" -%}NISK.
+    {%- else -%}{{ r|upper }}{%- endif -%}
+  {%- else -%}
+    {{- translate_risk(r) -}}
+  {%- endif -%}
+{%- endmacro -%}
+
 <!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
@@ -234,24 +260,27 @@
     .good-news-box   { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; font-size: 8.5pt; color: #16a34a; margin-top: 10px; }
 
     /* ── Gap table ── */
-    .gap-table { width: 100%; border-collapse: collapse; font-size: 8pt; table-layout: fixed; }
+    .gap-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; table-layout: fixed; }
     .gap-table th {
       background: #0A2540;
       color: white;
-      padding: 6px 6px;
+      padding: 3px 5px;
       text-align: left;
       font-size: 7.5pt;
       font-family: "DejaVu Sans", Arial, sans-serif;
       word-wrap: break-word;
+      overflow-wrap: break-word;
     }
     .gap-table td {
-      padding: 4px 6px;
+      padding: 3px 5px;
       border-bottom: 1px solid #e2e8f0;
       vertical-align: top;
-      font-size: 8pt;
-      line-height: 1.3;
+      font-size: 7.5pt;
+      line-height: 1.25;
       word-wrap: break-word;
-      overflow: hidden;
+      overflow-wrap: break-word;
+      hyphens: auto;
+      -webkit-hyphens: auto;
     }
     .gap-req-name    { font-weight: bold; font-size: 8pt; }
     .gap-req-article { font-size: 7pt; color: #64748b; margin-top: 2px; }
@@ -478,12 +507,12 @@
   <table class="gap-table">
     <thead>
       <tr>
-        <th style="width:25%;">{{ t_requirement }}</th>
-        <th style="width:10%;">{{ t_status }}</th>
-        <th style="width:10%;">{{ t_risk }}</th>
-        <th style="width:40%;">{{ t_what_to_do }}</th>
+        <th style="width:28%;">{{ t_requirement }}</th>
+        <th style="width:9%;">{{ t_status }}</th>
+        <th style="width:9%;">{{ t_risk }}</th>
+        <th style="width:36%;">{{ t_what_to_do }}</th>
         <th style="width:8%;">{{ t_effort }}</th>
-        <th style="width:7%;">{{ t_cost }}</th>
+        <th style="width:10%;">{{ t_cost }}</th>
       </tr>
     </thead>
     <tbody>
@@ -501,15 +530,18 @@
           <div class="gap-req-name">{{ gap.requirement or '' }}</div>
           {% if gap.article_ref %}<div class="gap-req-article">{{ gap.article_ref }}</div>{% endif %}
         </td>
-        <td><span class="gap-status-{{ scls }}">{{ translate_status(gap.status or 'partial') }}</span></td>
-        <td><span class="{{ rcls }}">{{ translate_risk(rl) }}</span></td>
+        <td><span class="gap-status-{{ scls }}">{{ abbr_status(gap.status or 'partial') }}</span></td>
+        <td><span class="{{ rcls }}">{{ abbr_risk(rl) }}</span></td>
         <td><div class="gap-todo">{{ gap.what_to_do or '' }}</div></td>
         <td>{{ gap.estimated_effort or '—' }}</td>
-        <td>{{ gap.estimated_cost or '—' }}</td>
+        <td>{{ gap.cost_short or '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  {% if is_pl %}
+  <p style="font-size: 6.5pt; color: #64748b; margin-top: 4px;">* KRYT. = Krytyczny | CZĘŚĆ. = Częściowe | ISTOT. = Istotny | WYS. = Wysoki | NISK. = Niski</p>
+  {% endif %}
 </div>
 {% endif %}
 

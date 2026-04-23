@@ -28,6 +28,15 @@ def generate_report_pdf(session_data: dict, language: str) -> bytes:
         redteam_result = _strip_code_fences(redteam_result)
         redteam_html = md_lib.markdown(redteam_result, extensions=["tables"])
 
+    if session_data.get("gap_analysis") and session_data["gap_analysis"].get("gaps"):
+        for gap in session_data["gap_analysis"]["gaps"]:
+            cost = gap.get("estimated_cost") or ""
+            if cost and len(cost) > 30:
+                match = re.search(r'[\d\s][\d\s]*[–\-][\d\s]*[\d\s]*EUR', cost)
+                gap["cost_short"] = match.group(0).strip() if match else cost[:25]
+            else:
+                gap["cost_short"] = cost or "—"
+
     html_content = template.render(
         session=session_data,
         language=language,

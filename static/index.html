@@ -683,6 +683,115 @@
     }
     .card-footer-link:hover { color: var(--ink); }
 
+    /* Managed-agent live auditor steps */
+    .auditor-steps {
+      font-family: var(--f-mono); font-size: 12px; line-height: 1.7;
+      color: var(--ink-soft);
+      background: var(--faint);
+      padding: 10px 14px;
+      border-left: 2px solid var(--signal);
+    }
+    .auditor-step {
+      padding: 2px 0;
+      animation: fadein 0.2s ease-in;
+    }
+    .auditor-step b { color: var(--ink); font-weight: 500; }
+    .auditor-arrow { color: var(--signal); margin-right: 6px; }
+    @keyframes fadein { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* Subscribe to regulatory monitor */
+    .subscribe-card {
+      margin: 20px 0;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+    }
+    .subscribe-head {
+      background: var(--ink); color: var(--paper);
+      padding: 14px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .subscribe-body { padding: 18px 20px; }
+    .subscribe-title {
+      font-family: var(--f-sans); font-weight: 500; font-size: 18px;
+      letter-spacing: -0.01em; margin-bottom: 6px;
+    }
+    .subscribe-desc {
+      font-family: var(--f-sans); font-size: 14px; color: var(--ink-soft);
+      line-height: 1.5; margin-bottom: 14px;
+    }
+    .subscribe-form {
+      display: flex; gap: 8px; margin-bottom: 4px;
+    }
+    .subscribe-form input {
+      flex: 1;
+      border: 1px solid var(--ink); background: var(--paper);
+      padding: 10px 12px;
+      font-family: var(--f-sans); font-size: 14px;
+      color: var(--ink); outline: none;
+    }
+    .subscribe-form input:focus { border-color: var(--signal); }
+    .subscribe-form button {
+      background: var(--ink); color: var(--paper);
+      border: 1px solid var(--ink);
+      padding: 10px 18px;
+      font-family: var(--f-sans); font-weight: 500; font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .subscribe-form button:hover { background: var(--signal); border-color: var(--signal); }
+    .subscribe-note {
+      font-family: var(--f-mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.04em; margin-top: 10px;
+    }
+    .mailbox-wrap { margin: 20px 0; border: 1px solid var(--hairline); background: var(--paper); }
+    .mailbox-head {
+      padding: 12px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--hairline);
+      font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .mailbox-run {
+      background: transparent; border: 1px solid var(--ink);
+      padding: 4px 10px; font-family: var(--f-mono); font-size: 11px;
+      letter-spacing: 0.04em; cursor: pointer; color: var(--ink);
+    }
+    .mailbox-run:hover { background: var(--ink); color: var(--paper); }
+    .mailbox-empty {
+      padding: 18px; font-family: var(--f-mono); font-size: 12px; color: var(--muted);
+      text-align: center;
+    }
+    .alert-item {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-subject {
+      font-family: var(--f-sans); font-weight: 500; font-size: 15px;
+      letter-spacing: -0.005em; margin-bottom: 4px;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+    }
+    .alert-sev {
+      font-family: var(--f-mono); font-size: 10px;
+      padding: 2px 6px; letter-spacing: 0.08em; text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .sev-urgent { background: var(--signal); color: var(--paper); }
+    .sev-action_required { background: var(--warn); color: var(--paper); }
+    .sev-info { background: var(--faint); color: var(--ink); }
+    .alert-meta {
+      font-family: var(--f-mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.02em; margin-bottom: 8px;
+    }
+    .alert-body {
+      font-family: var(--f-sans); font-size: 13px; line-height: 1.55;
+      color: var(--ink-soft); max-height: 260px; overflow-y: auto;
+      border-left: 2px solid var(--hairline); padding-left: 12px;
+      white-space: pre-wrap;
+    }
+
     /* Threat scenarios card */
     .threat-card {
       margin: 20px 0; border: 1px solid var(--signal); background: var(--paper);
@@ -1480,6 +1589,51 @@ function addDivider(text) {
     </div>`);
 }
 
+function addAuditorStep(msg) {
+  const tool = msg.tool || '';
+  const input = msg.input || {};
+  let desc;
+  if (tool === 'lookup_requirement') {
+    desc = lang === 'pl'
+      ? `sprawdza tekst Art. 21(2)(${esc(input.article_ref || '?')})`
+      : `checks Art. 21(2)(${esc(input.article_ref || '?')}) text`;
+  } else if (tool === 'lookup_gap') {
+    desc = lang === 'pl'
+      ? `weryfikuje analizę luki: <b>${esc(input.requirement_name || '')}</b>`
+      : `cross-references gap: <b>${esc(input.requirement_name || '')}</b>`;
+  } else if (tool === 'lookup_interview_answer') {
+    desc = lang === 'pl'
+      ? `szuka w wywiadzie wzmianek o: <b>${esc(input.topic || '')}</b>`
+      : `scans interview for: <b>${esc(input.topic || '')}</b>`;
+  } else if (tool === 'finalize_verdict') {
+    desc = lang === 'pl'
+      ? `wystawia werdykt: <b>${esc(input.verdict || '')}</b>`
+      : `issues verdict: <b>${esc(input.verdict || '')}</b>`;
+  } else {
+    desc = `${esc(tool)}`;
+  }
+  // Accumulate auditor steps in one live card to avoid scroll spam
+  let card = document.getElementById('auditor-steps-card');
+  if (!card) {
+    append(`
+      <div class="msg regula">
+        <div class="msg-head">
+          <span class="msg-sender"><b>Regula</b> · ${lang === 'pl' ? 'Audytor pracuje' : 'Auditor at work'}</span>
+          <span class="msg-time">${nowTime()}</span>
+        </div>
+        <div class="msg-body">
+          <div id="auditor-steps-card" class="auditor-steps"></div>
+        </div>
+      </div>`);
+    card = document.getElementById('auditor-steps-card');
+  }
+  const step = document.createElement('div');
+  step.className = 'auditor-step';
+  step.innerHTML = `<span class="auditor-arrow">→</span> ${desc}`;
+  card.appendChild(step);
+  scrollBottom();
+}
+
 function addError(text) {
   append(`
     <div class="msg error">
@@ -1585,6 +1739,8 @@ function addComplete(data) {
         ${lang === 'pl' ? '✓ Ocena zakończona. Odśwież stronę, by ocenić inną firmę.' : '✓ Assessment complete. Start a new session to assess another company.'}
       </button>
     </div>`);
+
+  addSubscribeCard();
 
   if (data.threat_actor_result?.scenarios?.length) {
     addThreatScenarios(data.threat_actor_result);
@@ -1901,6 +2057,8 @@ function connect() {
       addToolGenerating(msg.tool);
     } else if (msg.type === 'tool_ready') {
       updateToolReady(msg.tool, msg.url, msg.label, msg.resources);
+    } else if (msg.type === 'auditor_step') {
+      addAuditorStep(msg);
     } else if (msg.type === 'complete') {
       setProcessing(false);
       demoRunning = false;
@@ -1947,6 +2105,130 @@ function toggleAccordion(n) {
     body.style.maxHeight = body.scrollHeight + 'px';
     arrow.textContent = '×';
   }
+}
+
+// ═══════════════════════════ Regulatory Monitor (Managed Agent) ═══════════════════════════
+let monitorUserId = null;
+
+function addSubscribeCard() {
+  append(`
+    <div class="subscribe-card" id="subscribe-card">
+      <div class="subscribe-head">
+        <span>${lang === 'pl' ? '⟳ MONITOR REGULACYJNY' : '⟳ REGULATORY MONITOR'}</span>
+        <span style="opacity:.6">MANAGED AGENT</span>
+      </div>
+      <div class="subscribe-body">
+        <div class="subscribe-title">${lang === 'pl'
+          ? 'Zostaw adres, agent pracuje dalej za Ciebie'
+          : 'Leave an address — the agent keeps working for you'}</div>
+        <div class="subscribe-desc">${lang === 'pl'
+          ? 'Drugi agent (Claude Managed Agents) budzi się okresowo, przeszukuje komunikaty CSIRT i zmiany legislacyjne NIS2, i wysyła powiadomienie TYLKO jeśli coś dotyka Twoich konkretnych luk.'
+          : 'A second agent (Claude Managed Agents) wakes up periodically, scans CSIRT advisories and NIS2 regulatory changes, and pings you ONLY when something touches your specific gaps.'}</div>
+        <form class="subscribe-form" onsubmit="doSubscribe(event)">
+          <input id="subscribe-email" type="email" required placeholder="${lang === 'pl' ? 'twój@email.com' : 'you@email.com'}">
+          <button type="submit">${lang === 'pl' ? 'Subskrybuj' : 'Subscribe'}</button>
+        </form>
+        <div class="subscribe-note">${lang === 'pl'
+          ? 'Na demo: po subskrypcji zobaczysz skrzynkę z prawdziwymi alertami znalezionymi przez agenta.'
+          : 'For demo: after subscribing you\\'ll see a mailbox with real alerts the agent finds.'}</div>
+      </div>
+    </div>`);
+}
+
+async function doSubscribe(ev) {
+  ev.preventDefault();
+  const email = (document.getElementById('subscribe-email') || {}).value;
+  if (!email) return;
+  try {
+    const res = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, session_id: currentSessionId}),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      alert((lang === 'pl' ? 'Błąd: ' : 'Error: ') + (j.detail || res.statusText));
+      return;
+    }
+    const data = await res.json();
+    monitorUserId = data.user_id;
+    // Replace subscribe card with mailbox
+    const sc = document.getElementById('subscribe-card');
+    if (sc) sc.remove();
+    addMailbox();
+  } catch (e) {
+    alert((lang === 'pl' ? 'Błąd sieci' : 'Network error') + ': ' + e.message);
+  }
+}
+
+function addMailbox() {
+  append(`
+    <div class="mailbox-wrap" id="mailbox-wrap">
+      <div class="mailbox-head">
+        <span>${lang === 'pl' ? 'SKRZYNKA MONITORA' : 'MONITOR INBOX'} · ${esc((monitorUserId || '').slice(0, 14))}</span>
+        <button class="mailbox-run" id="mailbox-run-btn" onclick="runMonitor()">
+          ${lang === 'pl' ? '▶ Uruchom monitor teraz' : '▶ Run monitor now'}
+        </button>
+      </div>
+      <div id="mailbox-body">
+        <div class="mailbox-empty">${lang === 'pl'
+          ? 'Kliknij "Uruchom monitor teraz" aby agent przeszukał web i zakolejkował alerty.'
+          : 'Click "Run monitor now" so the agent scans the web and queues alerts.'}</div>
+      </div>
+    </div>`);
+  scrollBottom();
+}
+
+async function runMonitor() {
+  if (!monitorUserId) return;
+  const btn = document.getElementById('mailbox-run-btn');
+  const body = document.getElementById('mailbox-body');
+  if (btn) { btn.disabled = true; btn.textContent = lang === 'pl' ? '… agent pracuje' : '… agent running'; }
+  if (body) body.innerHTML = `<div class="mailbox-empty">${lang === 'pl'
+    ? 'Agent się budzi, zapytuje profil, uruchamia web_search, ocenia trafność… (30–90 s)'
+    : 'Agent waking up, querying profile, running web_search, judging relevance… (30–90 s)'}</div>`;
+  try {
+    const res = await fetch('/api/monitor/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: monitorUserId}),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      if (body) body.innerHTML = `<div class="mailbox-empty">${lang === 'pl' ? 'Błąd' : 'Error'}: ${esc(j.detail || res.statusText)}</div>`;
+      return;
+    }
+    const data = await res.json();
+    renderAlerts(data.alerts || [], data);
+  } catch (e) {
+    if (body) body.innerHTML = `<div class="mailbox-empty">${lang === 'pl' ? 'Błąd sieci' : 'Network error'}: ${esc(e.message)}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = lang === 'pl' ? '▶ Uruchom ponownie' : '▶ Run again'; }
+  }
+}
+
+function renderAlerts(alerts, meta) {
+  const body = document.getElementById('mailbox-body');
+  if (!body) return;
+  if (!alerts.length) {
+    body.innerHTML = `<div class="mailbox-empty">${lang === 'pl'
+      ? 'Agent nic istotnego nie znalazł w tym przebiegu. Uruchomi się ponownie później.'
+      : 'Agent found nothing material this run. It will run again later.'}</div>`;
+    return;
+  }
+  body.innerHTML = alerts.map(a => `
+    <div class="alert-item">
+      <div class="alert-subject">
+        <span>${esc(a.subject || '')}</span>
+        <span class="alert-sev sev-${esc(a.severity || 'info')}">${esc(a.severity || 'info')}</span>
+      </div>
+      <div class="alert-meta">
+        ${esc((a.created_at || '').slice(0, 16).replace('T', ' '))}${a.source_url ? ' · <a href="' + esc(a.source_url) + '" target="_blank" rel="noopener" style="color:var(--ink);border-bottom:1px solid var(--signal);">source</a>' : ''}
+        ${(a.gap_refs && a.gap_refs.length) ? ' · ↳ ' + a.gap_refs.map(g => esc(g)).join(' · ') : ''}
+      </div>
+      <div class="alert-body">${esc(a.body_markdown || '')}</div>
+    </div>`).join('');
+  scrollBottom();
 }
 
 // ═══════════════════════════ Init ═══════════════════════════

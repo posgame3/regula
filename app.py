@@ -8,6 +8,7 @@ from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, Response
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -15,9 +16,12 @@ from agents.qualifier import build_qualifier_system
 from agents.interviewer import build_interview_system
 from agents.analyzer import build_analyzer_system, build_analyzer_system_with_thinking
 from agents.redteam import build_redteam_system
+from agents.redteam_managed import run_managed_audit
+from agents.monitor_managed import run_managed_monitor
 from agents.drafter import build_drafter_system
 from agents.threat_actor import build_threat_actor_system
 from agents.board_presenter import build_board_presenter_system
+from utils import profile_store
 from utils.pdf import generate_report_pdf
 from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist, search_enisa_guidance
 
@@ -26,6 +30,17 @@ TEST_MODE = bool(os.getenv("TEST_MODE"))
 MODEL = "claude-sonnet-4-6" if TEST_MODE else "claude-opus-4-7"
 COMPLETE_MARKER = "[INTERVIEW_COMPLETE]"
 MOCK_MODE = bool(os.getenv("MOCK_MODE"))
+
+# Managed Agents — feature-flagged. Enabled when MANAGED_AGENTS=1 AND the IDs
+# were written by scripts/setup_managed_agents.py. Falls back silently to the
+# legacy in-process flow (kept intact for MOCK_MODE demo + reliability).
+MANAGED_AGENTS = bool(os.getenv("MANAGED_AGENTS")) and not MOCK_MODE
+MANAGED_ENV_ID = os.getenv("MANAGED_ENV_ID")
+REDTEAM_AGENT_ID = os.getenv("REDTEAM_AGENT_ID")
+MONITOR_AGENT_ID = os.getenv("MONITOR_AGENT_ID")
+REDTEAM_MANAGED_READY = bool(MANAGED_AGENTS and MANAGED_ENV_ID and REDTEAM_AGENT_ID)
+MONITOR_MANAGED_READY = bool(MANAGED_ENV_ID and MONITOR_AGENT_ID)  # monitor is user-triggered, works even if MANAGED_AGENTS flag off
+
 sessions: dict = {}
 
 # ---------------------------------------------------------------------------
@@ -415,6 +430,81 @@ async def _do_demo_answer(client: AsyncAnthropic, session: dict, reqs: list, que
 @app.get("/")
 async def index():
     return HTMLResponse(Path("static/index.html").read_text(encoding="utf-8"))
+
+
+# ─── Regulatory Monitor API ──────────────────────────────────────────────────
+# Subscribes a finished assessment to the long-running monitor agent.
+
+class SubscribeBody(BaseModel):
+    email: str
+    session_id: str
+
+
+@app.post("/api/subscribe")
+async def subscribe(body: SubscribeBody):
+    if not MONITOR_MANAGED_READY:
+        raise HTTPException(status_code=503, detail="Regulatory monitor is not configured. Run scripts/setup_managed_agents.py.")
+
+    session = sessions.get(body.session_id)
+    if not session or session.get("stage") != "complete":
+        raise HTTPException(status_code=404, detail="Assessment not found or not complete.")
+
+    findings = session.get("interview_findings") or {}
+    gaps = ((session.get("gap_analysis") or {}).get("gaps")) or []
+    open_gaps = [
+        {
+            "requirement": g.get("requirement") or g.get("name"),
+            "article_ref": g.get("article_ref") or g.get("article"),
+            "risk_level": g.get("risk_level"),
+            "status": g.get("status"),
+        }
+        for g in gaps
+        if (g.get("status") or "").lower() not in ("met", "spełnione", "spelnione")
+    ]
+
+    profile = profile_store.upsert_profile(
+        email=body.email,
+        sector=findings.get("sector"),
+        company_name=findings.get("company_name"),
+        language=session.get("language") or "en",
+        open_gaps=open_gaps,
+    )
+    return {"user_id": profile["user_id"], "subscribed": True}
+
+
+class MonitorRunBody(BaseModel):
+    user_id: str
+
+
+@app.post("/api/monitor/run")
+async def monitor_run(body: MonitorRunBody):
+    if not MONITOR_MANAGED_READY:
+        raise HTTPException(status_code=503, detail="Regulatory monitor is not configured.")
+    profile = profile_store.get_profile(body.user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found.")
+    client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    result = await run_managed_monitor(
+        client,
+        agent_id=MONITOR_AGENT_ID,
+        env_id=MANAGED_ENV_ID,
+        user_id=body.user_id,
+    )
+    return result
+
+
+@app.get("/api/alerts")
+async def list_alerts(user_id: str):
+    profile = profile_store.get_profile(user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found.")
+    return {
+        "user_id": user_id,
+        "company_name": profile.get("company_name"),
+        "email": profile.get("email"),
+        "last_check_iso": profile.get("last_check_iso"),
+        "alerts": profile.get("alerts") or [],
+    }
 
 
 @app.get("/report/{session_id}")
@@ -880,6 +970,10 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     await send({"type": "stage_change", "stage": "redteam", "label": "Audit Simulation"})
     session["stage"] = "redteam"
 
+    if REDTEAM_MANAGED_READY:
+        await _run_managed_audit(session, client, send)
+        return
+
     system = build_redteam_system(gaps, session["qualifier_result"], lang)
     seed = "Jestem gotowy na kontrolę." if lang == "pl" else "I'm ready for the inspection."
     session["messages"] = [{"role": "user", "content": seed}]
@@ -1015,6 +1109,75 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
     explanation = "\n\n".join(explanation_parts).strip()
     if explanation:
         await send({"type": "agent_message", "text": explanation, "stage": "remediation"})
+
+
+async def _run_managed_audit(session, client, send):
+    """Bridge: run the Managed-Agents redteam auditor, then continue into drafter.
+
+    The managed agent self-drives through its custom tools — we just stream its
+    steps to the UI and collect the terminal verdict.
+    """
+    lang = session["language"]
+    if lang == "pl":
+        opener = "Audytor otwiera akta. Za chwilę zacznie sprawdzać twoje luki względem Art. 21(2)..."
+    else:
+        opener = "The auditor opens the file. They'll now cross-reference your gaps against Article 21(2)..."
+    await send({"type": "agent_message", "text": opener, "stage": "redteam"})
+
+    try:
+        result = await run_managed_audit(
+            client,
+            agent_id=REDTEAM_AGENT_ID,
+            env_id=MANAGED_ENV_ID,
+            session_data={
+                "session_id": session["session_id"],
+                "language": lang,
+                "qualifier_result": session["qualifier_result"],
+                "gap_analysis": session["gap_analysis"],
+                "interview_findings": session["interview_findings"],
+            },
+            send_ws=send,
+        )
+    except Exception as exc:
+        print(f"[managed-audit] failed: {exc}")
+        await send({
+            "type": "agent_message",
+            "text": (
+                "Audytor miał problem techniczny. Kontynuuję bez pełnej symulacji audytu."
+                if lang == "pl" else
+                "The auditor hit a technical snag. Continuing without full audit simulation."
+            ),
+            "stage": "redteam",
+        })
+        session["redteam_result"] = {
+            "verdict": {"verdict": "WOULD FAIL AUDIT", "auditor_summary": "", "critical_failures": []},
+            "preparation": "",
+        }
+        session["stage"] = "draft"
+        await _run_drafter(session, client, send)
+        return
+
+    session["redteam_result"] = result
+
+    # Short human-readable summary for chat before we move to drafter
+    verdict_label = {
+        "WOULD FAIL AUDIT": "NIE PRZESZEDŁBY AUDYTU" if lang == "pl" else "WOULD FAIL AUDIT",
+        "WOULD PASS WITH CONDITIONS": "AUDYT POD WARUNKAMI" if lang == "pl" else "CONDITIONAL PASS",
+        "WOULD PASS AUDIT": "PRZESZEDŁBY AUDYT" if lang == "pl" else "WOULD PASS AUDIT",
+    }.get((result.get("verdict") or {}).get("verdict") or "", "WOULD FAIL AUDIT")
+    summary = (result.get("verdict") or {}).get("auditor_summary") or ""
+    await send({
+        "type": "agent_message",
+        "text": f"**{verdict_label}**\n\n{summary}",
+        "stage": "redteam",
+    })
+    await send({
+        "type": "agent_message",
+        "text": "─── Audit simulation complete. Preparing your full report... ───",
+        "stage": "redteam",
+    })
+    session["stage"] = "draft"
+    await _run_drafter(session, client, send)
 
 
 async def _run_drafter(session, client, send):

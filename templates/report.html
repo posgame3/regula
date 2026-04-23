@@ -19,8 +19,21 @@
   {% set t_date_label     = "Data" %}
   {% set t_company_label  = "Firma" %}
   {% set t_sector_label   = "Sektor" %}
-  {% set t_footer_left  = "Regula | Symulacja NIS2 | Punkt startowy do przeglądu prawnego" %}
-  {% set t_footer_right = "Wygenerowano: " ~ date ~ " | github.com/posgame3/regula" %}
+  {% set t_footer_left  = "Regula · Symulacja NIS2 · Punkt startowy do przeglądu prawnego" %}
+  {% set t_footer_right = "Wygenerowano: " ~ date ~ " · github.com/posgame3/regula" %}
+  {% set t_cover_kicker   = "NIS2 · COMPLIANCE · SIMULATION" %}
+  {% set t_cover_title    = "Ocena zgodności" %}
+  {% set t_cover_title_b  = "z dyrektywą NIS2" %}
+  {% set t_cover_sub      = "Raport symulacyjny — punkt startowy do przeglądu prawnego, nie dokument audytowy." %}
+  {% set t_sim_note       = "DOKUMENT SYMULACYJNY — nie jest to oficjalny protokół kontrolny" %}
+  {% set t_section_qual   = "PODSUMOWANIE KWALIFIKACJI" %}
+  {% set t_section_score  = "OCENA ZGODNOŚCI" %}
+  {% set t_section_gaps   = "ANALIZA LUK" %}
+  {% set t_section_prio   = "TRZY PRIORYTETY" %}
+  {% set t_section_audit  = "WYNIK SYMULACJI AUDYTU" %}
+  {% set t_section_threat = "SCENARIUSZE ATAKÓW" %}
+  {% set t_section_policy = "SZKICE POLITYK" %}
+  {% set t_of             = "z" %}
 {% else %}
   {% set t_requirement  = "Requirement" %}
   {% set t_status       = "Status" %}
@@ -39,8 +52,21 @@
   {% set t_date_label     = "Date" %}
   {% set t_company_label  = "Company" %}
   {% set t_sector_label   = "Sector" %}
-  {% set t_footer_left  = "Regula | NIS2 Simulation | Draft starting point for legal review" %}
-  {% set t_footer_right = "Generated: " ~ date ~ " | github.com/posgame3/regula" %}
+  {% set t_footer_left  = "Regula · NIS2 Simulation · Draft starting point for legal review" %}
+  {% set t_footer_right = "Generated: " ~ date ~ " · github.com/posgame3/regula" %}
+  {% set t_cover_kicker   = "NIS2 · COMPLIANCE · SIMULATION" %}
+  {% set t_cover_title    = "NIS2 Compliance" %}
+  {% set t_cover_title_b  = "Assessment" %}
+  {% set t_cover_sub      = "Simulation report — a draft starting point for legal review, not an official audit document." %}
+  {% set t_sim_note       = "SIMULATION DOCUMENT — this is not an official audit report" %}
+  {% set t_section_qual   = "QUALIFICATION SUMMARY" %}
+  {% set t_section_score  = "COMPLIANCE SCORE" %}
+  {% set t_section_gaps   = "GAP ANALYSIS" %}
+  {% set t_section_prio   = "TOP THREE PRIORITIES" %}
+  {% set t_section_audit  = "AUDIT SIMULATION VERDICT" %}
+  {% set t_section_threat = "ATTACK SCENARIOS" %}
+  {% set t_section_policy = "POLICY DRAFTS" %}
+  {% set t_of             = "of" %}
 {% endif %}
 
 {# ── Translation macros ── #}
@@ -124,307 +150,919 @@
   {%- endif -%}
 {%- endmacro -%}
 
+{# ── Status / risk → tag class mapping ── #}
+{%- macro risk_chip_class(r) -%}
+  {%- set rl = (r or 'low') | lower -%}
+  {%- if rl == 'critical' or rl == 'high' or rl == 'significant' -%}chip-signal
+  {%- elif rl == 'medium' -%}chip-warn
+  {%- else -%}chip-ok{%- endif -%}
+{%- endmacro -%}
+
+{%- macro status_chip_class(s) -%}
+  {%- set sl = (s or 'partial') | lower -%}
+  {%- if sl == 'missing' or sl == 'brak' -%}chip-signal
+  {%- elif sl == 'met' or sl == 'spełnione' or sl == 'spelnione' -%}chip-ok
+  {%- else -%}chip-warn{%- endif -%}
+{%- endmacro -%}
+
 <!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
   <meta charset="UTF-8">
   <style>
+    /* ── Fonts (local TTF files embedded into PDF) ── */
+    @font-face {
+      font-family: 'Archivo';
+      font-weight: 300;
+      src: url('static/fonts/Archivo-300.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'Archivo';
+      font-weight: 400;
+      src: url('static/fonts/Archivo-400.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'Archivo';
+      font-weight: 500;
+      src: url('static/fonts/Archivo-500.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'Archivo';
+      font-weight: 600;
+      src: url('static/fonts/Archivo-600.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'IBM Plex Mono';
+      font-weight: 400;
+      src: url('static/fonts/PlexMono-400.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'IBM Plex Mono';
+      font-weight: 500;
+      src: url('static/fonts/PlexMono-500.ttf') format('truetype');
+    }
+
+    /* ── Page geometry ── */
     @page {
       size: A4;
-      margin: 15mm 15mm 20mm 15mm;
+      margin: 18mm 16mm 18mm 16mm;
+      background: #FCFBF7;
       @bottom-left {
         content: "{{ t_footer_left }}";
-        font-size: 7pt;
-        color: #9ca3af;
-        font-family: "DejaVu Sans", Arial, sans-serif;
-        border-top: 1px solid #e2e8f0;
-        padding-top: 3px;
+        font-size: 7.5pt;
+        color: #9A9A95;
+        font-family: 'IBM Plex Mono', monospace;
+        letter-spacing: 0.04em;
       }
       @bottom-right {
         content: "{{ t_footer_right }}";
-        font-size: 7pt;
-        color: #9ca3af;
-        font-family: "DejaVu Sans", Arial, sans-serif;
-        border-top: 1px solid #e2e8f0;
-        padding-top: 3px;
+        font-size: 7.5pt;
+        color: #9A9A95;
+        font-family: 'IBM Plex Mono', monospace;
+        letter-spacing: 0.04em;
       }
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "DejaVu Sans", Arial, sans-serif;
-      font-size: 9.5pt;
-      color: #1e293b;
-      line-height: 1.4;
+    @page:first {
+      background: #FCFBF7;
+      @bottom-left { content: ""; }
+      @bottom-right { content: ""; }
     }
 
-    /* ── Page breaks ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+    html, body { background: #FCFBF7; color: #0A0A0A; }
+    body {
+      font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 9.5pt;
+      font-weight: 400;
+      line-height: 1.5;
+      letter-spacing: -0.005em;
+    }
+
+    /* ── Breaks ── */
     .page-break   { page-break-before: always; }
     .no-break     { page-break-inside: avoid; }
     .break-before { page-break-before: always; }
 
-    /* ── Header ── */
-    .header {
-      background: #0A2540;
-      color: white;
-      padding: 18px 22px;
-      margin-bottom: 20px;
+    /* ═══════════ COVER PAGE ═══════════ */
+    .cover {
+      page-break-after: always;
     }
-    .header-logo  { font-size: 20pt; font-weight: bold; letter-spacing: 5px; font-family: "DejaVu Sans", Arial, sans-serif; }
-    .header-title { font-size: 11pt; opacity: 0.8; margin-top: 3px; }
-    .header-sim   { font-size: 0.7em; text-transform: uppercase; color: #94a3b8; text-align: center; margin-top: 6px; letter-spacing: 0.5px; }
-    .header-meta  { font-size: 8pt; opacity: 0.65; margin-top: 8px; }
+    .cover-inner { }
 
-    /* ── Section headers ── */
-    .section { margin-bottom: 20px; }
-    .section-title-row { display: table; width: 100%; margin-bottom: 4px; }
-    .section-num {
+    .cover-sysbar {
+      display: table;
+      width: 100%;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #0A0A0A;
+    }
+    .cover-sysbar .cell {
       display: table-cell;
-      width: 40px;
-      height: 40px;
-      background: #B8922A;
-      color: white;
-      border-radius: 50%;
-      text-align: center;
-      vertical-align: middle;
-      font-size: 14pt;
-      font-weight: bold;
-      font-family: "DejaVu Sans", Arial, sans-serif;
-    }
-    .section-title-text {
-      display: table-cell;
-      font-size: 16pt;
-      font-weight: bold;
-      color: #0A2540;
-      text-transform: uppercase;
-      vertical-align: middle;
-      padding-left: 12px;
-      font-family: "DejaVu Sans", Arial, sans-serif;
-      letter-spacing: 0.5px;
-    }
-    .section-underline { border: none; border-top: 2px solid #B8922A; margin: 4px 0 8px 0; }
-
-    /* ── Badges ── */
-    .badge {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 10px;
-      font-size: 7pt;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-    .badge-critical   { background: #ef4444; color: white; }
-    .badge-high       { background: #f97316; color: white; }
-    .badge-medium     { background: #eab308; color: #1a1a2e; }
-    .badge-low        { background: #22c55e; color: white; }
-    .badge-adequate   { background: #22c55e; color: white; }
-    .badge-missing    { background: #ef4444; color: white; }
-    .badge-partial    { background: #f97316; color: white; }
-    .badge-fail       { background: #ef4444; color: white; }
-    .badge-pass       { background: #22c55e; color: white; }
-    .badge-conditions { background: #eab308; color: #1a1a2e; }
-
-    /* ── Qualification card (2-column) ── */
-    .qual-card { display: table; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; }
-    .qual-left  { display: table-cell; width: 55%; padding: 12px; vertical-align: top; border-right: 1px solid #e2e8f0; }
-    .qual-right { display: table-cell; width: 45%; padding: 12px; vertical-align: top; background: #f8fafc; }
-    .qual-item  { margin-bottom: 10px; }
-    .qual-item:last-child { margin-bottom: 0; }
-    .qual-key   { font-size: 8pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-    .qual-value { font-size: 11pt; color: #0A2540; font-weight: bold; line-height: 1.3; }
-    .qual-reasoning-label { font-size: 8pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .qual-reasoning-text  { font-size: 9pt; font-style: italic; color: #475569; background: #f1f5f9; padding: 8px; border-radius: 4px; line-height: 1.5; }
-
-    /* ── Score section ── */
-    .score-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 20px;
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .score-number { font-size: 72pt; font-weight: bold; line-height: 1; font-family: "DejaVu Sans", Arial, sans-serif; }
-    .score-label  { font-size: 14pt; color: #64748b; margin-top: 0; }
-    .score-pill   {
-      display: inline-block;
-      padding: 5px 18px;
-      border-radius: 20px;
+      width: 25%;
+      font-family: 'IBM Plex Mono', monospace;
       font-size: 9pt;
-      font-weight: bold;
-      text-transform: uppercase;
-      margin-top: 10px;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.04em;
+      color: #9A9A95;
+      vertical-align: middle;
     }
-    .score-headline  { font-size: 11pt; color: #475569; margin-top: 12px; font-style: italic; line-height: 1.5; }
-    .good-news-box   { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; font-size: 8.5pt; color: #16a34a; margin-top: 10px; }
+    .cover-sysbar .cell b { color: #0A0A0A; font-weight: 500; }
+    .cover-sysbar .brand {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 600;
+      font-size: 12pt;
+      color: #0A0A0A;
+      letter-spacing: -0.01em;
+    }
+    .cover-sysbar .align-right { text-align: right; }
 
-    /* ── Gap table ── */
-    .gap-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; table-layout: fixed; }
-    .gap-table th {
-      background: #0A2540;
-      color: white;
-      padding: 3px 5px;
-      text-align: left;
+    .cover-spacer { height: 60mm; }
+
+    .cover-kicker {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.14em;
+      color: #9A9A95;
+      margin-bottom: 18px;
+    }
+    .cover-kicker .dot { color: #E11B1B; margin: 0 4px; }
+
+    .cover-title {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 300;
+      font-size: 56pt;
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      color: #0A0A0A;
+      margin-bottom: 6mm;
+    }
+    .cover-title b {
+      font-weight: 600;
+      display: block;
+    }
+
+    .cover-sub {
+      font-family: 'Archivo', sans-serif;
+      font-size: 13pt;
+      font-weight: 400;
+      line-height: 1.45;
+      color: #2A2A28;
+      margin-bottom: 22mm;
+      max-width: 145mm;
+    }
+
+    .cover-meta {
+      width: 100%;
+      border-top: 1px solid #0A0A0A;
+    }
+    .cover-meta .row {
+      display: table;
+      width: 100%;
+      padding: 10px 0;
+      border-bottom: 1px solid #D8D4CA;
+    }
+    .cover-meta .row .k,
+    .cover-meta .row .v {
+      display: table-cell;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10pt;
+      letter-spacing: 0.02em;
+      vertical-align: middle;
+    }
+    .cover-meta .row .k {
+      width: 40%;
+      color: #9A9A95;
+      text-transform: uppercase;
+      font-size: 9pt;
+      letter-spacing: 0.08em;
+    }
+    .cover-meta .row .v {
+      color: #0A0A0A;
+      font-weight: 500;
+      text-align: right;
+    }
+
+    .cover-sim {
+      margin-top: 14mm;
+      padding: 10px 12px;
+      border-left: 2px solid #E11B1B;
+      background: #FBEAEA;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8.5pt;
+      letter-spacing: 0.04em;
+      color: #0A0A0A;
+    }
+    .cover-sim::before { content: "! "; color: #E11B1B; font-weight: 500; }
+
+    .cover-footer {
+      margin-top: 10mm;
+      padding-top: 10px;
+      border-top: 1px solid #0A0A0A;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8.5pt;
+      letter-spacing: 0.04em;
+      color: #9A9A95;
+    }
+    .cover-footer b { color: #0A0A0A; font-weight: 500; }
+
+    /* ═══════════ SECTION KICKERS ═══════════ */
+    .section {
+      margin-bottom: 18px;
+    }
+    .section-kicker {
+      display: table;
+      width: 100%;
+      padding: 14px 0 8px;
+      border-top: 1px solid #0A0A0A;
+      margin-bottom: 14px;
+    }
+    .section-kicker .idx {
+      display: table-cell;
+      width: 48px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.04em;
+      color: #E11B1B;
+      vertical-align: top;
+      padding-top: 4px;
+    }
+    .section-kicker .title {
+      display: table-cell;
+      font-family: 'Archivo', sans-serif;
+      font-weight: 500;
+      font-size: 22pt;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: #0A0A0A;
+      vertical-align: top;
+    }
+    .section-kicker .tag {
+      display: table-cell;
+      width: 120px;
+      text-align: right;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #9A9A95;
+      vertical-align: top;
+      padding-top: 8px;
+    }
+
+    /* ═══════════ SECTION 1: QUALIFICATION ═══════════ */
+    .qual-card {
+      display: table;
+      width: 100%;
+      border-top: 1px solid #0A0A0A;
+      border-bottom: 1px solid #0A0A0A;
+    }
+    .qual-left {
+      display: table-cell;
+      width: 55%;
+      padding: 14px 18px 14px 0;
+      vertical-align: top;
+      border-right: 1px solid #D8D4CA;
+    }
+    .qual-right {
+      display: table-cell;
+      width: 45%;
+      padding: 14px 0 14px 18px;
+      vertical-align: top;
+    }
+    .qual-item { margin-bottom: 12px; }
+    .qual-item:last-child { margin-bottom: 0; }
+    .qual-key {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      color: #9A9A95;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .qual-value {
+      font-family: 'Archivo', sans-serif;
+      font-size: 13pt;
+      font-weight: 500;
+      color: #0A0A0A;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+    }
+    .qual-value-mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      color: #2A2A28;
+      letter-spacing: 0.02em;
+    }
+    .qual-reasoning-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      color: #9A9A95;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    .qual-reasoning-text {
+      font-family: 'Archivo', sans-serif;
+      font-size: 10pt;
+      color: #0A0A0A;
+      line-height: 1.5;
+      border-left: 2px solid #E11B1B;
+      padding: 2px 0 2px 12px;
+    }
+
+    /* Pill (inline badge) */
+    .pill {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      font-weight: 500;
+    }
+    .pill-ink { background: #0A0A0A; color: #FCFBF7; }
+    .pill-signal { background: #E11B1B; color: #FCFBF7; }
+    .pill-ok { background: #2F7D34; color: #FCFBF7; }
+    .pill-warn { background: #C97A0C; color: #FCFBF7; }
+
+    .chip {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
       font-size: 7.5pt;
-      font-family: "DejaVu Sans", Arial, sans-serif;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      font-weight: 500;
+    }
+    .chip-signal { background: #FBEAEA; color: #E11B1B; }
+    .chip-warn { background: #FBF0DF; color: #C97A0C; }
+    .chip-ok { background: #E7F4E8; color: #2F7D34; }
+
+    /* ═══════════ SECTION 2: SCORE ═══════════ */
+    .score-wrap {
+      display: table;
+      width: 100%;
+      border-top: 1px solid #0A0A0A;
+      border-bottom: 1px solid #0A0A0A;
+      padding: 18px 0;
+    }
+    .score-left {
+      display: table-cell;
+      width: 42%;
+      vertical-align: middle;
+      padding-right: 18px;
+      border-right: 1px solid #D8D4CA;
+    }
+    .score-right {
+      display: table-cell;
+      width: 58%;
+      vertical-align: middle;
+      padding-left: 18px;
+    }
+    .score-number {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 300;
+      font-size: 84pt;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      color: #0A0A0A;
+    }
+    .score-number .slash {
+      font-size: 28pt;
+      color: #9A9A95;
+      font-weight: 300;
+      vertical-align: 28pt;
+      margin-left: 4px;
+      letter-spacing: -0.02em;
+    }
+    .score-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #9A9A95;
+      margin-top: 6px;
+    }
+    .score-risk-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #9A9A95;
+      margin-bottom: 8px;
+    }
+    .score-headline {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 400;
+      font-size: 14pt;
+      line-height: 1.3;
+      letter-spacing: -0.015em;
+      color: #0A0A0A;
+      margin-top: 10px;
+    }
+    .good-news-box {
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: #E7F4E8;
+      border-left: 2px solid #2F7D34;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      color: #2F7D34;
+      letter-spacing: 0.02em;
+    }
+    .good-news-box::before { content: "✓ "; font-weight: 500; }
+
+    /* ═══════════ SECTION 3: GAP TABLE ═══════════ */
+    .gap-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8pt;
+      table-layout: fixed;
+    }
+    .gap-table th {
+      background: #0A0A0A;
+      color: #FCFBF7;
+      padding: 8px 8px;
+      text-align: left;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      border: none;
     }
     .gap-table td {
-      padding: 3px 5px;
-      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 8px;
+      border-bottom: 1px solid #D8D4CA;
       vertical-align: top;
-      font-size: 7.5pt;
-      line-height: 1.25;
+      font-size: 8.5pt;
+      line-height: 1.35;
       word-wrap: break-word;
       overflow-wrap: break-word;
       hyphens: auto;
       -webkit-hyphens: auto;
+      color: #0A0A0A;
     }
-    .gap-req-name    { font-weight: bold; font-size: 8pt; }
-    .gap-req-article { font-size: 7pt; color: #64748b; margin-top: 2px; }
-    .gap-todo        { max-height: 3.9em; overflow: hidden; }
-    .row-critical    { background: #fee2e2; }
-    .row-high        { background: #ffedd5; }
-    .row-medium      { background: #fefce8; }
-    .row-low         { background: #f0fdf4; }
-    .row-adequate    { background: #f0fdf4; }
+    .gap-req-name {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 500;
+      font-size: 9pt;
+      letter-spacing: -0.01em;
+      color: #0A0A0A;
+    }
+    .gap-req-article {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 7.5pt;
+      color: #9A9A95;
+      margin-top: 3px;
+      letter-spacing: 0.02em;
+    }
+    .gap-todo {
+      font-family: 'Archivo', sans-serif;
+      font-size: 8.5pt;
+      color: #2A2A28;
+      max-height: 4.2em;
+      overflow: hidden;
+    }
+    .gap-cell-mono {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      color: #2A2A28;
+      letter-spacing: 0.02em;
+      hyphens: none;
+      -webkit-hyphens: none;
+      word-break: normal;
+    }
+    .abbr-legend {
+      margin-top: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 7.5pt;
+      color: #9A9A95;
+      letter-spacing: 0.04em;
+    }
 
-    /* ── Gap status chips ── */
-    .gap-status-missing { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 7pt; font-weight: bold; background: #FEE2E2; color: #991B1B; }
-    .gap-status-partial { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 7pt; font-weight: bold; background: #FEF3C7; color: #92400E; }
-    .gap-status-met     { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 7pt; font-weight: bold; background: #D1FAE5; color: #065F46; }
-
-    /* ── Gap risk text ── */
-    .gap-risk-critical { color: #dc2626; font-weight: bold; }
-    .gap-risk-high     { color: #d97706; font-weight: bold; }
-    .gap-risk-medium   { color: #64748b; }
-
-    /* ── Priority actions ── */
+    /* ═══════════ SECTION 4: PRIORITY ACTIONS ═══════════ */
+    .priority-list { border-top: 1px solid #0A0A0A; }
     .priority-item {
       display: table;
       width: 100%;
-      padding: 10px 0;
-      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 0;
+      border-bottom: 1px solid #D8D4CA;
     }
-    .priority-item:last-child { border-bottom: none; }
-    .priority-badge-cell { display: table-cell; width: 34px; vertical-align: top; padding-top: 2px; }
-    .priority-badge {
-      display: inline-block;
-      width: 26px;
-      height: 26px;
-      background: #ef4444;
-      color: white;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 26px;
-      font-weight: bold;
+    .priority-num {
+      display: table-cell;
+      width: 60px;
+      font-family: 'IBM Plex Mono', monospace;
       font-size: 10pt;
-      font-family: "DejaVu Sans", Arial, sans-serif;
+      letter-spacing: 0.04em;
+      color: #E11B1B;
+      vertical-align: top;
+      padding-top: 2px;
     }
-    .priority-content { display: table-cell; padding-left: 8px; vertical-align: top; overflow: hidden; }
-    .priority-action  { font-weight: bold; font-size: 9.5pt; color: #0A2540; line-height: 1.35; }
-    .priority-explain { font-size: 9pt; color: #475569; margin-top: 2px; line-height: 1.35; }
-    .priority-meta    { font-size: 7.5pt; color: #94a3b8; margin-top: 4px; }
-
-    /* ── Audit Verdict ── */
-    .verdict-fail       { border: 2px solid #fecaca; border-radius: 8px; padding: 14px; background: #fef2f2; }
-    .verdict-pass       { border: 2px solid #bbf7d0; border-radius: 8px; padding: 14px; background: #f0fdf4; }
-    .verdict-conditions { border: 2px solid #fde68a; border-radius: 8px; padding: 14px; background: #fffbeb; }
-    .verdict-headline            { font-size: 24pt; font-weight: bold; color: #dc2626; text-align: center; margin-bottom: 10px; font-family: "DejaVu Sans", Arial, sans-serif; }
-    .verdict-headline-pass       { font-size: 24pt; font-weight: bold; color: #16a34a; text-align: center; margin-bottom: 10px; font-family: "DejaVu Sans", Arial, sans-serif; }
-    .verdict-headline-conditions { font-size: 24pt; font-weight: bold; color: #92400E; text-align: center; margin-bottom: 10px; font-family: "DejaVu Sans", Arial, sans-serif; }
-    .verdict-summary { font-size: 8.5pt; color: #475569; margin-top: 8px; line-height: 1.4; }
-    .failures-label  { font-weight: bold; font-size: 8.5pt; margin-bottom: 4px; color: #dc2626; margin-top: 10px; }
-    .failures-list   { margin: 0; padding-left: 0; list-style: none; }
-    .failures-list li {
-      padding: 3px 0 3px 18px;
-      font-size: 9pt;
-      position: relative;
-      max-height: 3em;
-      overflow: hidden;
-      line-height: 1.4;
+    .priority-content { display: table-cell; vertical-align: top; }
+    .priority-action {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 500;
+      font-size: 13pt;
+      line-height: 1.3;
+      letter-spacing: -0.015em;
+      color: #0A0A0A;
     }
-    .failures-list li:before { content: "\2717"; position: absolute; left: 0; color: #ef4444; font-weight: bold; }
-
-    /* ── Scenarios ── */
-    .scenario-box {
-      border: 1px solid #fecaca;
-      border-radius: 6px;
-      padding: 10px 12px;
-      margin-bottom: 10px;
-      background: #fff5f5;
-    }
-    .scenario-hdr        { display: table; width: 100%; margin-bottom: 5px; }
-    .scenario-title-cell { display: table-cell; font-weight: bold; font-size: 9.5pt; color: #991b1b; vertical-align: top; }
-    .scenario-badge-cell { display: table-cell; text-align: right; vertical-align: top; white-space: nowrap; }
-    .scenario-chain      { font-size: 8pt; color: #475569; margin-bottom: 3px; }
-    .scenario-chain strong { color: #1e293b; }
-    .scenario-fix {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      padding: 5px 8px;
-      border-radius: 4px;
-      font-size: 8pt;
-      color: #166534;
+    .priority-explain {
+      font-family: 'Archivo', sans-serif;
+      font-size: 10pt;
+      line-height: 1.45;
+      color: #2A2A28;
       margin-top: 6px;
     }
 
-    /* ── Prob badges ── */
-    .badge-high-prob   { background: #ef4444; color: white; }
-    .badge-medium-prob { background: #f97316; color: white; }
-    .badge-low-prob    { background: #eab308; color: #1a1a2e; }
+    /* ═══════════ SECTION 5: AUDIT VERDICT ═══════════ */
+    .verdict-block {
+      padding: 18px 20px;
+      border-top: 1px solid #0A0A0A;
+      border-bottom: 1px solid #0A0A0A;
+      border-left: 4px solid #E11B1B;
+      background: #FBEAEA;
+    }
+    .verdict-pass {
+      border-left-color: #2F7D34;
+      background: #E7F4E8;
+    }
+    .verdict-conditions {
+      border-left-color: #C97A0C;
+      background: #FBF0DF;
+    }
+    .verdict-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #9A9A95;
+      margin-bottom: 6px;
+    }
+    .verdict-headline {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 600;
+      font-size: 22pt;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: #E11B1B;
+    }
+    .verdict-pass .verdict-headline { color: #2F7D34; }
+    .verdict-conditions .verdict-headline { color: #C97A0C; }
+    .verdict-summary {
+      font-family: 'Archivo', sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #0A0A0A;
+      margin-top: 10px;
+    }
+    .failures-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9A9A95;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    .failures-list {
+      margin: 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .failures-list li {
+      position: relative;
+      padding: 6px 0 6px 22px;
+      font-family: 'Archivo', sans-serif;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: #0A0A0A;
+      border-bottom: 1px dotted #D8D4CA;
+    }
+    .failures-list li:last-child { border-bottom: none; }
+    .failures-list li::before {
+      content: "✗";
+      position: absolute;
+      left: 0;
+      top: 6px;
+      color: #E11B1B;
+      font-weight: 500;
+    }
+    .verdict-pass .failures-list li::before { content: "✓"; color: #2F7D34; }
+    .prep-block {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid #D8D4CA;
+      font-family: 'Archivo', sans-serif;
+      font-size: 10pt;
+      color: #2A2A28;
+      line-height: 1.5;
+    }
+    .prep-block b {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8.5pt;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9A9A95;
+      font-weight: 500;
+      display: block;
+      margin-bottom: 4px;
+    }
 
-    /* ── Policies ── */
-    .policy-box        { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; }
-    .policy-title      { font-weight: bold; font-size: 10pt; color: #0A2540; margin-bottom: 5px; }
-    .policy-why        { font-size: 8pt; color: #64748b; margin-bottom: 6px; font-style: italic; }
-    .policy-rules      { padding-left: 0; list-style: none; counter-reset: rule-counter; }
-    .policy-rules li   { counter-increment: rule-counter; padding: 3px 0 3px 20px; font-size: 8.5pt; position: relative; }
-    .policy-rules li:before { content: counter(rule-counter) "."; position: absolute; left: 0; font-weight: bold; color: #0A2540; }
-    .policy-meta       { font-size: 7.5pt; color: #64748b; margin-top: 6px; }
-    .policy-disclaimer { font-size: 7pt; color: #94a3b8; margin-top: 4px; font-style: italic; }
+    /* ═══════════ SECTION 6: THREAT SCENARIOS ═══════════ */
+    .threat-summary {
+      padding: 10px 14px;
+      border-left: 2px solid #E11B1B;
+      background: #FBEAEA;
+      font-family: 'Archivo', sans-serif;
+      font-size: 10pt;
+      color: #0A0A0A;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .scenario-box {
+      border: 1px solid #0A0A0A;
+      margin-bottom: 14px;
+      background: #FCFBF7;
+    }
+    .scenario-head {
+      background: #0A0A0A;
+      color: #FCFBF7;
+      padding: 8px 12px;
+      display: table;
+      width: 100%;
+    }
+    .scenario-head .title {
+      display: table-cell;
+      font-family: 'Archivo', sans-serif;
+      font-weight: 500;
+      font-size: 11pt;
+      letter-spacing: -0.01em;
+      color: #FCFBF7;
+      vertical-align: middle;
+    }
+    .scenario-head .badge-cell {
+      display: table-cell;
+      text-align: right;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .scenario-gap {
+      padding: 8px 14px;
+      border-bottom: 1px solid #D8D4CA;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8.5pt;
+      color: #E11B1B;
+      letter-spacing: 0.04em;
+    }
+    .scenario-row {
+      padding: 8px 14px;
+      border-bottom: 1px dotted #D8D4CA;
+      font-family: 'Archivo', sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.45;
+      color: #0A0A0A;
+    }
+    .scenario-row:last-of-type { border-bottom: none; }
+    .scenario-row .label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #9A9A95;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .scenario-fix {
+      padding: 10px 14px;
+      background: #E7F4E8;
+      border-top: 1px solid #2F7D34;
+      font-family: 'Archivo', sans-serif;
+      font-size: 9.5pt;
+      color: #0A0A0A;
+      line-height: 1.45;
+    }
+    .scenario-fix .fix-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #2F7D34;
+      font-weight: 500;
+      margin-right: 6px;
+    }
+    .scenario-fix .effort {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8.5pt;
+      color: #2F7D34;
+    }
 
-    /* ── Section separator ── */
-    .section-hr { border: none; border-top: 1.5px solid #cbd5e1; margin: 4px 0 18px 0; }
+    /* ═══════════ SECTION 7: POLICIES ═══════════ */
+    .policy-box {
+      border: 1px solid #0A0A0A;
+      margin-bottom: 14px;
+      background: #FCFBF7;
+    }
+    .policy-head {
+      background: #0A0A0A;
+      color: #FCFBF7;
+      padding: 8px 14px;
+      display: table;
+      width: 100%;
+    }
+    .policy-head .label {
+      display: table-cell;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #9A9A95;
+      vertical-align: middle;
+      width: 90px;
+    }
+    .policy-head .title {
+      display: table-cell;
+      font-family: 'Archivo', sans-serif;
+      font-weight: 500;
+      font-size: 12pt;
+      letter-spacing: -0.01em;
+      color: #FCFBF7;
+      vertical-align: middle;
+    }
+    .policy-why {
+      padding: 10px 14px;
+      font-family: 'Archivo', sans-serif;
+      font-size: 10pt;
+      color: #2A2A28;
+      line-height: 1.45;
+      border-bottom: 1px solid #D8D4CA;
+    }
+    .policy-rules {
+      padding: 10px 14px 14px;
+      list-style: none;
+      counter-reset: rule-counter;
+    }
+    .policy-rules li {
+      counter-increment: rule-counter;
+      padding: 5px 0 5px 26px;
+      position: relative;
+      font-family: 'Archivo', sans-serif;
+      font-size: 10pt;
+      line-height: 1.5;
+      color: #0A0A0A;
+      border-bottom: 1px dotted #D8D4CA;
+    }
+    .policy-rules li:last-child { border-bottom: none; }
+    .policy-rules li::before {
+      content: counter(rule-counter, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      top: 5px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9pt;
+      color: #E11B1B;
+      letter-spacing: 0.02em;
+    }
+    .policy-meta {
+      padding: 10px 14px;
+      border-top: 1px solid #D8D4CA;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8.5pt;
+      letter-spacing: 0.02em;
+      color: #9A9A95;
+    }
+    .policy-meta b {
+      color: #0A0A0A;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 8pt;
+    }
+    .policy-disclaimer {
+      padding: 8px 14px;
+      background: #FBF0DF;
+      border-top: 1px solid #C97A0C;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt;
+      color: #C97A0C;
+      letter-spacing: 0.02em;
+      line-height: 1.45;
+    }
+
+    /* ═══════════ MARKDOWN fallback for redteam_html ═══════════ */
+    .md-block {
+      font-family: 'Archivo', sans-serif;
+      font-size: 10pt;
+      line-height: 1.55;
+      color: #0A0A0A;
+      padding: 14px 16px;
+      border-top: 1px solid #0A0A0A;
+      border-bottom: 1px solid #0A0A0A;
+    }
+    .md-block h1, .md-block h2, .md-block h3 {
+      font-family: 'Archivo', sans-serif;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: #0A0A0A;
+      margin-top: 10px;
+      margin-bottom: 6px;
+    }
+    .md-block h1 { font-size: 14pt; }
+    .md-block h2 { font-size: 12pt; }
+    .md-block h3 { font-size: 11pt; }
+    .md-block p  { margin: 6px 0; }
+    .md-block ul, .md-block ol { padding-left: 20px; margin: 6px 0; }
+    .md-block li { margin: 3px 0; }
+    .md-block strong { font-weight: 600; }
+    .md-block em { font-style: italic; color: #2A2A28; }
+    .md-block table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    .md-block th {
+      background: #0A0A0A; color: #FCFBF7;
+      padding: 6px 8px; text-align: left;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8pt; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .md-block td {
+      padding: 6px 8px; border-bottom: 1px solid #D8D4CA;
+      font-size: 9pt;
+    }
   </style>
 </head>
 <body>
 
-<!-- ── HEADER ── -->
-<div class="header">
-  <div class="header-logo">REGULA</div>
-  <div class="header-title">NIS2 Compliance Assessment Report</div>
-  <div class="header-sim">{% if is_pl %}DOKUMENT SYMULACYJNY — nie jest to oficjalny protokół kontrolny{% else %}SIMULATION DOCUMENT — this is not an official audit report{% endif %}</div>
-  <div class="header-meta">
-    {{ t_date_label }}: {{ date }}
-    {% if session.interview_findings and session.interview_findings.company_name and session.interview_findings.company_name != 'Unknown' %}
-    &nbsp;·&nbsp; {{ t_company_label }}: {{ session.interview_findings.company_name }}
-    {% endif %}
-    {% if session.interview_findings and session.interview_findings.sector %}
-    &nbsp;·&nbsp; {{ t_sector_label }}: {{ session.interview_findings.sector }}
-    {% endif %}
+<!-- ═══════════ COVER PAGE ═══════════ -->
+<div class="cover">
+  <div class="cover-inner">
+    <div class="cover-sysbar">
+      <div class="cell brand">REGULA</div>
+      <div class="cell">REF <b>NIS2-{{ date|replace('-', '') }}</b></div>
+      <div class="cell">REGION <b>EU · {% if is_pl %}PL{% else %}EN{% endif %}</b></div>
+      <div class="cell align-right">{{ t_date_label }} <b>{{ date }}</b></div>
+    </div>
+
+    <div class="cover-spacer"></div>
+
+    <div class="cover-kicker">
+      {% if is_pl %}NIS2<span class="dot">●</span>ZGODNOŚĆ<span class="dot">●</span>SYMULACJA
+      {% else %}NIS2<span class="dot">●</span>COMPLIANCE<span class="dot">●</span>SIMULATION{% endif %}
+    </div>
+
+    <div class="cover-title">
+      {{ t_cover_title }}<b>{{ t_cover_title_b }}</b>
+    </div>
+
+    <div class="cover-sub">{{ t_cover_sub }}</div>
+
+    <div class="cover-meta">
+      <div class="row">
+        <div class="k">{{ t_date_label }}</div>
+        <div class="v">{{ date }}</div>
+      </div>
+      {% if session.interview_findings and session.interview_findings.company_name and session.interview_findings.company_name != 'Unknown' %}
+      <div class="row">
+        <div class="k">{{ t_company_label }}</div>
+        <div class="v">{{ session.interview_findings.company_name }}</div>
+      </div>
+      {% endif %}
+      {% if session.interview_findings and session.interview_findings.sector %}
+      <div class="row">
+        <div class="k">{{ t_sector_label }}</div>
+        <div class="v">{{ session.interview_findings.sector }}</div>
+      </div>
+      {% endif %}
+      {% if session.qualifier_result and session.qualifier_result.scope %}
+      <div class="row">
+        <div class="k">{{ t_entity_type }}</div>
+        <div class="v">{{ translate_scope(session.qualifier_result.scope) }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="cover-sim">{{ t_sim_note }}</div>
+
+    <div class="cover-footer">
+      {% if is_pl %}Regula <b>·</b> doradca NIS2 <b>·</b> github.com/posgame3/regula
+      {% else %}Regula <b>·</b> NIS2 advisor <b>·</b> github.com/posgame3/regula{% endif %}
+    </div>
   </div>
 </div>
 
-<!-- ── SECTION 1: QUALIFICATION ── -->
+<!-- ═══════════ SECTION 1: QUALIFICATION ═══════════ -->
 {% if session.qualifier_result %}
 <div class="section no-break">
-  <div class="section-title-row">
-    <div class="section-num">1</div>
-    <div class="section-title-text">{% if is_pl %}Podsumowanie kwalifikacji{% else %}Qualification Summary{% endif %}</div>
+  <div class="section-kicker">
+    <div class="idx">[ 01 ]</div>
+    <div class="title">{% if is_pl %}Podsumowanie kwalifikacji{% else %}Qualification Summary{% endif %}</div>
+    <div class="tag">{{ t_section_qual }}</div>
   </div>
-  <hr class="section-underline">
   <div class="qual-card">
     <div class="qual-left">
       <div class="qual-item">
         <div class="qual-key">{{ t_nis2_applies }}</div>
         <div class="qual-value">
           {% if session.qualifier_result.applies %}
-            <span class="badge badge-fail">{{ t_yes }}</span>
+            <span class="pill pill-signal">{{ t_yes }}</span>
           {% else %}
-            <span class="badge badge-pass">{{ t_no }}</span>
+            <span class="pill pill-ok">{{ t_no }}</span>
           {% endif %}
         </div>
       </div>
@@ -438,7 +1076,7 @@
       </div>
       <div class="qual-item">
         <div class="qual-key">{{ t_article_ref }}</div>
-        <div class="qual-value" style="font-size: 9pt;">Directive (EU) 2022/2555, Art. 21</div>
+        <div class="qual-value-mono">Directive (EU) 2022/2555, Art. 21</div>
       </div>
     </div>
     <div class="qual-right">
@@ -446,14 +1084,14 @@
       {% if session.qualifier_result.reasoning %}
       <div class="qual-reasoning-text">{{ session.qualifier_result.reasoning }}</div>
       {% else %}
-      <div class="qual-reasoning-text" style="color: #94a3b8;">—</div>
+      <div class="qual-reasoning-text" style="color: #9A9A95;">—</div>
       {% endif %}
     </div>
   </div>
 </div>
 {% endif %}
 
-<!-- ── SECTION 2: COMPLIANCE SCORE ── -->
+<!-- ═══════════ SECTION 2: COMPLIANCE SCORE ═══════════ -->
 {% if session.gap_analysis %}
 {% set ns = namespace(score=0) %}
 {% if session.board_slides and session.board_slides.slides %}
@@ -463,141 +1101,132 @@
 {% endif %}
 
 {% set risk = (session.gap_analysis.overall_risk or 'medium') | lower %}
-{% if risk == 'critical' %}{% set gauge_color = '#ef4444' %}{% set pill_bg = '#fee2e2' %}{% set pill_color = '#991b1b' %}
-{% elif risk == 'high' %}{% set gauge_color = '#f97316' %}{% set pill_bg = '#ffedd5' %}{% set pill_color = '#9a3412' %}
-{% elif risk == 'medium' %}{% set gauge_color = '#eab308' %}{% set pill_bg = '#fefce8' %}{% set pill_color = '#713f12' %}
-{% else %}{% set gauge_color = '#22c55e' %}{% set pill_bg = '#f0fdf4' %}{% set pill_color = '#166534' %}{% endif %}
-
-{% if ns.score < 40 %}{% set score_color = '#ef4444' %}
-{% elif ns.score < 70 %}{% set score_color = '#f97316' %}
-{% else %}{% set score_color = '#22c55e' %}{% endif %}
+{% if risk == 'critical' or risk == 'high' %}{% set score_color = '#E11B1B' %}{% set chip_cls = 'chip-signal' %}
+{% elif risk == 'medium' %}{% set score_color = '#C97A0C' %}{% set chip_cls = 'chip-warn' %}
+{% else %}{% set score_color = '#2F7D34' %}{% set chip_cls = 'chip-ok' %}{% endif %}
 
 <div class="section no-break">
-  <div class="section-title-row">
-    <div class="section-num">2</div>
-    <div class="section-title-text">{% if is_pl %}Ocena zgodności{% else %}Compliance Score{% endif %}</div>
+  <div class="section-kicker">
+    <div class="idx">[ 02 ]</div>
+    <div class="title">{% if is_pl %}Ocena zgodności{% else %}Compliance Score{% endif %}</div>
+    <div class="tag">{{ t_section_score }}</div>
   </div>
-  <hr class="section-underline">
-  <div class="score-box">
-    <div class="score-number" style="color: {{ score_color }};">{{ ns.score }}</div>
-    <div class="score-label">/ 100</div>
-    <div>
-      <span class="score-pill" style="background: {{ pill_bg }}; color: {{ pill_color }}; border: 1px solid {{ gauge_color }};">
-        {{ t_overall_risk }}: {{ translate_risk(risk) }}
-      </span>
+  <div class="score-wrap">
+    <div class="score-left">
+      <div class="score-number" style="color: {{ score_color }};">
+        {{ ns.score }}<span class="slash">/100</span>
+      </div>
+      <div class="score-label">{% if is_pl %}Ocena ogólna{% else %}Overall Score{% endif %}</div>
     </div>
-    {% if session.gap_analysis.headline %}
-    <div class="score-headline">{{ session.gap_analysis.headline }}</div>
-    {% endif %}
+    <div class="score-right">
+      <div class="score-risk-label">{{ t_overall_risk }}</div>
+      <span class="chip {{ chip_cls }}">{{ translate_risk(risk) }}</span>
+      {% if session.gap_analysis.headline %}
+      <div class="score-headline">{{ session.gap_analysis.headline }}</div>
+      {% endif %}
+    </div>
   </div>
   {% if session.gap_analysis.good_news %}
-  <div class="good-news-box">&#10003; {{ session.gap_analysis.good_news }}</div>
+  <div class="good-news-box">{{ session.gap_analysis.good_news }}</div>
   {% endif %}
 </div>
 {% endif %}
 
-<!-- ── SECTION 3: GAP ANALYSIS TABLE ── -->
+<!-- ═══════════ SECTION 3: GAP ANALYSIS TABLE ═══════════ -->
 {% if session.gap_analysis and session.gap_analysis.gaps %}
 <div class="section break-before">
-  <div class="section-title-row">
-    <div class="section-num">3</div>
-    <div class="section-title-text">{% if is_pl %}Analiza luk{% else %}Gap Analysis{% endif %}</div>
+  <div class="section-kicker">
+    <div class="idx">[ 03 ]</div>
+    <div class="title">{% if is_pl %}Analiza luk{% else %}Gap Analysis{% endif %}</div>
+    <div class="tag">{{ t_section_gaps }}</div>
   </div>
-  <hr class="section-underline">
   <table class="gap-table">
     <thead>
       <tr>
-        <th style="width:28%;">{{ t_requirement }}</th>
+        <th style="width:24%;">{{ t_requirement }}</th>
         <th style="width:9%;">{{ t_status }}</th>
         <th style="width:9%;">{{ t_risk }}</th>
         <th style="width:36%;">{{ t_what_to_do }}</th>
-        <th style="width:8%;">{{ t_effort }}</th>
-        <th style="width:10%;">{{ t_cost }}</th>
+        <th style="width:9%;">{{ t_effort }}</th>
+        <th style="width:13%;">{{ t_cost }}</th>
       </tr>
     </thead>
     <tbody>
       {% for gap in session.gap_analysis.gaps %}
-      {% set rl = (gap.risk_level or 'low') | lower %}
-      {% set s = (gap.status or 'partial') | lower %}
-      {% if s == 'missing' or s == 'brak' %}{% set scls = 'missing' %}
-      {% elif s == 'met' or s == 'spełnione' or s == 'spelnione' %}{% set scls = 'met' %}
-      {% else %}{% set scls = 'partial' %}{% endif %}
-      {% if rl == 'critical' %}{% set rcls = 'gap-risk-critical' %}
-      {% elif rl == 'high' or rl == 'significant' %}{% set rcls = 'gap-risk-high' %}
-      {% else %}{% set rcls = 'gap-risk-medium' %}{% endif %}
-      <tr class="row-{{ rl }}">
+      <tr>
         <td>
-          <div class="gap-req-name">{{ gap.requirement or '' }}</div>
-          {% if gap.article_ref %}<div class="gap-req-article">{{ gap.article_ref }}</div>{% endif %}
+          <div class="gap-req-name">{{ gap.requirement or gap.name or '' }}</div>
+          {% if gap.article_ref or gap.article %}<div class="gap-req-article">{{ gap.article_ref or gap.article }}</div>{% endif %}
         </td>
-        <td><span class="gap-status-{{ scls }}">{{ abbr_status(gap.status or 'partial') }}</span></td>
-        <td><span class="{{ rcls }}">{{ abbr_risk(rl) }}</span></td>
-        <td><div class="gap-todo">{{ gap.what_to_do or '' }}</div></td>
-        <td>{{ gap.estimated_effort or '—' }}</td>
-        <td>{{ gap.cost_short or '—' }}</td>
+        <td><span class="chip {{ status_chip_class(gap.status or 'partial') }}">{{ abbr_status(gap.status or 'partial') }}</span></td>
+        <td><span class="chip {{ risk_chip_class(gap.risk_level or 'low') }}">{{ abbr_risk(gap.risk_level or 'low') }}</span></td>
+        <td><div class="gap-todo">{{ gap.what_to_do or gap.business_impact or '' }}</div></td>
+        <td><div class="gap-cell-mono">{{ gap.estimated_effort or '—' }}</div></td>
+        <td><div class="gap-cell-mono">{{ gap.cost_short or '—' }}</div></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% if is_pl %}
-  <p style="font-size: 6.5pt; color: #64748b; margin-top: 4px;">* KRYT. = Krytyczny | CZĘŚĆ. = Częściowe | ISTOT. = Istotny | WYS. = Wysoki | NISK. = Niski</p>
+  <div class="abbr-legend">KRYT. = Krytyczny · WYS. = Wysoki · ISTOT. = Istotny · ŚRED. = Średni · NISK. = Niski · CZĘŚĆ. = Częściowe · SPEŁ. = Spełnione</div>
   {% endif %}
 </div>
 {% endif %}
 
-<!-- ── SECTION 4: TOP 3 PRIORITY ACTIONS ── -->
+<!-- ═══════════ SECTION 4: TOP 3 PRIORITY ACTIONS ═══════════ -->
 {% if session.gap_analysis and session.gap_analysis.priority_3 %}
-<div class="section break-before no-break">
-  <div class="section-title-row">
-    <div class="section-num">4</div>
-    <div class="section-title-text">{% if is_pl %}3 Priorytety{% else %}Top 3 Priority Actions{% endif %}</div>
+<div class="section no-break">
+  <div class="section-kicker">
+    <div class="idx">[ 04 ]</div>
+    <div class="title">{% if is_pl %}Trzy priorytety{% else %}Top 3 Priorities{% endif %}</div>
+    <div class="tag">{{ t_section_prio }}</div>
   </div>
-  <hr class="section-underline">
-  {% for action in session.gap_analysis.priority_3[:3] %}
-  {% set a = action if action|length <= 300 else action[:300] + '...' %}
-  {% set parts = a.split('. ') %}
-  <div class="priority-item">
-    <div class="priority-badge-cell">
-      <div class="priority-badge">{{ loop.index }}</div>
+  <div class="priority-list">
+    {% for action in session.gap_analysis.priority_3[:3] %}
+    {% set a = action if action|length <= 320 else action[:320] + '...' %}
+    {% set parts = a.split('. ') %}
+    <div class="priority-item">
+      <div class="priority-num">{{ '%02d' | format(loop.index) }}</div>
+      <div class="priority-content">
+        {% if parts|length > 1 %}
+        <div class="priority-action">{{ parts[0] }}.</div>
+        <div class="priority-explain">{{ parts[1:] | join('. ') }}</div>
+        {% else %}
+        <div class="priority-action">{{ a }}</div>
+        {% endif %}
+      </div>
     </div>
-    <div class="priority-content">
-      {% if parts|length > 1 %}
-      <div class="priority-action">{{ parts[0] }}.</div>
-      <div class="priority-explain">{{ parts[1:] | join('. ') }}</div>
-      {% else %}
-      <div class="priority-action">{{ a }}</div>
-      {% endif %}
-    </div>
+    {% endfor %}
   </div>
-  {% endfor %}
 </div>
 {% endif %}
 
-<!-- ── SECTION 5: AUDIT SIMULATION RESULT ── -->
+<!-- ═══════════ SECTION 5: AUDIT SIMULATION VERDICT ═══════════ -->
 {% if redteam_html %}
 <div class="section break-before no-break">
-  <div class="section-title-row">
-    <div class="section-num">5</div>
-    <div class="section-title-text">{% if is_pl %}Wynik symulacji audytu{% else %}Audit Simulation Verdict{% endif %}</div>
+  <div class="section-kicker">
+    <div class="idx">[ 05 ]</div>
+    <div class="title">{% if is_pl %}Wynik symulacji audytu{% else %}Audit Simulation Verdict{% endif %}</div>
+    <div class="tag">{{ t_section_audit }}</div>
   </div>
-  <hr class="section-underline">
-  <div style="font-size: 8.5pt; color: #334155;">{{ redteam_html | safe }}</div>
+  <div class="md-block">{{ redteam_html | safe }}</div>
 </div>
-{% elif session.redteam_result and session.redteam_result.verdict %}
-{% set vobj = session.redteam_result.verdict %}
-{% set vstr = vobj.verdict or '' %}
-{% if 'FAIL' in vstr %}{% set vcls = 'verdict-fail' %}{% set vhcls = 'verdict-headline' %}
-{% elif 'CONDITIONS' in vstr %}{% set vcls = 'verdict-conditions' %}{% set vhcls = 'verdict-headline-conditions' %}
-{% else %}{% set vcls = 'verdict-pass' %}{% set vhcls = 'verdict-headline-pass' %}{% endif %}
+{% elif session.redteam_result and session.redteam_result.verdict is defined %}
+{% set vobj = session.redteam_result.verdict if session.redteam_result.verdict is mapping else session.redteam_result %}
+{% set vstr = (vobj.verdict if vobj.verdict is defined else '') | string | upper %}
+{% if 'FAIL' in vstr %}{% set vcls = '' %}
+{% elif 'CONDITIONS' in vstr %}{% set vcls = 'verdict-conditions' %}
+{% else %}{% set vcls = 'verdict-pass' %}{% endif %}
 
 <div class="section break-before no-break">
-  <div class="section-title-row">
-    <div class="section-num">5</div>
-    <div class="section-title-text">{% if is_pl %}Wynik symulacji audytu{% else %}Audit Simulation Verdict{% endif %}</div>
+  <div class="section-kicker">
+    <div class="idx">[ 05 ]</div>
+    <div class="title">{% if is_pl %}Wynik symulacji audytu{% else %}Audit Simulation Verdict{% endif %}</div>
+    <div class="tag">{{ t_section_audit }}</div>
   </div>
-  <hr class="section-underline">
-  <div class="{{ vcls }}">
-    <div class="{{ vhcls }}">
+  <div class="verdict-block {{ vcls }}">
+    <div class="verdict-label">{% if is_pl %}Werdykt audytora{% else %}Auditor verdict{% endif %}</div>
+    <div class="verdict-headline">
       {% if 'FAIL' in vstr %}
         {% if is_pl %}NIE PRZESZEDŁBY AUDYTU{% else %}WOULD FAIL AUDIT{% endif %}
       {% elif 'CONDITIONS' in vstr %}
@@ -606,57 +1235,71 @@
         {% if is_pl %}PRZESZEDŁBY AUDYT{% else %}WOULD PASS AUDIT{% endif %}
       {% endif %}
     </div>
-    {% if vobj.auditor_summary %}
-    <div class="verdict-summary">{{ vobj.auditor_summary }}</div>
+    {% if vobj.auditor_summary or session.redteam_result.preparation %}
+    <div class="verdict-summary">{{ vobj.auditor_summary or session.redteam_result.preparation }}</div>
     {% endif %}
-    {% if vobj.critical_failures %}
-    <div class="failures-label">{% if is_pl %}Krytyczne braki:{% else %}Critical Failures:{% endif %}</div>
+    {% set failures = vobj.critical_failures or session.redteam_result.critical_failures %}
+    {% if failures %}
+    <div class="failures-label">{% if is_pl %}Krytyczne braki{% else %}Critical failures{% endif %}</div>
     <ul class="failures-list">
-      {% for f in vobj.critical_failures %}<li>{{ f }}</li>{% endfor %}
+      {% for f in failures %}<li>{{ f }}</li>{% endfor %}
     </ul>
     {% endif %}
-    {% if session.redteam_result.preparation %}
-    <div style="margin-top: 8px; font-size: 8.5pt; color: #475569; border-top: 1px solid #e2e8f0; padding-top: 6px;">
-      <strong>{% if is_pl %}Kroki przygotowawcze:{% else %}Preparation steps:{% endif %}</strong> {{ session.redteam_result.preparation }}
+    {% if session.redteam_result.preparation and vobj.auditor_summary %}
+    <div class="prep-block">
+      <b>{% if is_pl %}Kroki przygotowawcze{% else %}Preparation steps{% endif %}</b>
+      {{ session.redteam_result.preparation }}
     </div>
     {% endif %}
   </div>
 </div>
 {% endif %}
 
-<!-- ── SECTION 6: ATTACK SCENARIOS ── -->
+<!-- ═══════════ SECTION 6: ATTACK SCENARIOS ═══════════ -->
 {% if session.threat_actor_result and session.threat_actor_result.scenarios %}
 <div class="section break-before">
-  <div class="section-title-row">
-    <div class="section-num">6</div>
-    <div class="section-title-text">{% if is_pl %}Scenariusze ataków{% else %}Attack Scenarios{% endif %}</div>
+  <div class="section-kicker">
+    <div class="idx">[ 06 ]</div>
+    <div class="title">{% if is_pl %}Scenariusze ataków{% else %}Attack Scenarios{% endif %}</div>
+    <div class="tag">{{ t_section_threat }}</div>
   </div>
-  <hr class="section-underline">
   {% if session.threat_actor_result.summary %}
-  <div style="font-size: 8.5pt; color: #7f1d1d; margin-bottom: 10px; font-style: italic;">
-    {{ session.threat_actor_result.summary }}
-  </div>
+  <div class="threat-summary">{{ session.threat_actor_result.summary }}</div>
   {% endif %}
   {% for s in session.threat_actor_result.scenarios %}
-  {% set prob = (s.probability or 'medium') | lower %}
+  {% set prob = (s.probability or s.likelihood or 'medium') | lower %}
+  {% if prob == 'high' %}{% set pill_cls = 'pill-signal' %}
+  {% elif prob == 'medium' %}{% set pill_cls = 'pill-warn' %}
+  {% else %}{% set pill_cls = 'pill-ok' %}{% endif %}
   <div class="scenario-box no-break">
-    <div class="scenario-hdr">
-      <div class="scenario-title-cell">{{ s.title or '' }}</div>
-      <div class="scenario-badge-cell"><span class="badge badge-{{ prob }}-prob">{{ translate_prob(prob) }}</span></div>
+    <div class="scenario-head">
+      <div class="title">{{ s.title or '' }}</div>
+      <div class="badge-cell"><span class="pill {{ pill_cls }}">{{ translate_prob(prob) }}</span></div>
     </div>
-    <div style="font-size: 7.5pt; color: #9f1239; margin-bottom: 5px;">{{ s.gap_exploited or '' }}</div>
+    {% if s.gap_exploited %}
+    <div class="scenario-gap">→ {{ s.gap_exploited }}</div>
+    {% endif %}
     {% if s.how_it_starts %}
-    <div class="scenario-chain"><strong>{% if is_pl %}Jak się zaczyna:{% else %}How it starts:{% endif %} </strong>{{ s.how_it_starts }}</div>
+    <div class="scenario-row">
+      <div class="label">{% if is_pl %}Jak się zaczyna{% else %}How it starts{% endif %}</div>
+      {{ s.how_it_starts }}
+    </div>
     {% endif %}
     {% if s.what_happens %}
-    <div class="scenario-chain"><strong>{% if is_pl %}Co się dzieje:{% else %}What happens:{% endif %} </strong>{{ s.what_happens }}</div>
+    <div class="scenario-row">
+      <div class="label">{% if is_pl %}Co się dzieje{% else %}What happens{% endif %}</div>
+      {{ s.what_happens }}
+    </div>
     {% endif %}
     {% if s.business_impact %}
-    <div class="scenario-chain"><strong>{% if is_pl %}Wpływ na biznes:{% else %}Business impact:{% endif %} </strong>{{ s.business_impact }}</div>
+    <div class="scenario-row">
+      <div class="label">{% if is_pl %}Wpływ na biznes{% else %}Business impact{% endif %}</div>
+      {{ s.business_impact }}
+    </div>
     {% endif %}
     {% if s.fix %}
     <div class="scenario-fix">
-      <strong>{% if is_pl %}Rozwiązanie:{% else %}Fix:{% endif %} </strong>{{ s.fix }}{% if s.fix_effort %} <span style="color: #16a34a;">({{ s.fix_effort }})</span>{% endif %}
+      <span class="fix-label">{% if is_pl %}Rozwiązanie{% else %}Fix{% endif %}</span>{{ s.fix }}{% if s.fix_effort %} <span class="effort">({{ s.fix_effort }})</span>{% endif %}
     </div>
     {% endif %}
   </div>
@@ -664,17 +1307,20 @@
 </div>
 {% endif %}
 
-<!-- ── SECTION 7: POLICY DRAFTS ── -->
+<!-- ═══════════ SECTION 7: POLICY DRAFTS ═══════════ -->
 {% if session.drafter_result and session.drafter_result.policies %}
 <div class="section break-before">
-  <div class="section-title-row">
-    <div class="section-num">7</div>
-    <div class="section-title-text">{% if is_pl %}Szkice polityk{% else %}Policy Drafts{% endif %}</div>
+  <div class="section-kicker">
+    <div class="idx">[ 07 ]</div>
+    <div class="title">{% if is_pl %}Szkice polityk{% else %}Policy Drafts{% endif %}</div>
+    <div class="tag">{{ t_section_policy }}</div>
   </div>
-  <hr class="section-underline">
   {% for policy in session.drafter_result.policies %}
   <div class="policy-box no-break">
-    <div class="policy-title">{{ policy.title or '' }}</div>
+    <div class="policy-head">
+      <div class="label">{% if is_pl %}POLITYKA {{ '%02d' | format(loop.index) }}{% else %}POLICY {{ '%02d' | format(loop.index) }}{% endif %}</div>
+      <div class="title">{{ policy.title or '' }}</div>
+    </div>
     {% if policy.why_we_have_this %}
     <div class="policy-why">{{ policy.why_we_have_this }}</div>
     {% endif %}
@@ -682,11 +1328,15 @@
     <ol class="policy-rules">
       {% for rule in policy.rules %}<li>{{ rule }}</li>{% endfor %}
     </ol>
+    {% elif policy.outline %}
+    <div class="policy-why" style="white-space: pre-line;">{{ policy.outline }}</div>
     {% endif %}
-    {% if policy.who_owns_this %}
+    {% if policy.who_owns_this or policy.review_date or policy.effort or policy.cost %}
     <div class="policy-meta">
-      <strong>{% if is_pl %}Właściciel:{% else %}Owner:{% endif %}</strong> {{ policy.who_owns_this }}
-      {% if policy.review_date %}&nbsp;·&nbsp;<strong>{% if is_pl %}Przegląd:{% else %}Review:{% endif %}</strong> {{ policy.review_date }}{% endif %}
+      {% if policy.who_owns_this %}<b>{% if is_pl %}Właściciel{% else %}Owner{% endif %}</b> {{ policy.who_owns_this }}{% endif %}
+      {% if policy.review_date %} &nbsp;·&nbsp; <b>{% if is_pl %}Przegląd{% else %}Review{% endif %}</b> {{ policy.review_date }}{% endif %}
+      {% if policy.effort %} &nbsp;·&nbsp; <b>{% if is_pl %}Czas{% else %}Effort{% endif %}</b> {{ policy.effort }}{% endif %}
+      {% if policy.cost %} &nbsp;·&nbsp; <b>{% if is_pl %}Koszt{% else %}Cost{% endif %}</b> {{ policy.cost }}{% endif %}
     </div>
     {% endif %}
     {% if policy.disclaimer %}

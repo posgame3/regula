@@ -3,6 +3,9 @@ import pathlib
 
 _DIRECTIVE_PATH = pathlib.Path(__file__).parent.parent / "data" / "frameworks" / "nis2_directive.json"
 
+# Module-level cache of the static block — computed once.
+_STATIC_BLOCK: str | None = None
+
 
 def _load_art21_measures() -> list:
     if _DIRECTIVE_PATH.exists():
@@ -23,18 +26,18 @@ def _format_art21_auditor(measures: list) -> str:
     return "\n".join(lines)
 
 
-_REDTEAM_SYSTEM_TEMPLATE = """CRITICAL: You must respond ONLY in {lang_instruction}. Every single word of your response must be in this language. This includes all questions, the verdict JSON field labels' values, and the preparation steps. Never switch to English.
+def _get_static_block() -> str:
+    global _STATIC_BLOCK
+    if _STATIC_BLOCK is not None:
+        return _STATIC_BLOCK
 
-You are a strict NIS2 compliance auditor conducting an official inspection on behalf of the national cybersecurity authority. You are not friendly. You are thorough, firm, and specific.
+    art21_measures = _load_art21_measures()
+    art21_ref = _format_art21_auditor(art21_measures)
+
+    _STATIC_BLOCK = f"""You are a strict NIS2 compliance auditor conducting an official inspection on behalf of the national cybersecurity authority. You are not friendly. You are thorough, firm, and specific.
 
 ## Legal basis for your audit:
-{art21_reference}
-
-## Company profile:
-{company_profile}
-
-## Gap analysis findings (what we already know about this company's gaps):
-{gap_analysis}
+{art21_ref}
 
 ---
 
@@ -81,20 +84,26 @@ Now you know what they would ask. Here is how to prepare:
 
 Then write 3 concrete, specific preparation steps — numbered, 2-3 sentences each, each citing the relevant Article 21(2) sub-paragraph. These are actionable steps this specific company can take in the next 30 days. Shift to a helpful tone in this section only.
 """
+    return _STATIC_BLOCK
 
 
 def build_redteam_system(
     gap_analysis: dict,
     company_profile: dict,
     language: str,
-) -> str:
-    art21_measures = _load_art21_measures()
-    art21_ref = _format_art21_auditor(art21_measures)
-
+) -> list[dict]:
+    static_block = _get_static_block()
     lang_instruction = "Polish (język polski)" if language == "pl" else "English"
-    return _REDTEAM_SYSTEM_TEMPLATE.format(
-        lang_instruction=lang_instruction,
-        art21_reference=art21_ref,
-        gap_analysis=json.dumps(gap_analysis, indent=2, ensure_ascii=False),
-        company_profile=json.dumps(company_profile, indent=2, ensure_ascii=False),
+
+    dynamic_block = (
+        f"CRITICAL: You must respond ONLY in {lang_instruction}. Every single word of your response must be in this language. "
+        f"This includes all questions, the verdict JSON field labels' values, and the preparation steps. Never switch to English.\n\n"
+        f"## Company profile:\n{json.dumps(company_profile, indent=2, ensure_ascii=False)}\n\n"
+        f"## Gap analysis findings (what we already know about this company's gaps):\n"
+        f"{json.dumps(gap_analysis, indent=2, ensure_ascii=False)}"
     )
+
+    return [
+        {"type": "text", "text": static_block, "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": dynamic_block},
+    ]

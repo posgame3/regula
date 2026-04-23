@@ -3,7 +3,6 @@ import pathlib
 
 _DIRECTIVE_PATH = pathlib.Path(__file__).parent.parent / "data" / "frameworks" / "nis2_directive.json"
 
-# Maps req_N index (1-based) to Art. 21(2) letter and canonical name
 _ART21_MAP = [
     ("a", "Policies on risk analysis and information system security"),
     ("b", "Incident handling"),
@@ -16,6 +15,9 @@ _ART21_MAP = [
     ("i", "Human resources security, access control policies and asset management"),
     ("j", "Multi-factor authentication or continuous authentication solutions, secured communications"),
 ]
+
+# Module-level cache of the static block — computed once.
+_STATIC_BLOCK: str | None = None
 
 
 def _load_art21_measures() -> list:
@@ -35,27 +37,24 @@ def _format_art21_ref(measures: list) -> str:
 
 
 def _article_ref(req_index: int) -> str:
-    """Return 'Article 21(2)(x) — Name' for req index 1-10."""
     if 1 <= req_index <= len(_ART21_MAP):
         letter, name = _ART21_MAP[req_index - 1]
         return f"Article 21(2)({letter}) — {name}"
     return f"Article 21(2) — Requirement {req_index}"
 
 
-_ANALYZER_SYSTEM_TEMPLATE = """RESPOND ENTIRELY IN {lang_instruction}. All field values in the JSON must be in this language. This includes: headline, what_we_found, why_it_matters, what_to_do, good_news, board_summary, priority_3 items.
+def _get_static_block() -> str:
+    global _STATIC_BLOCK
+    if _STATIC_BLOCK is not None:
+        return _STATIC_BLOCK
 
-You are a NIS2 compliance analyst. You have received interview findings and must produce a clear, actionable gap analysis grounded in the exact text of Directive (EU) 2022/2555.
+    art21_measures = _load_art21_measures()
+    art21_ref = _format_art21_ref(art21_measures)
 
-Write EVERYTHING in {language} (language code: "en" = English, "pl" = Polish). If "pl", write all text fields in Polish.
+    _STATIC_BLOCK = f"""You are a NIS2 compliance analyst. You have received interview findings and must produce a clear, actionable gap analysis grounded in the exact text of Directive (EU) 2022/2555.
 
 ## Legal reference — Article 21(2) of Directive (EU) 2022/2555:
-{art21_reference}
-
-## Interview findings:
-{interview_findings}
-
-## Requirement mapping (req_N → Article 21(2) sub-paragraph):
-{req_mapping}
+{art21_ref}
 
 ## Risk scale:
 - 0 = adequate (no significant gap)
@@ -111,14 +110,14 @@ CRITICAL: Output ONLY valid JSON. No markdown fences, no text before or after. S
 Use key_quotes from the interview findings when writing what_we_found — quote exactly what the business owner said where relevant.
 article_ref must follow the format: "Article 21(2)(x) — [name]" using the exact sub-paragraph letter.
 """
+    return _STATIC_BLOCK
 
 
 def build_analyzer_system_with_thinking(
     interview_findings: dict,
     requirements: list,
     language: str,
-) -> str:
-    """Variant that hints the model to use its full reasoning capacity."""
+) -> list[dict]:
     return build_analyzer_system(interview_findings, requirements, language)
 
 
@@ -126,12 +125,10 @@ def build_analyzer_system(
     interview_findings: dict,
     requirements: list,
     language: str,
-) -> str:
-    art21_measures = _load_art21_measures()
-    art21_ref = _format_art21_ref(art21_measures)
+) -> list[dict]:
+    static_block = _get_static_block()
     lang_instruction = "Polish (język polski)" if language == "pl" else "English"
 
-    # Build req mapping: req_1 → Art. 21(2)(a) — Name, with legacy fix effort/cost
     req_lines = []
     for i, r in enumerate(requirements, start=1):
         article = _article_ref(i)
@@ -142,10 +139,16 @@ def build_analyzer_system(
         )
     req_mapping = "\n".join(req_lines)
 
-    return _ANALYZER_SYSTEM_TEMPLATE.format(
-        lang_instruction=lang_instruction,
-        language=language,
-        art21_reference=art21_ref,
-        interview_findings=json.dumps(interview_findings, indent=2, ensure_ascii=False),
-        req_mapping=req_mapping,
+    dynamic_block = (
+        f"RESPOND ENTIRELY IN {lang_instruction}. All field values in the JSON must be in this language. "
+        f"This includes: headline, what_we_found, why_it_matters, what_to_do, good_news, board_summary, priority_3 items.\n"
+        f"Write EVERYTHING in {language} (language code: \"en\" = English, \"pl\" = Polish). "
+        f"If \"pl\", write all text fields in Polish.\n\n"
+        f"## Interview findings:\n{json.dumps(interview_findings, indent=2, ensure_ascii=False)}\n\n"
+        f"## Requirement mapping (req_N → Article 21(2) sub-paragraph):\n{req_mapping}"
     )
+
+    return [
+        {"type": "text", "text": static_block, "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": dynamic_block},
+    ]

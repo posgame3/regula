@@ -316,25 +316,33 @@ _MOCK_BOARD = json.dumps({
 })
 
 
-def _mock_response(system: str) -> str:
-    if "determine in exactly 3 questions" in system:
+def _system_text(system: "str | list") -> str:
+    """Flatten a system prompt (str or list of content blocks) to plain text for mock detection."""
+    if isinstance(system, list):
+        return "\n".join(b.get("text", "") for b in system if isinstance(b, dict))
+    return system or ""
+
+
+def _mock_response(system: "str | list") -> str:
+    s = _system_text(system)
+    if "determine in exactly 3 questions" in s:
         return _MOCK_QUALIFIER
-    if "interviewer named Regula" in system or COMPLETE_MARKER in system:
-        m = re.search(r"Questions asked so far: (\d+)", system)
+    if "interviewer named Regula" in s or COMPLETE_MARKER in s:
+        m = re.search(r"Questions asked so far: (\d+)", s)
         count = int(m.group(1)) if m else 0
-        is_pl = ("Polish" in system or "język polski" in system or "po polsku" in system)
+        is_pl = ("Polish" in s or "język polski" in s or "po polsku" in s)
         if count >= 8:
             return _MOCK_INTERVIEW_COMPLETE_PL if is_pl else _MOCK_INTERVIEW_COMPLETE
         return _MOCK_INTERVIEW_Q1_PL if is_pl else _MOCK_INTERVIEW_Q1
-    if "NIS2 compliance analyst" in system:
-        return _MOCK_ANALYZER_PL if ("Polish" in system or "język polski" in system) else _MOCK_ANALYZER
-    if "strict NIS2 compliance auditor" in system:
+    if "NIS2 compliance analyst" in s:
+        return _MOCK_ANALYZER_PL if ("Polish" in s or "język polski" in s) else _MOCK_ANALYZER
+    if "strict NIS2 compliance auditor" in s:
         return _MOCK_REDTEAM
-    if "practical policy writer" in system:
+    if "practical policy writer" in s:
         return _MOCK_DRAFTER
-    if "real attacker would exploit" in system:
+    if "real attacker would exploit" in s:
         return _MOCK_THREAT_ACTOR
-    if "5-slide executive presentation" in system:
+    if "5-slide executive presentation" in s:
         return _MOCK_BOARD
     return json.dumps({"mock": True, "unknown_stage": True})
 
@@ -435,7 +443,7 @@ def _looks_truncated(text: str) -> bool:
 
 async def parse_json_with_retry(
     client: AsyncAnthropic,
-    system: str,
+    system: "str | list",
     messages: list,
     initial_text: str,
     max_tokens: int,
@@ -493,12 +501,12 @@ def parse_after_json(text: str) -> tuple:
     return None, ""
 
 
-async def stream_to_ws(client: AsyncAnthropic, system: str, messages: list, max_tokens: int, send, stage: str) -> str:
+async def stream_to_ws(client: AsyncAnthropic, system: "str | list", messages: list, max_tokens: int, send, stage: str) -> str:
     """Collect full response silently (WhatsApp style). Caller sends agent_message."""
     return await stream_silent(client, system, messages, max_tokens)
 
 
-async def stream_silent(client: AsyncAnthropic, system: str, messages: list, max_tokens: int) -> str:
+async def stream_silent(client: AsyncAnthropic, system: "str | list", messages: list, max_tokens: int) -> str:
     """Stream without sending tokens to UI. Returns full collected text."""
     if MOCK_MODE:
         return _mock_response(system)
@@ -516,7 +524,7 @@ async def stream_silent(client: AsyncAnthropic, system: str, messages: list, max
 
 async def call_with_thinking(
     client: AsyncAnthropic,
-    system: str,
+    system: "str | list",
     messages: list,
     max_tokens: int = 16000,
     budget_tokens: int = 10000,
@@ -977,13 +985,14 @@ async def _dispatch(client, session, reqs, user_text, send):
         if q_count < 8:
             if COMPLETE_MARKER in text:
                 log.info("[interview] model emitted [INTERVIEW_COMPLETE] at q=%d — forcing retry", q_count)
-                retry_system = system + (
+                override_text = (
                     "\n\n## OVERRIDE — YOU JUST TRIED TO CLOSE TOO EARLY.\n"
                     f"You are at question {q_count} of a minimum 8. You are FORBIDDEN from\n"
                     "outputting [INTERVIEW_COMPLETE], any JSON, or any closing phrase. Ask ONE\n"
                     "new plain-language question targeting an Article 21(2) sub-paragraph not\n"
                     "yet covered. Output ONLY the question — no marker, no JSON, no preamble."
                 )
+                retry_system = list(system) + [{"type": "text", "text": override_text}]
                 # Remove the bad assistant turn before retry so model doesn't see its own close.
                 retry_messages = list(session["messages"][:-1])
                 try:

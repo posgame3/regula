@@ -319,7 +319,7 @@ async def call_with_thinking(
     max_tokens: int = 16000,
     budget_tokens: int = 10000,
     session: dict = None,
-    test_max_tokens: int = 4096,
+    test_max_tokens: int = 8192,
 ) -> tuple[str, str, list]:
     """Call with extended thinking enabled. Returns (thinking_text, result_text, full_content_blocks).
     In demo mode, skips extended thinking for speed."""
@@ -706,10 +706,21 @@ async def _dispatch(client, session, reqs, user_text, send):
         system = build_redteam_system(
             session["gap_analysis"], session["qualifier_result"], session["language"]
         )
-        thinking_text, text, content_blocks = await call_with_thinking(client, system, session["messages"], session=session, test_max_tokens=8192)
-        # Store full content blocks (with thinking) so conversation threading works
+        response = await client.messages.create(
+            model=MODEL,
+            max_tokens=10000,
+            system=system,
+            messages=session["messages"],
+        )
+        text = "".join(b.text for b in response.content if hasattr(b, "text"))
+        thinking_text = ""
+        content_blocks = [b.model_dump() for b in response.content]
+        # Store full content blocks so conversation threading works
         session["messages"].append({"role": "assistant", "content": content_blocks})
 
+        if len(text) > 100 and text.count('{') > text.count('}'):
+            print(f"[redteam] WARNING: JSON appears truncated. Length: {len(text)}")
+            text = text + '"}]}'
         try:
             result = extract_json(text)
         except ValueError:
@@ -780,7 +791,17 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
 
     system = build_analyzer_system_with_thinking(findings, reqs, lang)
     messages = [{"role": "user", "content": "Please analyze these interview findings and produce the complete gap analysis."}]
-    thinking_text, text, _ = await call_with_thinking(client, system, messages, session=session, test_max_tokens=8192)
+    response = await client.messages.create(
+        model=MODEL,
+        max_tokens=10000,
+        system=system,
+        messages=messages,
+    )
+    text = "".join(b.text for b in response.content if hasattr(b, "text"))
+    thinking_text = ""
+    if len(text) > 100 and text.count('{') > text.count('}'):
+        print(f"[analyzer] WARNING: JSON appears truncated. Length: {len(text)}")
+        text = text + '"}]}'
     try:
         gaps = extract_json(text)
         if "gaps" not in gaps:
@@ -812,7 +833,14 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     system = build_redteam_system(gaps, session["qualifier_result"], lang)
     seed = "I'm ready for the inspection."
     session["messages"] = [{"role": "user", "content": seed}]
-    thinking_text, q1, content_blocks = await call_with_thinking(client, system, session["messages"], session=session)
+    response = await client.messages.create(
+        model=MODEL,
+        max_tokens=10000,
+        system=system,
+        messages=session["messages"],
+    )
+    q1 = "".join(b.text for b in response.content if hasattr(b, "text"))
+    content_blocks = [b.model_dump() for b in response.content]
     session["messages"].append({"role": "assistant", "content": content_blocks})
     # Check if initial response already contains verdict (edge case)
     try:

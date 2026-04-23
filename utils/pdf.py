@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 
 import markdown as md_lib
@@ -6,6 +7,13 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _strip_code_fences(text: str) -> str:
+    return '\n'.join(
+        line for line in text.split('\n')
+        if not re.match(r'^\s*```\w*\s*$', line)
+    )
 
 
 def generate_report_pdf(session_data: dict, language: str) -> bytes:
@@ -17,6 +25,7 @@ def generate_report_pdf(session_data: dict, language: str) -> bytes:
     redteam_result = session_data.get("redteam_result")
     redteam_html = None
     if isinstance(redteam_result, str):
+        redteam_result = _strip_code_fences(redteam_result)
         redteam_html = md_lib.markdown(redteam_result, extensions=["tables"])
 
     html_content = template.render(

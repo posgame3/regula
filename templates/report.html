@@ -32,7 +32,7 @@
     }
     .header-logo { font-size: 20pt; font-weight: bold; letter-spacing: 5px; }
     .header-title { font-size: 11pt; opacity: 0.8; margin-top: 3px; }
-    .header-sim { font-size: 7pt; font-variant: small-caps; color: #94a3b8; text-align: center; margin-top: 6px; letter-spacing: 0.5px; }
+    .header-sim { font-size: 0.7em; text-transform: uppercase; color: #94a3b8; text-align: center; margin-top: 6px; letter-spacing: 0.5px; }
     .header-meta { font-size: 8pt; opacity: 0.65; margin-top: 8px; }
 
     /* ── Sections ── */
@@ -181,6 +181,19 @@
     .no-break     { page-break-inside: avoid; }
     .break-before { page-break-before: always; }
     .good-news    { font-size: 8.5pt; color: #16a34a; margin-top: 6px; font-style: italic; }
+
+    /* ── Section separator ── */
+    .section-hr { border: none; border-top: 1.5px solid #cbd5e1; margin: 4px 0 18px 0; }
+
+    /* ── Gap status chips ── */
+    .gap-status-missing { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 7pt; font-weight: bold; background: #FEE2E2; color: #991B1B; }
+    .gap-status-partial { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 7pt; font-weight: bold; background: #FEF3C7; color: #92400E; }
+    .gap-status-met     { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 7pt; font-weight: bold; background: #D1FAE5; color: #065F46; }
+
+    /* ── Gap risk text ── */
+    .gap-risk-critical { color: #dc2626; font-weight: bold; }
+    .gap-risk-high     { color: #d97706; font-weight: bold; }
+    .gap-risk-medium   { color: #64748b; }
   </style>
 </head>
 <body>
@@ -201,6 +214,7 @@
   </div>
 </div>
 
+<hr class="section-hr">
 <!-- ── SECTION 1: QUALIFICATION ── -->
 {% if session.qualifier_result %}
 <div class="section no-break">
@@ -234,6 +248,7 @@
 </div>
 {% endif %}
 
+<hr class="section-hr">
 <!-- ── SECTION 2: COMPLIANCE SCORE ── -->
 {% if session.gap_analysis %}
 {% set ns = namespace(score=0) %}
@@ -292,11 +307,18 @@
     <tbody>
       {% for gap in session.gap_analysis.gaps %}
       {% set rl = (gap.risk_level or 'low') | lower %}
+      {% set s = (gap.status or 'partial') | lower %}
+      {% if s == 'missing' or s == 'brak' %}{% set scls = 'missing' %}
+      {% elif s == 'met' or s == 'spełnione' or s == 'spelnione' %}{% set scls = 'met' %}
+      {% else %}{% set scls = 'partial' %}{% endif %}
+      {% if rl == 'critical' %}{% set rcls = 'gap-risk-critical' %}
+      {% elif rl == 'high' or rl == 'significant' %}{% set rcls = 'gap-risk-high' %}
+      {% else %}{% set rcls = 'gap-risk-medium' %}{% endif %}
       <tr class="row-{{ rl }}">
         <td>{{ gap.requirement or '' }}</td>
         <td>{{ gap.article_ref or '' }}</td>
-        <td><span class="badge badge-{{ (gap.status or 'partial') | lower }}">{{ gap.status or '—' }}</span></td>
-        <td><span class="badge badge-{{ rl }}">{{ rl | upper }}</span></td>
+        <td><span class="gap-status-{{ scls }}">{{ gap.status or '—' }}</span></td>
+        <td><span class="{{ rcls }}">{{ rl | upper }}</span></td>
         <td>{{ gap.what_to_do or '' }}</td>
         <td>{{ gap.estimated_effort or '—' }}</td>
         <td>{{ gap.estimated_cost or '—' }}</td>
@@ -307,6 +329,7 @@
 </div>
 {% endif %}
 
+<hr class="section-hr">
 <!-- ── SECTION 4: TOP 3 PRIORITY ACTIONS ── -->
 {% if session.gap_analysis and session.gap_analysis.priority_3 %}
 <div class="section no-break">
@@ -320,6 +343,7 @@
 </div>
 {% endif %}
 
+<hr class="section-hr">
 <!-- ── SECTION 5: AUDIT SIMULATION RESULT ── -->
 {% if redteam_html %}
 <div class="section no-break">
@@ -345,7 +369,7 @@
   </div>
   {% if vobj.critical_failures %}
   <div style="margin-top: 8px;">
-    <div style="font-weight: bold; font-size: 8.5pt; margin-bottom: 4px; color: #dc2626;">Critical Failures:</div>
+    <div style="font-weight: bold; font-size: 8.5pt; margin-bottom: 4px; color: #dc2626;">{% if is_pl %}Krytyczne braki:{% else %}Critical Failures:{% endif %}</div>
     <ul class="failures-list">
       {% for f in vobj.critical_failures %}<li>{{ f }}</li>{% endfor %}
     </ul>
@@ -353,7 +377,7 @@
   {% endif %}
   {% if session.redteam_result.preparation %}
   <div style="margin-top: 8px; font-size: 8.5pt; color: #475569; border-top: 1px solid #e2e8f0; padding-top: 6px;">
-    <strong>Preparation steps:</strong> {{ session.redteam_result.preparation }}
+    <strong>{% if is_pl %}Kroki przygotowawcze:{% else %}Preparation steps:{% endif %}</strong> {{ session.redteam_result.preparation }}
   </div>
   {% endif %}
 </div>

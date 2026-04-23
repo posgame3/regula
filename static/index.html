@@ -114,6 +114,128 @@
       MIT open source · github.com/posgame3/regula
     </p>
   </div>
+
+  <!-- REPORT BREAKDOWN SECTION -->
+  <div class="max-w-4xl mx-auto px-6 pb-20 w-full">
+    <h2 data-lang-key="report_section_title"
+        class="text-2xl font-bold text-center mb-4 text-white">
+      What's in the report
+    </h2>
+    <p data-lang-key="report_section_sub"
+       class="text-center text-white/50 text-sm mb-10">
+      A complete 7-section PDF generated after your assessment
+    </p>
+
+    <!-- 7 accordion items, click to expand -->
+    <div class="space-y-3" id="report-accordion">
+
+      <!-- Item 1 -->
+      <div class="border border-white/10 rounded-lg overflow-hidden">
+        <button onclick="toggleAccordion(1)"
+          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-[#D4AF77] font-mono text-sm">01</span>
+            <span data-lang-key="r1_title" class="font-semibold">Qualification Summary</span>
+          </div>
+          <span id="arrow-1" class="text-white/40 transition-transform">▼</span>
+        </button>
+        <div id="acc-1" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
+          <span data-lang-key="r1_desc">Whether NIS2 applies to your company — directly (Annex I/II sectors) or indirectly via supply chain pressure from your clients. Includes confidence level and legal basis.</span>
+        </div>
+      </div>
+
+      <!-- Item 2 -->
+      <div class="border border-white/10 rounded-lg overflow-hidden">
+        <button onclick="toggleAccordion(2)"
+          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-[#D4AF77] font-mono text-sm">02</span>
+            <span data-lang-key="r2_title" class="font-semibold">Compliance Score</span>
+          </div>
+          <span id="arrow-2" class="text-white/40 transition-transform">▼</span>
+        </button>
+        <div id="acc-2" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
+          <span data-lang-key="r2_desc">A score from 0–100 based on your answers, with overall risk level (Critical / High / Medium / Low), executive headline, and a note on what your company already has going for it.</span>
+        </div>
+      </div>
+
+      <!-- Item 3 -->
+      <div class="border border-white/10 rounded-lg overflow-hidden">
+        <button onclick="toggleAccordion(3)"
+          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-[#D4AF77] font-mono text-sm">03</span>
+            <span data-lang-key="r3_title" class="font-semibold">Gap Analysis</span>
+          </div>
+          <span id="arrow-3" class="text-white/40 transition-transform">▼</span>
+        </button>
+        <div id="acc-3" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
+          <span data-lang-key="r3_desc">A table covering all 10 requirements of Article 21(2) NIS2. For each: status (missing/partial/met), risk level, what to do, estimated effort, and cost range.</span>
+        </div>
+      </div>
+
+      <!-- Item 4 -->
+      <div class="border border-white/10 rounded-lg overflow-hidden">
+        <button onclick="toggleAccordion(4)"
+          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-[#D4AF77] font-mono text-sm">04</span>
+            <span data-lang-key="r4_title" class="font-semibold">Top 3 Priority Actions</span>
+          </div>
+          <span id="arrow-4" class="text-white/40 transition-transform">▼</span>
+        </button>
+        <div id="acc-4" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
+          <span data-lang-key="r4_desc">The 3 most important actions ranked by risk impact, with specific steps, article references, and deadlines. This is what to do first.</span>
+        </div>
+      </div>
+
+      <!-- Item 5 -->
+      <div class="border border-white/10 rounded-lg overflow-hidden">
+        <button onclick="toggleAccordion(5)"
+          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-[#D4AF77] font-mono text-sm">05</span>
+            <span data-lang-key="r5_title" class="font-semibold">Audit Simulation Verdict</span>
+          </div>
+          <span id="arrow-5" class="text-white/40 transition-transform">▼</span>
+        </button>
+        <div id="acc-5" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
+          <span data-lang-key="r5_desc">PASS or FAIL verdict from a simulated NIS2 inspector. Lists each critical failure with specific article citations, and what you'd need to fix before re-inspection.</span>
+        </div>
+      </div>
+
+      <!-- Item 6 -->
+      <div class="border border-white/10 rounded-lg overflow-hidden">
+        <button onclick="toggleAccordion(6)"
+          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-[#D4AF77] font-mono text-sm">06</span>
+            <span data-lang-key="r6_title" class="font-semibold">Attack Scenarios</span>
+          </div>
+          <span id="arrow-6" class="text-white/40 transition-transform">▼</span>
+        </button>
+        <div id="acc-6" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
+          <span data-lang-key="r6_desc">Personalized attack scenarios based on YOUR specific gaps — not generic threats. Shows how an attacker would exploit your company's weaknesses and how to fix each vector.</span>
+        </div>
+      </div>
+
+      <!-- Item 7 -->
+      <div class="border border-white/10 rounded-lg overflow-hidden">
+        <button onclick="toggleAccordion(7)"
+          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-[#D4AF77] font-mono text-sm">07</span>
+            <span data-lang-key="r7_title" class="font-semibold">Policy Drafts</span>
+          </div>
+          <span id="arrow-7" class="text-white/40 transition-transform">▼</span>
+        </button>
+        <div id="acc-7" class="hidden px-5 pb-4 text-white/60 text-sm border-t border-white/10 pt-4">
+          <span data-lang-key="r7_desc">Draft security policies for your critical gaps — a starting point you can give to a lawyer or IT contractor. Not final legal documents, but saves 2–3 hours of consultant time.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- CHAT APP (hidden initially) -->
@@ -199,6 +321,22 @@ const LANDING_TEXT = {
     item6: 'Incident response plan',
     item7: 'ENISA resources matched to your gaps',
     disclaimer: 'Regula is a starting point for legal review — not a substitute for a consultant. MIT open source · github.com/posgame3/regula',
+    report_section_title: "What's in the report",
+    report_section_sub:   'A complete 7-section PDF generated after your assessment',
+    r1_title: 'Qualification Summary',
+    r1_desc:  'Whether NIS2 applies to your company — directly (Annex I/II sectors) or indirectly via supply chain pressure from your clients. Includes confidence level and legal basis.',
+    r2_title: 'Compliance Score',
+    r2_desc:  'A score from 0–100 based on your answers, with overall risk level (Critical / High / Medium / Low), executive headline, and a note on what your company already has going for it.',
+    r3_title: 'Gap Analysis',
+    r3_desc:  'A table covering all 10 requirements of Article 21(2) NIS2. For each: status (missing/partial/met), risk level, what to do, estimated effort, and cost range.',
+    r4_title: 'Top 3 Priority Actions',
+    r4_desc:  'The 3 most important actions ranked by risk impact, with specific steps, article references, and deadlines. This is what to do first.',
+    r5_title: 'Audit Simulation Verdict',
+    r5_desc:  'PASS or FAIL verdict from a simulated NIS2 inspector. Lists each critical failure with specific article citations, and what you\'d need to fix before re-inspection.',
+    r6_title: 'Attack Scenarios',
+    r6_desc:  'Personalized attack scenarios based on YOUR specific gaps — not generic threats. Shows how an attacker would exploit your company\'s weaknesses and how to fix each vector.',
+    r7_title: 'Policy Drafts',
+    r7_desc:  'Draft security policies for your critical gaps — a starting point you can give to a lawyer or IT contractor. Not final legal documents, but saves 2–3 hours of consultant time.',
   },
   pl: {
     badge:       'Ocena zgodności z NIS2',
@@ -223,6 +361,22 @@ const LANDING_TEXT = {
     item6: 'Plan reagowania na incydenty',
     item7: 'Zasoby ENISA dopasowane do Twoich luk',
     disclaimer: 'Regula jest punktem startowym do przeglądu prawnego — nie zastępuje konsultanta. Kod open source MIT · github.com/posgame3/regula',
+    report_section_title: 'Co zawiera raport',
+    report_section_sub:   'Kompletny 7-częściowy PDF generowany po ocenie',
+    r1_title: 'Podsumowanie kwalifikacji',
+    r1_desc:  'Czy NIS2 dotyczy Twojej firmy — bezpośrednio (sektory Annex I/II) lub pośrednio przez presję łańcucha dostaw od Twoich klientów. Obejmuje poziom pewności i podstawę prawną.',
+    r2_title: 'Ocena zgodności',
+    r2_desc:  'Wynik od 0–100 na podstawie Twoich odpowiedzi, z ogólnym poziomem ryzyka (Krytyczny / Wysoki / Średni / Niski), nagłówkiem dla kadry zarządzającej i uwagą o tym, co Twoja firma już ma.',
+    r3_title: 'Analiza luk',
+    r3_desc:  'Tabela obejmująca wszystkie 10 wymagań Art. 21(2) NIS2. Dla każdego: status (brakujący/częściowy/spełniony), poziom ryzyka, co zrobić, szacowany nakład i zakres kosztów.',
+    r4_title: '3 priorytetowe działania',
+    r4_desc:  '3 najważniejsze działania uszeregowane według wpływu na ryzyko, z konkretnymi krokami, odniesieniami do artykułów i terminami. To co zrobić w pierwszej kolejności.',
+    r5_title: 'Wyrok symulacji audytu',
+    r5_desc:  'Wyrok PASS lub FAIL od symulowanego inspektora NIS2. Wymienia każde krytyczne uchybienie z cytowaniem konkretnych artykułów i co trzeba naprawić przed ponowną inspekcją.',
+    r6_title: 'Scenariusze ataków',
+    r6_desc:  'Personalizowane scenariusze ataków na podstawie TWOICH konkretnych luk — nie ogólne zagrożenia. Pokazuje jak atakujący wykorzystałby słabości Twojej firmy i jak naprawić każdy wektor.',
+    r7_title: 'Szkice polityk',
+    r7_desc:  'Szkice polityk bezpieczeństwa dla Twoich krytycznych luk — punkt startowy dla prawnika lub wykonawcy IT. Nie są to ostateczne dokumenty prawne, ale oszczędzają 2–3 godziny pracy konsultanta.',
   },
 };
 
@@ -891,6 +1045,14 @@ function sendMessage() {
   ws.send(JSON.stringify({ type: 'message', text, language: lang }));
   inp.value = '';
   setProcessing(true);
+}
+
+// ── Report accordion ──────────────────────────────────────────────────────
+function toggleAccordion(n) {
+  const content = document.getElementById('acc-' + n);
+  const arrow   = document.getElementById('arrow-' + n);
+  content.classList.toggle('hidden');
+  arrow.style.transform = content.classList.contains('hidden') ? '' : 'rotate(180deg)';
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────

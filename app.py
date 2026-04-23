@@ -885,7 +885,11 @@ async def download_tool_pdf(session_id: str, tool_name: str):
 async def ws_handler(websocket: WebSocket, session_id: str):
     await websocket.accept()
 
-    client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    client = AsyncAnthropic(
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        timeout=180.0,
+        max_retries=1,
+    )
     reqs = load_nis2_requirements()
 
     session = {
@@ -1211,7 +1215,7 @@ async def _run_analysis_pipeline(findings, session, reqs, client, send):
     messages = [{"role": "user", "content": "Przeanalizuj te wyniki wywiadu i przygotuj pełną analizę luk." if lang == "pl" else "Please analyze these interview findings and produce the complete gap analysis."}]
     thinking_text, text, _ = await call_with_thinking(
         client, system, messages,
-        max_tokens=10000, budget_tokens=6000,
+        max_tokens=20000, budget_tokens=6000,
         session=session, test_max_tokens=10000,
     )
     try:

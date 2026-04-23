@@ -182,53 +182,58 @@ async def run_managed_audit(
             }],
         )
 
-        async for event in stream:
-            etype = getattr(event, "type", None)
+        try:
+            async with asyncio.timeout(300):
+                async for event in stream:
+                    etype = getattr(event, "type", None)
 
-            if etype == "agent.custom_tool_use":
-                tool_name = getattr(event, "name", None) or getattr(event, "tool_name", None)
-                tool_input = getattr(event, "input", {}) or {}
-                tool_use_id = getattr(event, "id", None)
+                    if etype == "agent.custom_tool_use":
+                        tool_name = getattr(event, "name", None) or getattr(event, "tool_name", None)
+                        tool_input = getattr(event, "input", {}) or {}
+                        tool_use_id = getattr(event, "id", None)
 
-                # UI progress event
-                if send_ws:
-                    await send_ws({
-                        "type": "auditor_step",
-                        "tool": tool_name,
-                        "input": tool_input,
-                        "stage": "redteam",
-                    })
+                        # UI progress event
+                        if send_ws:
+                            await send_ws({
+                                "type": "auditor_step",
+                                "tool": tool_name,
+                                "input": tool_input,
+                                "stage": "redteam",
+                            })
 
-                # Dispatch tool — may capture terminal verdict
-                result_payload = _dispatch_tool(tool_name, tool_input, session_data)
-                if tool_name == "finalize_verdict":
-                    verdict_payload = tool_input  # capture the full verdict input
-                    result_payload = {"ok": True, "verdict_recorded": True}
+                        # Dispatch tool — may capture terminal verdict
+                        result_payload = _dispatch_tool(tool_name, tool_input, session_data)
+                        if tool_name == "finalize_verdict":
+                            verdict_payload = tool_input  # capture the full verdict input
+                            result_payload = {"ok": True, "verdict_recorded": True}
 
-                await client.beta.sessions.events.send(
-                    session_id=session.id,
-                    events=[{
-                        "type": "user.custom_tool_result",
-                        "custom_tool_use_id": tool_use_id,
-                        "content": [{
-                            "type": "text",
-                            "text": json.dumps(result_payload, ensure_ascii=False),
-                        }],
-                    }],
-                )
-                continue
+                        await client.beta.sessions.events.send(
+                            session_id=session.id,
+                            events=[{
+                                "type": "user.custom_tool_result",
+                                "custom_tool_use_id": tool_use_id,
+                                "content": [{
+                                    "type": "text",
+                                    "text": json.dumps(result_payload, ensure_ascii=False),
+                                }],
+                            }],
+                        )
+                        continue
 
-            if etype == "session.status_terminated":
-                break
+                    if etype == "session.status_terminated":
+                        break
 
-            if etype == "session.status_idle":
-                stop_reason = getattr(event, "stop_reason", None)
-                stop_type = getattr(stop_reason, "type", None) if stop_reason else None
-                if stop_type == "requires_action":
-                    # still waiting on us; don't break
-                    continue
-                # end_turn or retries_exhausted — we're done
-                break
+                    if etype == "session.status_idle":
+                        stop_reason = getattr(event, "stop_reason", None)
+                        stop_type = getattr(stop_reason, "type", None) if stop_reason else None
+                        if stop_type == "requires_action":
+                            # still waiting on us; don't break
+                            continue
+                        # end_turn or retries_exhausted — we're done
+                        break
+        except asyncio.TimeoutError:
+            log.error("[managed-audit] stream timed out after 300s — triggering legacy fallback")
+            raise ValueError("managed audit timed out")
 
     # Post-idle settle: wait until sessions.retrieve shows non-running
     await _wait_until_not_running(client, session.id)

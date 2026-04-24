@@ -901,74 +901,6 @@ _TOOL_FILENAMES = {
     "generate_closure_plan": "plan-zamkniecia-luk",
 }
 
-REMEDIATION_TOOLS = [
-    {
-        "name": "generate_security_policy",
-        "description": "Generate a ready-to-sign security policy document for the company",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "company_name": {"type": "string"},
-                "reason": {"type": "string", "description": "Why this tool is needed based on audit"},
-            },
-            "required": ["company_name", "reason"],
-        },
-    },
-    {
-        "name": "generate_incident_plan",
-        "description": "Generate a one-page incident response plan",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "company_name": {"type": "string"},
-                "reason": {"type": "string"},
-            },
-            "required": ["company_name", "reason"],
-        },
-    },
-    {
-        "name": "generate_remediation_checklist",
-        "description": "Generate a prioritized remediation checklist with deadlines",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "company_name": {"type": "string"},
-                "reason": {"type": "string"},
-            },
-            "required": ["company_name", "reason"],
-        },
-    },
-    {
-        "name": "generate_closure_plan",
-        "description": "Generate a day-by-day, stack-specific runbook for closing the top critical and high risk gaps — with exact admin URLs, verification steps, pre-drafted board email and team announcement, and Definition of Done",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "company_name": {"type": "string"},
-                "reason": {"type": "string"},
-            },
-            "required": ["company_name", "reason"],
-        },
-    },
-    {
-        "name": "search_enisa_guidance",
-        "description": "Search for real ENISA and national cybersecurity agency resources relevant to this company's specific gaps",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "top_gaps": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "List of article references to search for, e.g. ['Art. 21(2)(j)', 'Art. 21(2)(b)']",
-                },
-                "sector": {"type": "string"},
-                "reason": {"type": "string"},
-            },
-            "required": ["top_gaps", "sector", "reason"],
-        },
-    },
-]
-
 _REMEDIATION_LABELS = {
     "pl": {
         "generate_security_policy": "Pobierz politykę bezpieczeństwa",
@@ -1477,7 +1409,10 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
 
         await send({"type": "tool_generating", "tool": tool_name})
         try:
-            file_path = _TOOL_GENERATORS[tool_name](session_data)
+            # WeasyPrint is CPU/IO-bound and sync — running it inline blocks the
+            # event loop for seconds, freezing every other WebSocket on the server.
+            # Offload to the default thread pool so concurrent sessions stay alive.
+            file_path = await asyncio.to_thread(_TOOL_GENERATORS[tool_name], session_data)
             session["generated_files"][tool_name] = file_path
             await send({
                 "type": "tool_ready",
@@ -1501,67 +1436,30 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
         except Exception as exc:
             log.warning("[remediation] search_enisa_guidance failed: %s", exc)
 
-    if MOCK_MODE:
-        for tool_name in _TOOL_GENERATORS:
-            await _execute_tool(tool_name)
-        await _execute_enisa_search({
-            "top_gaps": [g.get("article", "") for g in gaps_data.get("gaps", [])[:3]],
+    # Deterministic: always generate every applicable PDF + run ENISA search
+    # in parallel. Previously we let Claude pick tools via tool_choice="any",
+    # which meant the model could silently skip a document — "raz generuje,
+    # raz nie". Parallel + to_thread also keeps the event loop responsive for
+    # other concurrent sessions.
+    top_gap_refs = [g.get("article", "") for g in gaps_data.get("gaps", [])[:3]]
+    await asyncio.gather(
+        *[_execute_tool(name) for name in _TOOL_GENERATORS],
+        _execute_enisa_search({
+            "top_gaps": top_gap_refs,
             "sector": findings.get("sector", ""),
-            "reason": "mock",
-        })
-        mock_msg = (
-            "Wygenerowałem trzy dokumenty startowe na podstawie wyników audytu: "
-            "politykę bezpieczeństwa, procedurę reagowania na incydenty oraz plan remediacji."
+            "reason": "deterministic",
+        }),
+        return_exceptions=True,
+    )
+
+    generated = list(session.get("generated_files") or {})
+    if generated:
+        summary_msg = (
+            "Wygenerowałem dokumenty startowe na podstawie wyników audytu — możesz je pobrać poniżej."
             if lang == "pl" else
-            "I generated three starter documents based on the audit results: "
-            "a security policy, an incident response plan, and a remediation checklist."
+            "I generated starter documents based on the audit results — download links below."
         )
-        await send({"type": "agent_message", "text": mock_msg, "stage": "remediation"})
-        return
-
-    company_name = findings.get("company_name", "the company")
-    gaps_summary = "\n".join(
-        f"- {g.get('name', '')} ({(g.get('risk_level') or '').upper()}) — {g.get('article', '')}"
-        for g in gaps_data.get("gaps", [])
-    )
-    user_content = (
-        f"Company: {company_name}\n"
-        f"Sector: {findings.get('sector', 'unknown')}\n"
-        f"NIS2 audit gaps:\n{gaps_summary}\n\n"
-        "Generate all relevant remediation documents for this company."
-    )
-    system = (
-        "You are a remediation assistant. Based on the audit results, "
-        "decide which documents to generate for this company. "
-        "Use ALL relevant tools. Explain briefly why each document is needed."
-    )
-
-    try:
-        response = await client.messages.create(
-            model=MODEL,
-            max_tokens=1024,
-            system=system,
-            tools=REMEDIATION_TOOLS,
-            tool_choice={"type": "any"},
-            messages=[{"role": "user", "content": user_content}],
-        )
-    except Exception as exc:
-        log.error("[remediation] API call failed: %s", exc, exc_info=True)
-        return
-
-    explanation_parts = []
-    for block in response.content:
-        if block.type == "text":
-            explanation_parts.append(block.text)
-        elif block.type == "tool_use":
-            if block.name in _TOOL_GENERATORS:
-                await _execute_tool(block.name)
-            elif block.name == "search_enisa_guidance":
-                await _execute_enisa_search(block.input)
-
-    explanation = "\n\n".join(explanation_parts).strip()
-    if explanation:
-        await send({"type": "agent_message", "text": explanation, "stage": "remediation"})
+        await send({"type": "agent_message", "text": summary_msg, "stage": "remediation"})
 
 
 async def _run_managed_audit(session, client, send):

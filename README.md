@@ -10,22 +10,28 @@ Regula is a multi-agent AI system that assesses a company's NIS2
 compliance through natural conversation — and then generates the
 remediation documents to fix the gaps found.
 
-**The problem:** 130,000+ companies in the EU must comply with NIS2.
-Most don't know if it applies to them, what they're missing, or where to start.
-A compliance consultant costs €200/hour. Regula takes 15 minutes and is free.
+**The problem:** ~160,000 companies across the EU must comply with NIS2
+(European Commission impact assessment estimate). Most don't know if it applies
+to them, what they're missing, or where to start. A compliance consultant costs
+€200/hour. Regula takes 15 minutes and is free.
 
 **ChatGPT answers questions. Regula asks the questions you should be asking yourself.**
 
-## Pipeline (8 agents)
+## Pipeline (9 agents)
 
 1. **Qualifier** — Determines if NIS2 applies directly (Annex I/II) or via supply chain pressure (Art. 21(2)(d))
-2. **Interviewer** — Conducts a structured compliance interview (10-14 questions)
+2. **Interviewer** — Conducts a structured compliance interview (min. 8, typically 10-14 questions)
 3. **Analyzer** — Extended Thinking gap analysis against 10 NIS2 Art. 21(2) requirements
-4. **Red Team Auditor** — Simulates a real government audit, cites specific articles, issues PASS/FAIL verdict. **Now runs as a Claude Managed Agent** that self-drives through custom tools (see below).
+4. **Red Team Auditor** — Simulates a real government audit, cites specific articles, issues PASS/FAIL verdict. **Runs as a Claude Managed Agent** that self-drives through custom tools (see below).
 5. **Threat Actor** — Extended Thinking: personalized attack scenarios based on YOUR specific gaps
 6. **Board Presenter** — 5-slide executive deck with compliance score gauge
 7. **Policy Drafter** — Generates draft policy documents for critical gaps
-8. **Remediation Agent** — tool_use: generates ready-to-download policy docs, incident plans, remediation checklists
+8. **Closure Planner** — For each top gap, generates a 7–14-day operational runbook: day-by-day steps, verification checks, board email, team announcement, definition of done
+9. **Remediation Agent** — tool_use: generates ready-to-download policy docs, incident plans, remediation checklists, and gap closure plans
+
+Steps 7–8 (Drafter + Threat Actor + Closure Planner) run **concurrently** via
+`asyncio.gather` — they are independent, so the post-audit phase is ~3× faster
+than running them sequentially.
 
 ## Two Claude Managed Agents (new)
 
@@ -77,14 +83,14 @@ rather than a live subscription.
 ## Key features
 
 - **Grounded in real NIS2 directive text** — Art. 21 exact text + Annex I/II sectors from EUR-Lex
-- **Extended Thinking on the reasoning agents** — Analyzer, Red Team, and Threat Actor use adaptive thinking with `display: "summarized"`, surfaced in the UI behind a "Show reasoning" toggle
-- **Prompt caching on all 6 in-process agents** — each system prompt carries a `cache_control: ephemeral` breakpoint; cache-read tokens are logged per call for honest benchmarking
+- **Extended Thinking on the reasoning agents** — Analyzer and Threat Actor use adaptive thinking with `display: "summarized"`, surfaced in the UI behind a "Show reasoning" toggle. (Red Team thinks as part of its Managed Agent loop.)
+- **Prompt caching on all 8 in-process agents** — each system prompt carries a `cache_control: ephemeral` breakpoint; cache-read tokens are logged per call for honest benchmarking
 - **Supply chain indirect scope** — Small companies supplying NIS2-covered clients get flagged (Art. 21(2)(d))
 - **Bilingual** — Full PL/EN support, language auto-detected
 - **Demo mode** — "Marek's story" button: Sonnet 4.6 plays the role of a Polish truck company owner
-- **PDF report, redesigned** — Full 7-section compliance report in the editorial landing-page
+- **PDF report, redesigned** — Full compliance report in the editorial landing-page
   design language (Archivo + IBM Plex Mono, paper/ink/signal palette, flat layout)
-- **Remediation documents** — Security policy, incident response plan, remediation checklist (PDF)
+- **Remediation documents** — Security policy, incident response plan, remediation checklist, and gap closure plan (all PDF, all matched to the main report's design language)
 - **Demo-safe hardening** — 180s API timeout + `max_retries=1`, 300s managed-audit stream timeout with legacy fallback, 45s PDF generation timeout, WebSocket auto-reconnect
 - **Mock mode** — Full pipeline in 5 seconds for testing (`MOCK_MODE=1`)
 
@@ -154,14 +160,16 @@ stays fast and offline.
 
 ```
 User → WebSocket → Qualifier → Interviewer → Analyzer (🧠)
-     → Red Team (👤) → Threat Actor (🧠) → Board Presenter
-     → Drafter → Remediation Agent (🔧) → PDF Report
+     → Red Team (👤) → Board Presenter
+     → [Drafter ‖ Threat Actor (🧠) ‖ Closure Planner]   (asyncio.gather)
+     → Remediation Agent (🔧) → PDF Report + Tool PDFs
                                     ↓
                           Subscribe → Monitor (👤 + 🌐)
                                          ↓
                                       Mailbox
 
-🧠 = Extended Thinking  |  🔧 = tool_use  |  👤 = Managed Agent  |  🌐 = web_search
+🧠 = Extended Thinking  |  🔧 = tool_use  |  👤 = Managed Agent
+🌐 = web_search         |  ‖ = runs concurrently
 ```
 
 ## Project layout
@@ -178,7 +186,8 @@ regula/
 │   ├── monitor_managed.py           # Managed-Agents regulatory monitor
 │   ├── threat_actor.py
 │   ├── board_presenter.py
-│   └── drafter.py
+│   ├── drafter.py
+│   └── closure_planner.py           # day-by-day gap-closure runbooks
 ├── scripts/
 │   ├── fetch_nis2.py
 │   └── setup_managed_agents.py      # one-time agent + environment creation
@@ -187,10 +196,17 @@ regula/
 │   └── nis2_directive.json          # full directive text
 ├── utils/
 │   ├── pdf.py                       # WeasyPrint report generator
-│   ├── tools.py
+│   ├── tools.py                     # generate_{policy,incident,checklist,closure_plan}
+│   ├── benchmark.py
 │   ├── session_store.py             # SQLite assessment session persistence
 │   └── profile_store.py             # SQLite user profile + alerts
-├── templates/report.html            # redesigned PDF template (Archivo / IBM Plex Mono)
+├── templates/
+│   ├── report.html                  # main PDF report
+│   └── tools/                       # remediation-document PDFs
+│       ├── policy.html
+│       ├── incident.html
+│       ├── checklist.html
+│       └── closure_plan.html
 ├── static/
 │   ├── fonts/                       # Archivo + IBM Plex Mono TTFs (embedded in PDFs)
 │   └── index.html                   # landing + chat + mailbox UI

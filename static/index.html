@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
       --paper:     #FCFBF7;
@@ -516,14 +517,6 @@
     }
 
     .msg.user .msg-head { flex-direction: row-reverse; }
-    .msg.user .msg-sender::after {
-      content: "U"; display: inline-block;
-      width: 16px; height: 16px; background: var(--paper); color: var(--ink);
-      border: 1px solid var(--ink);
-      font-size: 10px; line-height: 14px; text-align: center;
-      margin-left: 10px; font-family: var(--f-mono); font-weight: 500;
-      vertical-align: -1px;
-    }
     .msg.user .msg-body {
       grid-column: 3 / 13;
       text-align: right; color: var(--ink-soft);
@@ -1814,6 +1807,24 @@ function esc(t) {
 }
 function fmt(t) { return esc(t).replace(/\n/g,'<br>'); }
 
+// Markdown renderer for agent messages only. marked.js converts **bold**, lists, etc.
+// Sanitization: strip <script> / <iframe> / on* handlers / javascript: URLs before insertion.
+function fmtMarkdown(t) {
+  const src = String(t == null ? '' : t);
+  let html;
+  try {
+    html = (typeof marked !== 'undefined' ? marked.parse(src, { breaks: true, gfm: true }) : fmt(src));
+  } catch (_) {
+    html = fmt(src);
+  }
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+    .replace(/ on[a-z]+\s*=\s*"[^"]*"/gi, '')
+    .replace(/ on[a-z]+\s*=\s*'[^']*'/gi, '')
+    .replace(/javascript:/gi, '');
+}
+
 function nowTime() {
   const d = new Date();
   return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
@@ -1839,7 +1850,7 @@ function addAgent(text) {
         <span class="msg-sender"><b>Regula</b> · Interviewer</span>
         <span class="msg-time">${nowTime()}</span>
       </div>
-      <div class="msg-body">${fmt(text)}</div>
+      <div class="msg-body">${fmtMarkdown(text)}</div>
     </div>`);
 }
 

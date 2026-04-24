@@ -151,7 +151,10 @@ User  ─WS─►  Qualifier  ──►  Interviewer  ──►  Analyzer (🧠)
                                                    ▼
                                  [ report.pdf · policy · incident · checklist · closure plan ]
 
-           plus: Regulatory Monitor (👤 Managed Agent, 🌐 web_search) on-demand after completion
+           plus: Regulatory Monitor (👤 Managed Agent, 🌐 web_search)
+                 · fires immediately on /api/subscribe
+                 · re-runs on the asyncio scheduler (default: weekly)
+                 · on-demand via /api/monitor/run
 
 🧠 Extended Thinking   👤 Managed Agent   🔧 tool_use   🌐 web_search   ∥ asyncio.gather
 ```
@@ -239,9 +242,11 @@ one-shot auditor") and the run continues.
 
 ### 2. Regulatory Monitor
 
-A second Managed Agent the user can invoke **after** completing an assessment.
-The user enters their email → profile is saved with sector, language, and open
-gaps → "Run now" button in the mailbox triggers one pass.
+A second Managed Agent that runs both **on-demand** (user clicks "Run now"
+from the mailbox) **and on a schedule** (in-process asyncio loop —
+`utils/monitor_scheduler.py`). On `/api/subscribe` the first run is fired
+immediately in the background so a user sees alerts within minutes of
+subscribing, not a week.
 
 Per run:
 - `lookup_user_profile()` — sector, language, open gaps
@@ -253,9 +258,16 @@ Per run:
 Alerts include source URLs, a severity (informational / important / urgent),
 and which of the user's gaps they relate to, rendered in the user's language.
 
-**Roadmap:** APScheduler + SMTP delivery to turn "Run now" into genuine
-background monitoring. Not wired up in this release — the subscription is
-effectively a saved monitoring profile rather than a live subscription.
+**Scheduler** (env-tunable):
+
+| Var | Default | Purpose |
+|---|---|---|
+| `MONITOR_INTERVAL_HOURS` | `168` | how often the tick fires (weekly) |
+| `MONITOR_STAGGER_SECONDS` | `30` | gap between per-user runs (avoid bursts) |
+| `MONITOR_MIN_INTERVAL_HOURS` | `24` | skip profiles checked more recently |
+
+Scheduler health is exposed at `GET /api/monitor/status`. SMTP delivery is
+out of scope — alerts live in the in-app mailbox at `GET /api/alerts?user_id=…`.
 
 ### API endpoints
 
@@ -265,11 +277,13 @@ effectively a saved monitoring profile rather than a live subscription.
 | `WS` | `/ws/{session_id}` | Full pipeline over a single WebSocket |
 | `GET` | `/report/{session_id}` | Main PDF report (WeasyPrint, 45 s timeout) |
 | `GET` | `/download/{session_id}/{tool_name}` | Tool PDFs (policy / incident / checklist / closure_plan) |
-| `POST` | `/api/subscribe` | Save email + gaps as monitoring profile |
+| `POST` | `/api/subscribe` | Save email + gaps as monitoring profile; fires first run in background |
 | `POST` | `/api/monitor/run` | Trigger one monitor pass on-demand |
+| `GET` | `/api/monitor/status` | Scheduler health: running, interval, last tick |
 | `GET` | `/api/alerts?user_id=...` | List queued alerts |
 | `GET` | `/api/benchmark?sector=...&size_bucket=...&user_score=...` | Anonymised percentile ranking against peers |
 | `GET` | `/api/session/{session_id}/status` | Restore / resume a past session |
+| `GET` | `/metrics` | Runtime counters: token usage, cache-hit ratio, managed-agents tool-call distribution |
 
 ---
 
@@ -365,7 +379,9 @@ regula/
 │   ├── tools.py                     # generate_{policy,incident,checklist,closure_plan}
 │   ├── benchmark.py                 # anonymised percentile ranking
 │   ├── session_store.py             # SQLite session persistence
-│   └── profile_store.py             # SQLite profiles + alerts
+│   ├── profile_store.py             # SQLite profiles + alerts
+│   ├── monitor_scheduler.py         # asyncio loop that ticks the monitor agent
+│   └── metrics.py                   # in-memory counters feeding GET /metrics
 ├── templates/
 │   ├── report.html                  # main PDF report
 │   └── tools/
@@ -428,8 +444,9 @@ python tests/mock_pipeline.py
 - **Not a legal document.** Regula's output is a draft starting point for
   legal review. It does not substitute for a qualified lawyer or a certified
   auditor. This is stated in every PDF footer and on the landing page.
-- **Monitor isn't scheduled yet.** "Subscribe" saves a profile; "Run now"
-  triggers one on-demand pass. APScheduler + SMTP are on the roadmap.
+- **Monitor delivery is in-app, not SMTP.** Alerts queue into
+  `GET /api/alerts?user_id=…` and render in the mailbox UI. Email delivery
+  would require SMTP credentials and deliverability work — out of scope.
 - **Interview language is plain on purpose.** If the user already speaks
   fluent compliance jargon, some questions will feel basic — by design.
 - **Marek demo is Sonnet 4.6, not Opus.** The persona doesn't need the top
@@ -437,17 +454,18 @@ python tests/mock_pipeline.py
   real pipeline agents) still runs on Opus 4.7.
 - **Prompt caching TTL is 5 minutes.** Back-to-back runs hit cache; a run
   after a coffee break pays the cache-creation tokens again.
+- **Metrics reset on restart.** `/metrics` is in-memory; Prometheus-style
+  persistent scraping would need an external collector.
 
 ---
 
 ## Roadmap
 
-- APScheduler-backed weekly monitor runs + SMTP alert delivery
+- SMTP alert delivery (today alerts live in the in-app mailbox)
 - Multi-user / multi-tenant (today each SQLite row is a user; no auth yet)
 - Per-sector deep dives (healthcare, finance, digital infrastructure) beyond
   the current generic Art. 21(2) coverage
-- Audit-log export (CSV of every agent call, token counts, cache hits)
-  for auditors who want to reproduce the assessment
+- Prometheus-compatible `/metrics` exporter for persistent scraping
 - Additional frameworks: DORA (EU financial services), ISO 27001 mapping
 
 ---

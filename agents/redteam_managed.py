@@ -20,6 +20,8 @@ from typing import Any, Awaitable, Callable
 
 from anthropic import AsyncAnthropic
 
+from utils import metrics
+
 log = logging.getLogger("regula")
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
@@ -194,6 +196,8 @@ async def run_managed_audit(
                         tool_name = getattr(event, "name", None) or getattr(event, "tool_name", None)
                         tool_input = getattr(event, "input", {}) or {}
                         tool_use_id = getattr(event, "id", None)
+
+                        metrics.incr_managed_tool(f"redteam.{tool_name}" if tool_name else "redteam.unknown")
 
                         # UI progress event
                         if send_ws:

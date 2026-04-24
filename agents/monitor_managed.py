@@ -18,7 +18,7 @@ from typing import Awaitable, Callable
 
 from anthropic import AsyncAnthropic
 
-from utils import profile_store
+from utils import metrics, profile_store
 
 
 MonitorWsSend = Callable[[dict], Awaitable[None]]
@@ -69,6 +69,7 @@ async def run_managed_monitor(
                 tool_name = getattr(event, "name", None) or getattr(event, "tool_name", None)
                 if tool_name == "web_search":
                     searches_seen += 1
+                metrics.incr_managed_tool(f"monitor.{tool_name}" if tool_name else "monitor.unknown")
                 if send_ws:
                     inp = getattr(event, "input", {}) or {}
                     await send_ws({
@@ -83,6 +84,8 @@ async def run_managed_monitor(
                 tool_name = getattr(event, "name", None) or getattr(event, "tool_name", None)
                 tool_input = getattr(event, "input", {}) or {}
                 tool_use_id = getattr(event, "id", None)
+
+                metrics.incr_managed_tool(f"monitor.{tool_name}" if tool_name else "monitor.unknown")
 
                 if send_ws:
                     await send_ws({

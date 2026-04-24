@@ -4,6 +4,7 @@ import logging
 import logging.handlers
 import os
 import re
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from anthropic import AsyncAnthropic
@@ -71,11 +72,23 @@ from agents.drafter import build_drafter_system
 from agents.threat_actor import build_threat_actor_system
 from agents.board_presenter import build_board_presenter_system
 from agents.closure_planner import build_closure_planner_system
-from utils import benchmark, profile_store, session_store
+from utils import benchmark, metrics, profile_store, session_store
+from utils.monitor_scheduler import MonitorScheduler
 from utils.pdf import generate_report_pdf
 from utils.tools import generate_security_policy, generate_incident_plan, generate_remediation_checklist, generate_closure_plan, search_enisa_guidance
 
-app = FastAPI()
+@asynccontextmanager
+async def _app_lifespan(app: FastAPI):
+    # startup
+    await _start_monitor_scheduler()
+    try:
+        yield
+    finally:
+        # shutdown
+        await _stop_monitor_scheduler()
+
+
+app = FastAPI(lifespan=_app_lifespan)
 TEST_MODE = bool(os.getenv("TEST_MODE"))
 MODEL = "claude-sonnet-4-6" if TEST_MODE else "claude-opus-4-7"
 COMPLETE_MARKER = "[INTERVIEW_COMPLETE]"
@@ -705,17 +718,25 @@ async def call_with_thinking(
 
 
 def _log_usage(stage: str, response) -> None:
-    """Log cache hit rates and token counts — proof prompt caching is working."""
+    """Log cache hit rates and token counts — proof prompt caching is working.
+    Also feeds the /metrics endpoint aggregate."""
     u = getattr(response, "usage", None)
     if not u:
         return
+    in_tok = getattr(u, "input_tokens", 0) or 0
+    out_tok = getattr(u, "output_tokens", 0) or 0
+    cache_read = getattr(u, "cache_read_input_tokens", 0) or 0
+    cache_create = getattr(u, "cache_creation_input_tokens", 0) or 0
     log.info(
         "[%s] tokens: in=%s out=%s cache_read=%s cache_create=%s",
+        stage, in_tok, out_tok, cache_read, cache_create,
+    )
+    metrics.record_usage(
         stage,
-        getattr(u, "input_tokens", 0),
-        getattr(u, "output_tokens", 0),
-        getattr(u, "cache_read_input_tokens", 0) or 0,
-        getattr(u, "cache_creation_input_tokens", 0) or 0,
+        input_tokens=in_tok,
+        output_tokens=out_tok,
+        cache_read=cache_read,
+        cache_create=cache_create,
     )
 
 
@@ -749,6 +770,55 @@ async def index():
 
 # ─── Regulatory Monitor API ──────────────────────────────────────────────────
 # Subscribes a finished assessment to the long-running monitor agent.
+# On subscribe we (a) save the profile and (b) fire an immediate background
+# run so the user sees alerts within minutes, not a week. The scheduler
+# (utils/monitor_scheduler.py) handles periodic re-runs from there on.
+
+
+async def _run_monitor_for_profile(profile: dict) -> dict:
+    """Invoke the managed-agents monitor for one profile. Used by /api/monitor/run,
+    the scheduler, and the auto-run-on-subscribe background task."""
+    client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    try:
+        result = await run_managed_monitor(
+            client,
+            agent_id=MONITOR_AGENT_ID,
+            env_id=MANAGED_ENV_ID,
+            user_id=profile["user_id"],
+        )
+    finally:
+        await client.close()
+    metrics.incr("monitor_runs")
+    metrics.incr("monitor_alerts_queued", int(result.get("alerts_queued") or 0))
+    return result
+
+
+_monitor_scheduler: MonitorScheduler | None = None
+
+
+async def _start_monitor_scheduler() -> None:
+    global _monitor_scheduler
+    if not MONITOR_MANAGED_READY:
+        log.info("[monitor] scheduler disabled — MONITOR_MANAGED_READY=False")
+        return
+    interval_hours = float(os.getenv("MONITOR_INTERVAL_HOURS", "168"))
+    stagger_seconds = float(os.getenv("MONITOR_STAGGER_SECONDS", "30"))
+    min_interval_hours = float(os.getenv("MONITOR_MIN_INTERVAL_HOURS", "24"))
+    _monitor_scheduler = MonitorScheduler(
+        _run_monitor_for_profile,
+        interval_seconds=int(interval_hours * 3600),
+        stagger_seconds=int(stagger_seconds),
+        min_interval_seconds=int(min_interval_hours * 3600),
+    )
+    _monitor_scheduler.start()
+
+
+async def _stop_monitor_scheduler() -> None:
+    global _monitor_scheduler
+    if _monitor_scheduler is not None:
+        await _monitor_scheduler.stop()
+        _monitor_scheduler = None
+
 
 class SubscribeBody(BaseModel):
     email: str
@@ -784,7 +854,18 @@ async def subscribe(body: SubscribeBody):
         language=session.get("language") or "en",
         open_gaps=open_gaps,
     )
-    return {"user_id": profile["user_id"], "subscribed": True}
+    metrics.incr("subscriptions")
+
+    # Kick off the first monitor run in the background — the user gets alerts
+    # (if any) within minutes, without blocking this HTTP response.
+    async def _initial_run():
+        try:
+            await _run_monitor_for_profile(profile)
+        except Exception:
+            log.exception("[monitor] initial run failed for %s", profile.get("user_id"))
+    asyncio.create_task(_initial_run())
+
+    return {"user_id": profile["user_id"], "subscribed": True, "initial_run": "queued"}
 
 
 class MonitorRunBody(BaseModel):
@@ -798,14 +879,31 @@ async def monitor_run(body: MonitorRunBody):
     profile = profile_store.get_profile(body.user_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found.")
-    client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    result = await run_managed_monitor(
-        client,
-        agent_id=MONITOR_AGENT_ID,
-        env_id=MANAGED_ENV_ID,
-        user_id=body.user_id,
-    )
-    return result
+    return await _run_monitor_for_profile(profile)
+
+
+@app.get("/api/monitor/status")
+async def monitor_status():
+    """Scheduler health. Useful for jury + uptime checks."""
+    if _monitor_scheduler is None:
+        return {"enabled": False, "reason": "not configured"}
+    return {"enabled": True, **_monitor_scheduler.status()}
+
+
+@app.get("/metrics")
+async def metrics_endpoint():
+    """Aggregated runtime metrics: token usage, cache hits, managed-agents tool
+    calls, pipeline counters. Resets on restart. Public by design — no PII."""
+    snap = metrics.snapshot()
+    snap["managed_agents"] = {
+        "redteam_ready": REDTEAM_MANAGED_READY,
+        "monitor_ready": MONITOR_MANAGED_READY,
+        "scheduler": _monitor_scheduler.status() if _monitor_scheduler else {"running": False},
+    }
+    snap["profiles"] = {
+        "subscribed": len(profile_store.list_profiles()),
+    }
+    return snap
 
 
 @app.get("/api/alerts")
@@ -880,6 +978,7 @@ async def download_report(session_id: str):
     except asyncio.TimeoutError:
         log.error("[report] PDF generation timed out after 45s session=%s", session_id[:8])
         raise HTTPException(status_code=504, detail="PDF generation timed out")
+    metrics.incr("pdf_generated")
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -1275,6 +1374,7 @@ async def _handle_qualifier_result(parsed, session, reqs, client, send):
         await send({"type": "stage_change", "stage": "interview", "label": "Interview"})
         session["stage"] = "interview"
         session["question_count"] = 0
+        metrics.incr("assessments_started")
 
         seed = "Cześć, jestem gotowy na wywiad." if session["language"] == "pl" else "Hi, I'm ready for the interview."
         session["messages"] = [{"role": "user", "content": seed}]
@@ -1841,6 +1941,7 @@ async def _run_drafter(session, client, send):
     })
     session["stage"] = "complete"
     session["benchmark"] = benchmark_data
+    metrics.incr("assessments_completed")
     _persist(session)
 
 

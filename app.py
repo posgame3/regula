@@ -1466,6 +1466,15 @@ async def run_remediation_agent(session: dict, client: AsyncAnthropic, send) -> 
     }
 
     async def _execute_tool(tool_name: str) -> None:
+        # Skip the closure-plan PDF when the closure planner produced nothing.
+        # Otherwise we emit a download button for a PDF that just says
+        # "No closure plans to display." — worse than hiding the option.
+        if tool_name == "generate_closure_plan":
+            plans = (session.get("closure_plans") or {}).get("closure_plans") or []
+            if not plans:
+                log.info("[remediation] skipping generate_closure_plan — no plans available")
+                return
+
         await send({"type": "tool_generating", "tool": tool_name})
         try:
             file_path = _TOOL_GENERATORS[tool_name](session_data)
@@ -1758,6 +1767,7 @@ async def _run_closure_planner(session, client, send) -> None:
             "Generate closure plans for the given gaps — day-by-day, adapted to the company's stack."
         ),
     }]
+    text = None
     try:
         text = await stream_silent(client, system, messages, max_tokens=8000)
         plans = await parse_json_with_retry(
@@ -1765,7 +1775,14 @@ async def _run_closure_planner(session, client, send) -> None:
             max_tokens=8000, stage="closure_planner", expected_key="closure_plans",
         )
     except Exception as exc:
-        log.warning("[closure_planner] failed: %s — pipeline continues without closure plans", exc)
+        # Full traceback — silent swallow was hiding the real cause (timeout,
+        # parse error, rate limit) when the closure-plan PDF came out empty.
+        log.warning(
+            "[closure_planner] failed (%s): %s — pipeline continues without closure plans",
+            type(exc).__name__, exc, exc_info=True,
+        )
+        if text:
+            log.warning("[closure_planner] raw response head: %s", text[:400])
         return
 
     session["closure_plans"] = plans

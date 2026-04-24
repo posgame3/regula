@@ -35,8 +35,9 @@
 
   /* ── Header ── */
   .header { background: none; color: #0A0A0A; padding: 0 0 12px 0; border-bottom: 1px solid #0A0A0A; margin-bottom: 16px; }
-  .header-logo { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 12pt; color: #0A0A0A; letter-spacing: -0.01em; margin-bottom: 4px; }
-  .header-title { font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 20pt; letter-spacing: -0.02em; line-height: 1.15; color: #0A0A0A; opacity: 1; margin-bottom: 5px; }
+  .header-logo { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 12pt; color: #0A0A0A; letter-spacing: -0.01em; margin-bottom: 6px; }
+  .header-title { font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 20pt; letter-spacing: -0.02em; line-height: 1.15; color: #0A0A0A; opacity: 1; margin-bottom: 6px; }
+  .header-subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 9pt; color: #2A2A28; letter-spacing: 0.04em; margin-bottom: 4px; }
   .header-meta { font-family: 'IBM Plex Mono', monospace; font-size: 8pt; color: #9A9A95; letter-spacing: 0.04em; opacity: 1; }
 
   /* ── Sections ── */
@@ -75,7 +76,8 @@
   .gap-text-cell  { display: table-cell; font-size: 9pt; vertical-align: top; padding-left: 8px; color: #0A0A0A; }
 
   /* ── Attention box ── */
-  .attention-box { margin: 6px 0; padding: 6px 12px; border: none; border-left: 2px solid #E11B1B; background: #FBEAEA; font-family: 'IBM Plex Mono', monospace; font-size: 8pt; letter-spacing: 0.02em; color: #0A0A0A; }
+  .attention-box { margin: 8px 0; padding: 7px 12px; border: none; border-left: 2px solid #E11B1B; background: #FBEAEA; font-family: 'IBM Plex Mono', monospace; font-size: 8pt; letter-spacing: 0.02em; color: #0A0A0A; }
+  .attention-box::before { content: "! "; color: #E11B1B; font-weight: 500; }
 
   /* ── Signature table ── */
   table.sign-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -91,13 +93,14 @@
 <div class="header">
   <div class="header-logo">REGULA</div>
   <div class="header-title">
-    {% if language == 'pl' %}Polityka Bezpieczeństwa Informacji — NIS2{% else %}Information Security Policy — NIS2{% endif %}
+    {% if language == 'pl' %}Polityka Bezpieczeństwa Informacji{% else %}Information Security Policy{% endif %}
+  </div>
+  <div class="header-subtitle">
+    {% if company_name %}{{ company_name }} &nbsp;·&nbsp; {% endif %}{{ date }}
   </div>
   <div class="header-meta">
-    {% if language == 'pl' %}Data:{% else %}Date:{% endif %} {{ date }}
-    {% if company_name %} &nbsp;·&nbsp; {{ company_name }}{% endif %}
+    {% if language == 'pl' %}Dyrektywa (EU) 2022/2555 · Art. 21 — Środki zarządzania ryzykiem{% else %}Directive (EU) 2022/2555 · Art. 21 — Risk management measures{% endif %}
     {% if sector %} &nbsp;·&nbsp; {% if language == 'pl' %}Sektor:{% else %}Sector:{% endif %} {{ sector }}{% endif %}
-    &nbsp;·&nbsp; Art. 21 Dyrektywy (EU) 2022/2555
   </div>
 </div>
 
@@ -125,15 +128,17 @@
     {% if language == 'pl' %}Luki zidentyfikowane podczas oceny — wymagają pilnego uzupełnienia{% else %}Gaps identified during assessment — require immediate attention{% endif %}
   </div>
   {% for gap in critical_gaps %}
+  {% set art = (gap.article_ref or gap.article or '').split(' — ')[0].replace('Article', 'Art.') %}
   <div class="gap-row">
     <div class="gap-badge-cell"><span class="badge badge-critical">{% if language == 'pl' %}KRYTYCZNE{% else %}CRITICAL{% endif %}</span></div>
-    <div class="gap-text-cell">{{ gap.requirement or gap.name or '' }}{% set art = gap.article_ref or gap.article %}{% if art %} — {{ art }}{% endif %}</div>
+    <div class="gap-text-cell">{{ gap.requirement or gap.name or '' }}{% if art %} <span style="font-family: 'IBM Plex Mono', monospace; font-size: 8pt; color: #9A9A95;">· {{ art }}</span>{% endif %}</div>
   </div>
   {% endfor %}
   {% for gap in high_gaps %}
+  {% set art = (gap.article_ref or gap.article or '').split(' — ')[0].replace('Article', 'Art.') %}
   <div class="gap-row">
     <div class="gap-badge-cell"><span class="badge badge-high">{% if language == 'pl' %}WYSOKIE{% else %}HIGH{% endif %}</span></div>
-    <div class="gap-text-cell">{{ gap.requirement or gap.name or '' }}{% set art = gap.article_ref or gap.article %}{% if art %} — {{ art }}{% endif %}</div>
+    <div class="gap-text-cell">{{ gap.requirement or gap.name or '' }}{% if art %} <span style="font-family: 'IBM Plex Mono', monospace; font-size: 8pt; color: #9A9A95;">· {{ art }}</span>{% endif %}</div>
   </div>
   {% endfor %}
 </div>

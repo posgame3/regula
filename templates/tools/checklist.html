@@ -35,8 +35,9 @@
 
   /* ── Header ── */
   .header { background: none; color: #0A0A0A; padding: 0 0 12px 0; border-bottom: 1px solid #0A0A0A; margin-bottom: 16px; }
-  .header-logo { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 12pt; color: #0A0A0A; letter-spacing: -0.01em; margin-bottom: 4px; }
-  .header-title { font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 20pt; letter-spacing: -0.02em; line-height: 1.15; color: #0A0A0A; opacity: 1; margin-bottom: 5px; }
+  .header-logo { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 12pt; color: #0A0A0A; letter-spacing: -0.01em; margin-bottom: 6px; }
+  .header-title { font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 20pt; letter-spacing: -0.02em; line-height: 1.15; color: #0A0A0A; opacity: 1; margin-bottom: 6px; }
+  .header-subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 9pt; color: #2A2A28; letter-spacing: 0.04em; margin-bottom: 4px; }
   .header-meta { font-family: 'IBM Plex Mono', monospace; font-size: 8pt; color: #9A9A95; letter-spacing: 0.04em; opacity: 1; }
 
   /* ── Priority section ── */
@@ -60,19 +61,26 @@
   .badge-low      { background: #E7F4E8; color: #2F7D34; }
 
   /* ── Checklist table ── */
-  table.checklist { width: 100%; border-collapse: collapse; }
+  table.checklist { width: 100%; border-collapse: collapse; table-layout: fixed; }
   table.checklist th { background: #0A0A0A; color: #FCFBF7; padding: 6px 7px; text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 7.5pt; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
-  table.checklist td { padding: 6px 7px; border-bottom: 1px solid #D8D4CA; vertical-align: top; font-size: 9pt; }
-  .row-critical { background: #FBEAEA; }
-  .row-high     { background: #FBF0DF; }
-  .row-medium   { background: #FEFCE8; }
-  .row-low      { background: #F0FDF4; }
+  table.checklist td { padding: 7px 7px; border-bottom: 1px solid #D8D4CA; vertical-align: top; font-size: 9pt; word-wrap: break-word; }
+  .row-critical { background: #FDF3F3; }
+  .row-high     { background: #FDF7EB; }
+  .row-medium   { background: #FDFAEA; }
+  .row-low      { background: #F3F9F3; }
 
   .checkbox { display: inline-block; width: 12px; height: 12px; border: 1.5px solid #9A9A95; }
-  .deadline-critical { color: #E11B1B; font-weight: 500; font-family: 'IBM Plex Mono', monospace; }
-  .deadline-high     { color: #C97A0C; font-weight: 500; font-family: 'IBM Plex Mono', monospace; }
-  .deadline-medium   { color: #C97A0C; font-family: 'IBM Plex Mono', monospace; }
-  .deadline-low      { color: #2F7D34; font-family: 'IBM Plex Mono', monospace; }
+  .deadline-critical { color: #E11B1B; font-weight: 500; font-family: 'IBM Plex Mono', monospace; font-size: 8pt; letter-spacing: 0.04em; }
+  .deadline-high     { color: #C97A0C; font-weight: 500; font-family: 'IBM Plex Mono', monospace; font-size: 8pt; letter-spacing: 0.04em; }
+  .deadline-medium   { color: #C97A0C; font-family: 'IBM Plex Mono', monospace; font-size: 8pt; letter-spacing: 0.04em; }
+  .deadline-low      { color: #2F7D34; font-family: 'IBM Plex Mono', monospace; font-size: 8pt; letter-spacing: 0.04em; }
+
+  /* Legend — keep color but drop mono so it reads as running text */
+  .legend-pill { font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 8pt; }
+  .legend-pill.c { color: #E11B1B; }
+  .legend-pill.h { color: #C97A0C; }
+  .legend-pill.m { color: #C97A0C; }
+  .legend-pill.l { color: #2F7D34; }
 
   .no-break { page-break-inside: avoid; }
 </style>
@@ -83,11 +91,12 @@
   <div class="header-logo">REGULA</div>
   <div class="header-title">
     {% if language == 'pl' %}Plan remediacji NIS2{% else %}NIS2 Remediation Plan{% endif %}
-    {% if company_name %} — {{ company_name }}{% endif %}
-    — {{ date }}
+  </div>
+  <div class="header-subtitle">
+    {% if company_name %}{{ company_name }} &nbsp;·&nbsp; {% endif %}{{ date }}
   </div>
   <div class="header-meta">
-    {% if language == 'pl' %}Dyrektywa (EU) 2022/2555 | Art. 21 — Środki zarządzania ryzykiem cyberbezpieczeństwa{% else %}Directive (EU) 2022/2555 | Art. 21 — Cybersecurity risk management measures{% endif %}
+    {% if language == 'pl' %}Dyrektywa (EU) 2022/2555 · Art. 21 — Środki zarządzania ryzykiem{% else %}Directive (EU) 2022/2555 · Art. 21 — Risk management measures{% endif %}
     {% if sector %} &nbsp;·&nbsp; {% if language == 'pl' %}Sektor:{% else %}Sector:{% endif %} {{ sector }}{% endif %}
   </div>
 </div>
@@ -112,13 +121,13 @@
 <table class="checklist">
   <thead>
     <tr>
-      <th style="width: 9%;">{% if language == 'pl' %}Priorytet{% else %}Priority{% endif %}</th>
-      <th style="width: 24%;">{% if language == 'pl' %}Działanie / Luka{% else %}Action / Gap{% endif %}</th>
-      <th style="width: 20%;">{% if language == 'pl' %}Wpływ na biznes{% else %}Business impact{% endif %}</th>
-      <th style="width: 9%;">{% if language == 'pl' %}Artykuł{% else %}Article{% endif %}</th>
-      <th style="width: 13%;">{% if language == 'pl' %}Termin{% else %}Deadline{% endif %}</th>
-      <th style="width: 17%;">{% if language == 'pl' %}Odpowiedzialny{% else %}Owner{% endif %}</th>
-      <th style="width: 8%; text-align: center;">Status</th>
+      <th style="width: 8%;">{% if language == 'pl' %}Priorytet{% else %}Priority{% endif %}</th>
+      <th style="width: 25%;">{% if language == 'pl' %}Działanie / Luka{% else %}Action / Gap{% endif %}</th>
+      <th style="width: 26%;">{% if language == 'pl' %}Wpływ na biznes{% else %}Business impact{% endif %}</th>
+      <th style="width: 12%;">{% if language == 'pl' %}Artykuł{% else %}Article{% endif %}</th>
+      <th style="width: 9%;">{% if language == 'pl' %}Termin{% else %}Deadline{% endif %}</th>
+      <th style="width: 14%;">{% if language == 'pl' %}Odpowiedzialny{% else %}Owner{% endif %}</th>
+      <th style="width: 6%; text-align: center;">Status</th>
     </tr>
   </thead>
   <tbody>
@@ -137,19 +146,21 @@
       {% set deadline = '12 mies.' if language == 'pl' else '12 mo.' %}
       {% set deadline_cls = 'deadline-low' %}
     {% endif %}
+    {% set full_article = (gap.article_ref or gap.article or '') %}
+    {% set short_article = full_article.split(' — ')[0].replace('Article', 'Art.') %}
     <tr class="row-{{ rl }}">
       <td><span class="badge badge-{{ rl }}">
         {% if language == 'pl' %}
-          {% if rl == 'critical' %}KRYT.{% elif rl == 'high' %}WYS.{% elif rl == 'medium' %}ŚRED.{% else %}NISKIE{% endif %}
+          {% if rl == 'critical' %}KRYT.{% elif rl == 'high' %}WYS.{% elif rl == 'medium' %}ŚRED.{% else %}NISK.{% endif %}
         {% else %}
-          {{ rl | upper }}
+          {% if rl == 'critical' %}CRIT.{% elif rl == 'high' %}HIGH{% elif rl == 'medium' %}MED.{% else %}LOW{% endif %}
         {% endif %}
       </span></td>
       <td style="font-weight: 500;">{{ gap.requirement or gap.name or '' }}</td>
-      <td style="font-size: 8pt; color: #2A2A28;">{{ gap.why_it_matters or gap.business_impact or '' }}</td>
-      <td style="font-size: 8pt; font-family: 'IBM Plex Mono', monospace; color: #9A9A95;">{{ gap.article_ref or gap.article or '' }}</td>
+      <td style="font-size: 8.5pt; color: #2A2A28;">{{ gap.why_it_matters or gap.business_impact or '' }}</td>
+      <td style="font-family: 'IBM Plex Mono', monospace; font-size: 8pt; color: #2A2A28; letter-spacing: 0.02em;">{{ short_article }}</td>
       <td class="{{ deadline_cls }}">{{ deadline }}</td>
-      <td style="border-bottom: 1px solid #cbd5e1;">&nbsp;</td>
+      <td>&nbsp;</td>
       <td style="text-align: center;"><span class="checkbox"></span></td>
     </tr>
     {% endfor %}
@@ -158,19 +169,19 @@
 {% endif %}
 
 <!-- Legend -->
-<div style="margin-top: 10px; font-size: 7.5pt; color: #64748b;">
+<div style="margin-top: 12px; font-size: 8pt; color: #2A2A28; font-family: 'Archivo', sans-serif;">
   {% if language == 'pl' %}
-  <strong>Terminy od daty raportu:</strong>
-  <span class="deadline-critical">KRYTYCZNE — 1 miesiąc</span> &nbsp;|&nbsp;
-  <span class="deadline-high">WYSOKIE — 3 miesiące</span> &nbsp;|&nbsp;
-  <span class="deadline-medium">ŚREDNIE — 6 miesięcy</span> &nbsp;|&nbsp;
-  <span class="deadline-low">NISKIE — 12 miesięcy</span>
+  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: #9A9A95;">Terminy od daty raportu</span><br>
+  <span class="legend-pill c">Krytyczne — 1 miesiąc</span> &nbsp;·&nbsp;
+  <span class="legend-pill h">Wysokie — 3 miesiące</span> &nbsp;·&nbsp;
+  <span class="legend-pill m">Średnie — 6 miesięcy</span> &nbsp;·&nbsp;
+  <span class="legend-pill l">Niskie — 12 miesięcy</span>
   {% else %}
-  <strong>Deadlines from report date:</strong>
-  <span class="deadline-critical">CRITICAL — 1 month</span> &nbsp;|&nbsp;
-  <span class="deadline-high">HIGH — 3 months</span> &nbsp;|&nbsp;
-  <span class="deadline-medium">MEDIUM — 6 months</span> &nbsp;|&nbsp;
-  <span class="deadline-low">LOW — 12 months</span>
+  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: #9A9A95;">Deadlines from report date</span><br>
+  <span class="legend-pill c">Critical — 1 month</span> &nbsp;·&nbsp;
+  <span class="legend-pill h">High — 3 months</span> &nbsp;·&nbsp;
+  <span class="legend-pill m">Medium — 6 months</span> &nbsp;·&nbsp;
+  <span class="legend-pill l">Low — 12 months</span>
   {% endif %}
 </div>
 

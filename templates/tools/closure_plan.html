@@ -34,13 +34,15 @@
   body { font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif; font-size: 9.5pt; font-weight: 400; line-height: 1.5; letter-spacing: -0.005em; }
 
   /* ── Header ── */
-  .header { background: none; color: #0A0A0A; padding: 0 0 12px 0; border-bottom: 1px solid #0A0A0A; margin-bottom: 16px; }
-  .header-logo { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 12pt; color: #0A0A0A; letter-spacing: -0.01em; margin-bottom: 4px; }
-  .header-title { font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 20pt; letter-spacing: -0.02em; line-height: 1.15; color: #0A0A0A; opacity: 1; margin-bottom: 5px; }
+  .header { background: none; color: #0A0A0A; padding: 0 0 12px 0; border-bottom: 1px solid #0A0A0A; margin-bottom: 18px; }
+  .header-logo { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 12pt; color: #0A0A0A; letter-spacing: -0.01em; margin-bottom: 6px; }
+  .header-title { font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 20pt; letter-spacing: -0.02em; line-height: 1.15; color: #0A0A0A; opacity: 1; margin-bottom: 6px; }
+  .header-subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 9pt; color: #2A2A28; letter-spacing: 0.04em; margin-bottom: 4px; }
   .header-meta { font-family: 'IBM Plex Mono', monospace; font-size: 8pt; color: #9A9A95; letter-spacing: 0.04em; opacity: 1; }
 
   /* ── Plan blocks ── */
-  .plan { margin-bottom: 20px; page-break-inside: avoid; border: none; border-top: 1px solid #0A0A0A; padding: 12px 0 0; }
+  .plan { margin-bottom: 20px; page-break-inside: avoid; border: none; border-top: 1px solid #0A0A0A; padding: 14px 0 0; }
+  .plan:first-of-type { border-top: none; padding-top: 0; }
   .plan-header { border-bottom: none; padding-bottom: 8px; margin-bottom: 10px; }
   .plan-title { font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 13pt; letter-spacing: -0.015em; color: #0A0A0A; }
   .plan-article { font-family: 'IBM Plex Mono', monospace; font-size: 8pt; letter-spacing: 0.04em; color: #9A9A95; margin-top: 2px; }
@@ -86,12 +88,13 @@
 <div class="header">
   <div class="header-logo">REGULA</div>
   <div class="header-title">
-    {% if language == 'pl' %}Plan zamknięcia luk NIS2{% else %}NIS2 Gap Closure Plan{% endif %}
-    {% if company_name %} — {{ company_name }}{% endif %}
-    — {{ date }}
+    {% if language == 'pl' %}Plan zamknięcia luk{% else %}Gap Closure Plan{% endif %}
+  </div>
+  <div class="header-subtitle">
+    {% if company_name %}{{ company_name }} &nbsp;·&nbsp; {% endif %}{{ date }}
   </div>
   <div class="header-meta">
-    {% if language == 'pl' %}Runbook operacyjny — kroki do wykonania w ciągu 7-14 dni{% else %}Operational runbook — execute over 7-14 days{% endif %}
+    {% if language == 'pl' %}Runbook operacyjny — kroki do wykonania w 7–14 dni{% else %}Operational runbook — execute over 7–14 days{% endif %}
     {% if sector %} &nbsp;·&nbsp; {% if language == 'pl' %}Sektor:{% else %}Sector:{% endif %} {{ sector }}{% endif %}
   </div>
 </div>
@@ -103,7 +106,7 @@
       <div class="plan-title">
         {% if language == 'pl' %}Luka{% else %}Gap{% endif %} {{ loop.index }}: {{ plan.gap_name_plain }}
       </div>
-      <div class="plan-article">{{ plan.article_ref }}</div>
+      <div class="plan-article">{{ (plan.article_ref or '') | replace('Article', 'Art.') }}</div>
     </div>
 
     <div class="meta-row">

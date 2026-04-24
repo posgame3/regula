@@ -12,3 +12,4 @@ data/regula.db-wal
 data/regula.db-shm
 data/regula.log
 data/regula.log.*
+static/demo/

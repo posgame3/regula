@@ -234,7 +234,7 @@
     }
 
     /* Contents */
-    .contents {
+    .deliverables {
       box-sizing: border-box;
       width: 100%; max-width: 1440px;
       margin: 0 auto;
@@ -242,7 +242,7 @@
       display: grid; grid-template-columns: repeat(12, minmax(0, 1fr));
       gap: 0 var(--col-gap);
     }
-    .contents-head {
+    .deliverables-head {
       grid-column: 2 / 10;
       font-family: var(--f-sans); font-weight: 300;
       font-size: clamp(36px, 5vw, 64px);
@@ -250,24 +250,24 @@
       margin: 0 0 48px 0;
       min-width: 0;
     }
-    .contents-head b { font-weight: 500; color: var(--signal); }
-    .contents-list {
+    .deliverables-head b { font-weight: 500; color: var(--signal); }
+    .deliverables-list {
       grid-column: 2 / 13;
       border-top: 1px solid var(--ink);
       min-width: 0;
     }
-    .contents-item {
+    .deliverables-item {
       display: grid; grid-template-columns: 60px minmax(0, 1fr) 60px;
       align-items: baseline;
       padding: 20px 0; border-bottom: 1px solid var(--hairline);
       font-family: var(--f-sans); font-size: 17px;
     }
-    .contents-item .ix {
+    .deliverables-item .ix {
       font-family: var(--f-mono); font-size: 11px;
       color: var(--muted); letter-spacing: 0.04em;
     }
-    .contents-item .txt { color: var(--ink); letter-spacing: -0.015em; min-width: 0; }
-    .contents-item .tag {
+    .deliverables-item .txt { color: var(--ink); letter-spacing: -0.015em; min-width: 0; }
+    .deliverables-item .tag {
       font-family: var(--f-mono); font-size: 10px;
       color: var(--muted); letter-spacing: 0.08em;
       text-align: right; text-transform: uppercase;
@@ -1284,14 +1284,14 @@
       .hero-index { display: none; }
       .hero-label, .hero-headline, .hero-sub, .hero-cta-cell, .hero-meta { grid-column: 1 / 13; }
       .hero-meta { margin-top: 40px; }
-      .section-kicker, .pillars, .contents, .report, .landing-footer {
+      .section-kicker, .pillars, .deliverables, .report, .landing-footer {
         padding-left: var(--margin); padding-right: var(--margin);
       }
-      .pillar-1, .pillar-2, .pillar-3, .contents-head, .contents-list, .report-head, .report-sub, .acc-list {
+      .pillar-1, .pillar-2, .pillar-3, .deliverables-head, .deliverables-list, .report-head, .report-sub, .acc-list {
         grid-column: 1 / 13;
       }
       .pillar-1, .pillar-2 { margin-bottom: 40px; padding-right: 0; }
-      .contents-item { grid-template-columns: 32px 1fr auto; padding: 16px 0; font-size: 15px; }
+      .deliverables-item { grid-template-columns: 32px 1fr auto; padding: 16px 0; font-size: 15px; }
       .acc-head { grid-template-columns: 48px 1fr 30px; }
       .acc-body-inner { padding-left: 48px; }
       .landing-footer .l, .landing-footer .r { grid-column: 1 / 13; text-align: left; }
@@ -1413,17 +1413,17 @@
       <div class="title" data-lang-key="s2_title">Deliverables</div>
       <div class="counter">01 — 08 / 08</div>
     </div>
-    <section class="contents">
-      <h2 class="contents-head" data-lang-key="c_head_html">Everything an auditor <b>would ask for.</b></h2>
-      <div class="contents-list">
-        <div class="contents-item"><span class="ix">01</span><span class="txt" data-lang-key="item0">PDF report with compliance score 0–100</span><span class="tag">Pdf</span></div>
-        <div class="contents-item"><span class="ix">02</span><span class="txt" data-lang-key="item1">Gap table with priorities and remediation cost</span><span class="tag">Table</span></div>
-        <div class="contents-item"><span class="ix">03</span><span class="txt" data-lang-key="item2">Audit simulation with PASS / FAIL verdict</span><span class="tag">Verdict</span></div>
-        <div class="contents-item"><span class="ix">04</span><span class="txt" data-lang-key="item3">Personalised attack scenarios for your company</span><span class="tag">Scenario</span></div>
-        <div class="contents-item"><span class="ix">05</span><span class="txt" data-lang-key="item4">Board presentation — five slides</span><span class="tag">Slides</span></div>
-        <div class="contents-item"><span class="ix">06</span><span class="txt" data-lang-key="item5">Security policy ready to sign</span><span class="tag">Policy</span></div>
-        <div class="contents-item"><span class="ix">07</span><span class="txt" data-lang-key="item6">Incident response plan</span><span class="tag">Plan</span></div>
-        <div class="contents-item"><span class="ix">08</span><span class="txt" data-lang-key="item7">ENISA resources mapped to your gaps</span><span class="tag">Enisa</span></div>
+    <section class="deliverables">
+      <h2 class="deliverables-head" data-lang-key="c_head_html">Everything an auditor <b>would ask for.</b></h2>
+      <div class="deliverables-list">
+        <div class="deliverables-item"><span class="ix">01</span><span class="txt" data-lang-key="item0">PDF report with compliance score 0–100</span><span class="tag">Pdf</span></div>
+        <div class="deliverables-item"><span class="ix">02</span><span class="txt" data-lang-key="item1">Gap table with priorities and remediation cost</span><span class="tag">Table</span></div>
+        <div class="deliverables-item"><span class="ix">03</span><span class="txt" data-lang-key="item2">Audit simulation with PASS / FAIL verdict</span><span class="tag">Verdict</span></div>
+        <div class="deliverables-item"><span class="ix">04</span><span class="txt" data-lang-key="item3">Personalised attack scenarios for your company</span><span class="tag">Scenario</span></div>
+        <div class="deliverables-item"><span class="ix">05</span><span class="txt" data-lang-key="item4">Board presentation — five slides</span><span class="tag">Slides</span></div>
+        <div class="deliverables-item"><span class="ix">06</span><span class="txt" data-lang-key="item5">Security policy ready to sign</span><span class="tag">Policy</span></div>
+        <div class="deliverables-item"><span class="ix">07</span><span class="txt" data-lang-key="item6">Incident response plan</span><span class="tag">Plan</span></div>
+        <div class="deliverables-item"><span class="ix">08</span><span class="txt" data-lang-key="item7">ENISA resources mapped to your gaps</span><span class="tag">Enisa</span></div>
       </div>
     </section>
 

@@ -1695,8 +1695,20 @@ const CHAT_TEXT = {
 };
 
 // ═══════════════════════════ State ═══════════════════════════
+// crypto.randomUUID() is only available on secure contexts (HTTPS or localhost).
+// Fall back to a Math.random v4-like UUID when serving over plain HTTP (e.g. LAN IP).
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
 window.selectedLanguage = 'en';
-let currentSessionId = crypto.randomUUID();
+let currentSessionId = generateUUID();
 const _PENDING_SESSION_KEY = 'regula_pending_session';
 let ws = null;
 let lang = 'en';
@@ -2611,7 +2623,7 @@ function updateLangButtons() {
 
 function resetSession() {
   if (ws) { try { ws.close(); } catch (_) {} ws = null; }
-  currentSessionId = crypto.randomUUID();
+  currentSessionId = generateUUID();
   document.getElementById('session-ref').textContent = currentSessionId.slice(0, 8).toUpperCase();
   stage = 'qualifier';
   conversationStarted = false;

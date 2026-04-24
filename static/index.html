@@ -250,16 +250,16 @@
     .contents-head b { font-weight: 500; color: var(--signal); }
     .contents-list { grid-column: 2 / 13; border-top: 1px solid var(--ink); }
     .contents-item {
-      display: grid; grid-template-columns: 40px 1fr 80px;
+      display: grid; grid-template-columns: 60px 1fr 60px;
       align-items: baseline;
-      padding: 16px 0; border-bottom: 1px solid var(--hairline);
-      font-family: var(--f-sans); font-size: 16px;
+      padding: 20px 0; border-bottom: 1px solid var(--hairline);
+      font-family: var(--f-sans); font-size: 17px;
     }
     .contents-item .ix {
       font-family: var(--f-mono); font-size: 11px;
       color: var(--muted); letter-spacing: 0.04em;
     }
-    .contents-item .txt { color: var(--ink); }
+    .contents-item .txt { color: var(--ink); letter-spacing: -0.015em; }
     .contents-item .tag {
       font-family: var(--f-mono); font-size: 10px;
       color: var(--muted); letter-spacing: 0.08em;
@@ -1280,11 +1280,11 @@
       .section-kicker, .pillars, .contents, .report, .landing-footer {
         padding-left: var(--margin); padding-right: var(--margin);
       }
-      .pillar-1, .pillar-2, .pillar-3, .contents-head, .report-head, .report-sub, .acc-list {
+      .pillar-1, .pillar-2, .pillar-3, .contents-head, .contents-list, .report-head, .report-sub, .acc-list {
         grid-column: 1 / 13;
       }
       .pillar-1, .pillar-2 { margin-bottom: 40px; padding-right: 0; }
-      .contents-item { grid-template-columns: 32px 1fr auto; }
+      .contents-item { grid-template-columns: 32px 1fr auto; padding: 16px 0; font-size: 15px; }
       .acc-head { grid-template-columns: 48px 1fr 30px; }
       .acc-body-inner { padding-left: 48px; }
       .landing-footer .l, .landing-footer .r { grid-column: 1 / 13; text-align: left; }

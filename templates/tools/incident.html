@@ -1,3 +1,4 @@
+{% set company_name = company_name if company_name and company_name != 'Unknown' else '' %}
 <!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
@@ -300,9 +301,9 @@
   </div>
   <p style="font-size: 8.5pt; color: #475569; margin-bottom: 8px;">
     {% if language == 'pl' %}
-    Wyślij na: <strong>cert@cert.pl</strong> | Temat: „NIS2 — zgłoszenie incydentu — {{ company_name }}"
+    Wyślij na: <strong>cert@cert.pl</strong> | Temat: „NIS2 — zgłoszenie incydentu{% if company_name %} — {{ company_name }}{% endif %}"
     {% else %}
-    Send to: <strong>cert@cert.pl</strong> | Subject: "NIS2 — incident notification — {{ company_name }}"
+    Send to: <strong>cert@cert.pl</strong> | Subject: "NIS2 — incident notification{% if company_name %} — {{ company_name }}{% endif %}"
     {% endif %}
   </p>
   <div class="template-box">

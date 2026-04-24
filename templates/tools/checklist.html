@@ -1,3 +1,4 @@
+{% set company_name = company_name if company_name and company_name != 'Unknown' else '' %}
 <!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
@@ -144,9 +145,9 @@
           {{ rl | upper }}
         {% endif %}
       </span></td>
-      <td style="font-weight: bold;">{{ gap.name or '' }}</td>
-      <td style="font-size: 7.5pt; color: #475569;">{{ gap.business_impact or '' }}</td>
-      <td style="font-size: 7.5pt;">{{ gap.article or gap.article_ref or '' }}</td>
+      <td style="font-weight: 500;">{{ gap.requirement or gap.name or '' }}</td>
+      <td style="font-size: 8pt; color: #2A2A28;">{{ gap.why_it_matters or gap.business_impact or '' }}</td>
+      <td style="font-size: 8pt; font-family: 'IBM Plex Mono', monospace; color: #9A9A95;">{{ gap.article_ref or gap.article or '' }}</td>
       <td class="{{ deadline_cls }}">{{ deadline }}</td>
       <td style="border-bottom: 1px solid #cbd5e1;">&nbsp;</td>
       <td style="text-align: center;"><span class="checkbox"></span></td>

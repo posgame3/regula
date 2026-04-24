@@ -1,3 +1,4 @@
+{% set company_name = company_name if company_name and company_name != 'Unknown' else '' %}
 <!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
@@ -100,6 +101,21 @@
   </div>
 </div>
 
+<!-- Pre-compute category flags by Article 21(2) sub-paragraph letter -->
+{% set ns = namespace(access_gap=None, backup_gap=None, ir_gap=None) %}
+{% for g in gaps %}
+  {% set art = (g.article_ref or g.article or '') | string %}
+  {% if ('(i)' in art or '(j)' in art) and (ns.access_gap is none or g.risk_level in ['critical', 'high']) %}
+    {% set ns.access_gap = g %}
+  {% endif %}
+  {% if '(c)' in art and (ns.backup_gap is none or g.risk_level in ['critical', 'high']) %}
+    {% set ns.backup_gap = g %}
+  {% endif %}
+  {% if '(b)' in art and (ns.ir_gap is none or g.risk_level in ['critical', 'high']) %}
+    {% set ns.ir_gap = g %}
+  {% endif %}
+{% endfor %}
+
 <!-- Gaps found summary -->
 {% set critical_gaps = gaps | selectattr('risk_level', 'equalto', 'critical') | list %}
 {% set high_gaps = gaps | selectattr('risk_level', 'equalto', 'high') | list %}
@@ -111,13 +127,13 @@
   {% for gap in critical_gaps %}
   <div class="gap-row">
     <div class="gap-badge-cell"><span class="badge badge-critical">{% if language == 'pl' %}KRYTYCZNE{% else %}CRITICAL{% endif %}</span></div>
-    <div class="gap-text-cell">{{ gap.name }}{% if gap.article %} — {{ gap.article }}{% endif %}</div>
+    <div class="gap-text-cell">{{ gap.requirement or gap.name or '' }}{% set art = gap.article_ref or gap.article %}{% if art %} — {{ art }}{% endif %}</div>
   </div>
   {% endfor %}
   {% for gap in high_gaps %}
   <div class="gap-row">
     <div class="gap-badge-cell"><span class="badge badge-high">{% if language == 'pl' %}WYSOKIE{% else %}HIGH{% endif %}</span></div>
-    <div class="gap-text-cell">{{ gap.name }}{% if gap.article %} — {{ gap.article }}{% endif %}</div>
+    <div class="gap-text-cell">{{ gap.requirement or gap.name or '' }}{% set art = gap.article_ref or gap.article %}{% if art %} — {{ art }}{% endif %}</div>
   </div>
   {% endfor %}
 </div>
@@ -215,10 +231,9 @@
   <div class="section-title"><span class="section-num">5</span>
     {% if language == 'pl' %}Kontrola dostępu (MFA i hasła){% else %}Access Control (MFA &amp; Passwords){% endif %}
   </div>
-  {% set access_gap = gaps | selectattr('req_id', 'in', ['req_10', 'req_4']) | first | default(None) %}
-  {% if access_gap and access_gap.risk_level in ['critical', 'high'] %}
+  {% if ns.access_gap and ns.access_gap.risk_level in ['critical', 'high'] %}
   <div class="attention-box">
-    {% if language == 'pl' %}PILNE: Ocena wykazała lukę w kontroli dostępu ({{ access_gap.risk_level | upper }}). Poniższe zasady wymagają natychmiastowego wdrożenia.{% else %}URGENT: Assessment found an access control gap ({{ access_gap.risk_level | upper }}). Rules below require immediate implementation.{% endif %}
+    {% if language == 'pl' %}PILNE: Ocena wykazała lukę w kontroli dostępu ({{ ns.access_gap.risk_level | upper }}). Poniższe zasady wymagają natychmiastowego wdrożenia.{% else %}URGENT: Assessment found an access control gap ({{ ns.access_gap.risk_level | upper }}). Rules below require immediate implementation.{% endif %}
   </div>
   {% endif %}
   {% if language == 'pl' %}
@@ -243,10 +258,9 @@
 <!-- SECTION 6 -->
 <div class="section no-break">
   <div class="section-title"><span class="section-num">6</span>{% if language == 'pl' %}Kopie zapasowe{% else %}Backup Policy{% endif %}</div>
-  {% set backup_gap = gaps | selectattr('req_id', 'equalto', 'req_9') | first | default(None) %}
-  {% if backup_gap and backup_gap.risk_level in ['critical', 'high'] %}
+  {% if ns.backup_gap and ns.backup_gap.risk_level in ['critical', 'high'] %}
   <div class="attention-box">
-    {% if language == 'pl' %}PILNE: Ocena wykazała lukę w obszarze kopii zapasowych ({{ backup_gap.risk_level | upper }}). Zasady poniżej wymagają natychmiastowego wdrożenia i pierwszego testu.{% else %}URGENT: Assessment found a backup gap ({{ backup_gap.risk_level | upper }}). Rules below require immediate implementation and first test.{% endif %}
+    {% if language == 'pl' %}PILNE: Ocena wykazała lukę w obszarze kopii zapasowych ({{ ns.backup_gap.risk_level | upper }}). Zasady poniżej wymagają natychmiastowego wdrożenia i pierwszego testu.{% else %}URGENT: Assessment found a backup gap ({{ ns.backup_gap.risk_level | upper }}). Rules below require immediate implementation and first test.{% endif %}
   </div>
   {% endif %}
   {% if language == 'pl' %}
@@ -274,10 +288,9 @@
 <!-- SECTION 7 -->
 <div class="section no-break">
   <div class="section-title"><span class="section-num">7</span>{% if language == 'pl' %}Reagowanie na incydenty{% else %}Incident Response{% endif %}</div>
-  {% set ir_gap = gaps | selectattr('req_id', 'equalto', 'req_5') | first | default(None) %}
-  {% if ir_gap and ir_gap.risk_level in ['critical', 'high'] %}
+  {% if ns.ir_gap and ns.ir_gap.risk_level in ['critical', 'high'] %}
   <div class="attention-box">
-    {% if language == 'pl' %}PILNE: Ocena wykazała brak procedury reagowania na incydenty ({{ ir_gap.risk_level | upper }}). Szczegółowy plan zawiera dokument „Procedura reagowania na incydenty".{% else %}URGENT: Assessment found no incident response procedure ({{ ir_gap.risk_level | upper }}). See the "Incident Response Plan" document for details.{% endif %}
+    {% if language == 'pl' %}PILNE: Ocena wykazała brak procedury reagowania na incydenty ({{ ns.ir_gap.risk_level | upper }}). Szczegółowy plan zawiera dokument „Procedura reagowania na incydenty".{% else %}URGENT: Assessment found no incident response procedure ({{ ns.ir_gap.risk_level | upper }}). See the "Incident Response Plan" document for details.{% endif %}
   </div>
   {% endif %}
   {% if language == 'pl' %}

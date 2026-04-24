@@ -1774,10 +1774,8 @@ async def _run_closure_planner(session, client, send) -> None:
     log.info("[closure_planner] stored %d plans", len(plans.get("closure_plans", []) or []))
 
 
-async def _run_drafter(session, client, send):
-    await send({"type": "stage_change", "stage": "draft", "label": "Report"})
-
-    lang = session["language"]
+async def _run_drafter_inner(session, client, send, lang):
+    """Policy drafter — returns policies dict or raises on parse failure."""
     draft_msg = (
         "⏳ Piszę szkice polityk dla luk krytycznych i wysokiego ryzyka..."
         if lang == "pl" else
@@ -1796,13 +1794,65 @@ async def _run_drafter(session, client, send):
     )
     text = "".join(b.text for b in response.content if hasattr(b, "text"))
     _log_usage("drafter", response)
+    policies = await parse_json_with_retry(
+        client, system, messages, text,
+        max_tokens=10000, stage="drafter", expected_key="policies",
+    )
+    session["drafter_result"] = policies
+    _persist(session)
+    log.info("[drafter] stored: keys=%s", list(policies.keys()) if isinstance(policies, dict) else policies)
+    return policies
+
+
+async def _run_threat_actor_inner(session, client, send, lang):
+    """Threat actor with Extended Thinking — fail-soft to empty scenarios."""
+    attack_msg = (
+        "⏳ Mapuję scenariusze ataków..."
+        if lang == "pl" else
+        "⏳ Mapping attack scenarios..."
+    )
+    await send({"type": "agent_message", "text": attack_msg, "stage": "threat"})
+    system = build_threat_actor_system(
+        session["gap_analysis"], session["qualifier_result"], lang
+    )
+    messages = [{"role": "user", "content": "Analyze the company's gaps and show how a real attacker would exploit them."}]
     try:
-        policies = await parse_json_with_retry(
-            client, system, messages, text,
-            max_tokens=10000, stage="drafter", expected_key="policies",
+        thinking_text, text, _ = await call_with_thinking(
+            client, system, messages, max_tokens=16000, budget_tokens=8000, session=session
         )
-    except ValueError:
-        log.error("[drafter] parse error after retry. Raw: %s", text[:200])
+        if thinking_text:
+            await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
+        threat_scenarios = await parse_json_with_retry(
+            client, system, messages, text,
+            max_tokens=4096, stage="threat_actor", expected_key="scenarios",
+        )
+    except Exception as exc:
+        log.warning("[threat_actor] failed: %s — using empty scenarios", exc)
+        threat_scenarios = {"scenarios": [], "summary": ""}
+    session["threat_actor_result"] = threat_scenarios
+    _persist(session)
+    log.info("[threat_actor] stored: keys=%s", list(threat_scenarios.keys()) if isinstance(threat_scenarios, dict) else threat_scenarios)
+    return threat_scenarios
+
+
+async def _run_drafter(session, client, send):
+    await send({"type": "stage_change", "stage": "draft", "label": "Report"})
+    lang = session["language"]
+
+    # ── Parallel phase: Drafter, Threat Actor, Closure Planner ──
+    # None of these depend on each other — all read from session["gap_analysis"]
+    # and session["qualifier_result"] which are already populated by the analyzer.
+    # Board Presenter depends on threat_scenarios, so it stays sequential below.
+    results = await asyncio.gather(
+        _run_drafter_inner(session, client, send, lang),
+        _run_threat_actor_inner(session, client, send, lang),
+        _run_closure_planner(session, client, send),
+        return_exceptions=True,
+    )
+
+    # Drafter is the only hard dependency — if it fails, abort the pipeline.
+    if isinstance(results[0], Exception):
+        log.error("[drafter] parallel execution failed: %s", results[0])
         err_msg = (
             "Nie udało się wygenerować szkiców polityk."
             if lang == "pl" else
@@ -1810,44 +1860,26 @@ async def _run_drafter(session, client, send):
         )
         await send({"type": "error", "text": err_msg})
         return
-    session["drafter_result"] = policies
-    _persist(session)
-    log.info("[drafter] stored: keys=%s", list(policies.keys()) if isinstance(policies, dict) else policies)
+    policies = results[0]
 
-    # Closure Planner — day-by-day, stack-aware remediation runbook. Fail-soft.
-    await _run_closure_planner(session, client, send)
-
-    # Threat Actor — extended thinking, model=claude-opus-4-7 (MODEL constant)
-    lang = session["language"]
-    if lang == "pl":
-        attack_msg = "⏳ Mapuję scenariusze ataków..."
-        board_msg = "⏳ Przygotowuję prezentację dla zarządu..."
-    else:
-        attack_msg = "⏳ Mapping attack scenarios..."
-        board_msg = "⏳ Preparing board presentation..."
-    await send({"type": "agent_message", "text": attack_msg, "stage": "threat"})
-    system = build_threat_actor_system(
-        session["gap_analysis"], session["qualifier_result"], session["language"]
-    )
-    messages = [{"role": "user", "content": "Analyze the company's gaps and show how a real attacker would exploit them."}]
-    thinking_text, text, _ = await call_with_thinking(
-        client, system, messages, max_tokens=16000, budget_tokens=8000, session=session
-    )
-    if thinking_text:
-        await send({"type": "thinking_reveal", "text": thinking_text[:2000]})
-    try:
-        threat_scenarios = await parse_json_with_retry(
-            client, system, messages, text,
-            max_tokens=4096, stage="threat_actor", expected_key="scenarios",
-        )
-    except ValueError:
-        log.warning("[threat_actor] parse error after retry. Raw: %s", text[:200])
+    # Threat Actor is fail-soft inside _run_threat_actor_inner already, but catch
+    # a top-level exception from asyncio.gather too.
+    if isinstance(results[1], Exception):
+        log.warning("[threat_actor] top-level failure: %s", results[1])
         threat_scenarios = {"scenarios": [], "summary": ""}
-    session["threat_actor_result"] = threat_scenarios
-    _persist(session)
-    log.info("[threat_actor] stored: keys=%s", list(threat_scenarios.keys()) if isinstance(threat_scenarios, dict) else threat_scenarios)
+    else:
+        threat_scenarios = results[1]
 
-    # Board Presenter — model=claude-opus-4-7 (MODEL constant)
+    # Closure Planner is fail-soft internally — it writes to session and returns None.
+    if isinstance(results[2], Exception):
+        log.warning("[closure_planner] top-level failure: %s", results[2])
+
+    # ── Sequential phase: Board Presenter (depends on threat_scenarios) ──
+    board_msg = (
+        "⏳ Przygotowuję prezentację dla zarządu..."
+        if lang == "pl" else
+        "⏳ Preparing board presentation..."
+    )
     await send({"type": "agent_message", "text": board_msg, "stage": "board"})
     system = build_board_presenter_system(
         session["gap_analysis"],

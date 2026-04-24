@@ -1094,6 +1094,32 @@
       font-family: var(--f-sans); font-weight: 500; font-size: 14px;
     }
     .tool-ready-link:hover { background: var(--signal); }
+
+    /* Bundled "Documents ready" panel inside the completion card */
+    .tool-downloads {
+      border-top: 1px solid var(--hairline);
+      padding: 14px 20px 8px;
+      background: var(--faint, #F5F5F2);
+    }
+    .tool-downloads-label {
+      font-family: var(--f-mono); font-size: 10px;
+      color: var(--muted); letter-spacing: 0.08em;
+      text-transform: uppercase; margin-bottom: 10px;
+    }
+    .tool-download-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--hairline);
+      color: var(--ink); font-family: var(--f-sans); font-size: 14px;
+      text-decoration: none; font-weight: 500;
+      transition: color 0.15s;
+    }
+    .tool-download-link:last-child { border-bottom: none; }
+    .tool-download-link:hover { color: var(--signal); }
+    .tool-download-link .arrow {
+      font-family: var(--f-mono); font-size: 13px; color: var(--muted);
+      transition: color 0.15s;
+    }
+    .tool-download-link:hover .arrow { color: var(--signal); }
     .enisa-box { border-left: 2px solid var(--signal); background: var(--faint); padding: 14px; }
     .enisa-box .enisa-head { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--signal); margin-bottom: 10px; }
     .enisa-box a { display: block; padding: 6px 0; color: var(--ink); border-bottom: 1px solid var(--hairline); font-size: 14px; }
@@ -2068,6 +2094,16 @@ function addComplete(data) {
         ${lang === 'pl' ? 'Pobierz raport PDF' : 'Download PDF Report'}
         <span class="arrow">↓</span>
       </button>
+      ${readyTools.length ? `
+      <div class="tool-downloads">
+        <div class="tool-downloads-label">${lang === 'pl' ? 'Dodatkowe dokumenty' : 'Additional documents'}</div>
+        ${readyTools.map(t => `
+          <a class="tool-download-link" href="${esc(t.url)}" target="_blank" rel="noopener">
+            <span>${esc(t.label)}</span>
+            <span class="arrow">↓</span>
+          </a>
+        `).join('')}
+      </div>` : ''}
       <button class="card-footer-link" onclick="location.reload()">
         ${lang === 'pl' ? '✓ Ocena zakończona. Odśwież stronę, by ocenić inną firmę.' : '✓ Assessment complete. Start a new session to assess another company.'}
       </button>
@@ -2367,7 +2403,19 @@ function addToolGenerating(toolName) {
   scrollBottom();
 }
 
+// Track PDF tool downloads so the completion card can surface them in one place
+// (users were hunting through chat history for individual download links).
+let readyTools = [];
+
 function updateToolReady(toolName, url, label, resources) {
+  // Collect PDF downloads into a single bundle for the completion card.
+  // search_enisa_guidance returns resource links, not a PDF — skip.
+  if (toolName !== 'search_enisa_guidance' && url) {
+    if (!readyTools.some(t => t.toolName === toolName)) {
+      readyTools.push({ toolName, url, label });
+    }
+  }
+
   const wrap = document.getElementById('tool-wrap-' + toolName);
   let bodyHtml;
 

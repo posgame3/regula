@@ -35,23 +35,43 @@ Plus a **second Managed Agent** that runs weekly via in-process asyncio schedule
 
 ---
 
-## The Marek story — 60-second narrative
+## What the pipeline handles
 
-Marek owns **DataMed** — a Polish SaaS managing patient records for **12 hospitals**. Monday 09:14: a client emails him. **14 days** to confirm NIS2 compliance or lose the contract. He has no compliance officer. The cheapest consultant in Warsaw quotes **€4,000 and 3 weeks**.
+Regula is **not a template generator.** Every agent personalizes its output to the specific company sitting in front of it — sector, size, gap profile, language, answers. There is no "scripted path." A 12-person logistics shop and a 200-person fintech go through the **same nine agents** and come out with **different gap tables, different threat scenarios, different closure plans, different policies, different board emails.**
 
-He clicks Regula at 09:14. By **09:29** he has:
+**Scope coverage**
 
-- ✓ Verdict: **NIS2 applies.** Article 21(2)(d), supply-chain entity. Healthcare IT, essential downstream.
-- ✓ **7 gaps** mapped to verbatim Article 21 sub-paragraphs. **2 critical, 3 high, 2 medium.**
-- ✓ Red Team verdict: **WOULD FAIL AUDIT.** 13 tool calls, 4 critical findings, with article-level citations.
-- ✓ Personalized **attack scenarios** — exactly how an attacker would exploit DataMed's specific gaps (Threat Actor with Extended Thinking).
-- ✓ **14-day closure plan**, day by day: *Day 1 — Enable MFA on AWS root + 4 admins. Day 3 — Incident response playbook. Day 7 — Backup restore drill...*
-- ✓ **Pre-drafted board email** ready to send.
-- ✓ **5 PDFs** ready to hand to a lawyer: security policy, incident response plan, remediation checklist, closure plan, full report.
+| What | How Regula adapts |
+|---|---|
+| **Direct scope** (Annex I/II) | Energy, transport, banking, financial markets, health, water, digital infrastructure, ICT service management, public administration, space, postal/courier, waste, chemicals, food, manufacturing of critical products, digital providers, research |
+| **Indirect scope** (Art. 21(2)(d)) | Supply-chain entities — a small SaaS supplier whose clients are NIS2-covered hospitals or banks inherits indirect compliance pressure. **Most tools miss this. Regula's Qualifier catches it.** |
+| **Size** | SME (8 employees) to mid-market (~500). The Closure Planner sizes runbooks to team capacity. |
+| **Language** | Full **PL / EN** end-to-end. Every agent — interview, analysis, threat scenarios, policies, closure plans, board emails — runs in the user's language. |
+| **Sub-paragraph coverage** | All 10 Art. 21(2) sub-paragraphs (a–j) are surfaced by the Interviewer regardless of what the user volunteers. The Analyzer cross-references each. |
 
-**Reply to client: ready by lunch.**
+**Personalization in action**
 
-Try it: open `regula.digital`, hit **"Watch Marek's story"**, watch the whole pipeline run end-to-end with a Sonnet 4.6 persona answering Regula's questions in real time. ~3 minutes.
+- The **Threat Actor** does not generate a generic threat catalogue. It models how an attacker would specifically exploit YOUR gap profile — e.g., *"no MFA on AWS root + patient records on S3 = ransomware blast radius covers 12 hospital contracts."*
+- The **Closure Planner** does not paste a 14-day template. It writes a runbook matched to your specific gaps, ordered by exploit risk, sized to your team. A logistics operator with no IT lead gets a different sequence than a fintech with a CISO.
+- The **Policy Drafter** writes outlines tailored to your business model. A hospital SaaS gets a different access-control policy than a chemical manufacturer — same Article 21(2)(i), different operational context.
+
+## What you get in 15 minutes
+
+Regardless of sector or size, every Regula run produces:
+
+- **A scope verdict** with article citation: *direct (Annex I/II)*, *indirect (Art. 21(2)(d) supply-chain)*, or *out of scope*
+- **A gap table** — every Article 21 sub-paragraph, status, risk level (critical / high / medium / low), business impact, deadline (1–12 months)
+- **A Red Team verdict** — *PASS / CONDITIONAL / FAIL* with article-level citations and ~13 tool invocations from the Managed Agent
+- **Personalized attack scenarios** for your specific gap profile (Extended Thinking)
+- **Day-by-day closure runbook** — typically 7–14 days, with verification checks and a Definition of Done per step
+- **Pre-drafted board email** ready to send
+- **5 PDFs** ready for legal review: security policy, incident response plan, remediation checklist, closure plan, full report
+
+## Demo persona — Marek
+
+For jury demos and offline recording we ship a deterministic test persona: **Marek**, a Polish SaaS owner managing patient records for 12 hospitals. He's a **Sonnet 4.6 model** with a hardcoded company profile (`MAREK_PERSONA_SYSTEM` in `app.py`) that answers Regula's questions in real time. Click **"Watch Marek's story"** on `regula.digital` to see all nine agents run end-to-end without typing — useful when jury wants the full pipeline in 3 minutes after cache pre-warm.
+
+Marek is one path through Regula. **Open chat mode and answer as your own company** to see the pipeline adapt — different sector, different gaps, different documents, every time.
 
 ---
 
@@ -215,8 +235,8 @@ Every Opus call logs `input_tokens`, `output_tokens`, `cache_read_input_tokens`,
 1. Open **[regula.digital](https://regula.digital)**.
 2. Pick language (PL / EN).
 3. Either:
-   - **"Watch Marek's story"** — Sonnet 4.6 persona plays the user end-to-end. Best for jury demos. ~3 minutes (after pre-warm cache).
-   - **Chat mode** — answer in your own words. ~10–14 questions.
+   - **Chat mode (recommended)** — answer Regula's questions as your own company. ~10–14 questions, real adaptive flow. **This is the actual product.**
+   - **"Watch Marek's story"** — Sonnet 4.6 demo persona auto-answers so jury can watch all nine agents run end-to-end without typing. ~3 minutes (after cache pre-warm). Test fixture, not the product.
 4. Watch the stage bar: `qualify → interview → analyze → redteam (👤) → threat (🧠) → board → drafter + closure (∥) → remediation (🔧) → complete`.
 5. At "complete", download the PDFs.
 6. Optional: subscribe to **Regulatory Monitor** with your email — first run fires immediately in the background.

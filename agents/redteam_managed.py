@@ -176,6 +176,7 @@ async def run_managed_audit(
     # Open stream FIRST, then send kickoff (stream-first ordering — docs Pattern 7).
     # We use async context manager + a task for sending.
     verdict_payload: dict | None = None
+    tool_call_count = 0
 
     stream = await client.beta.sessions.events.stream(session_id=session.id)
     async with stream:
@@ -197,6 +198,8 @@ async def run_managed_audit(
                         tool_input = getattr(event, "input", {}) or {}
                         tool_use_id = getattr(event, "id", None)
 
+                        tool_call_count += 1
+                        log.info("[redteam] %s %s", tool_name, json.dumps(tool_input, ensure_ascii=False)[:80])
                         metrics.incr_managed_tool(f"redteam.{tool_name}" if tool_name else "redteam.unknown")
 
                         # UI progress event
@@ -248,6 +251,12 @@ async def run_managed_audit(
         await client.beta.sessions.archive(session_id=session.id)
     except Exception:
         pass
+
+    log.info(
+        "[redteam] tool_calls=%d verdict=%s",
+        tool_call_count,
+        (verdict_payload or {}).get("verdict", "NONE").replace(" ", "_"),
+    )
 
     if verdict_payload is None:
         # Agent gave up or crashed — return a safe fallback so drafter still runs.

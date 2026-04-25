@@ -1,24 +1,24 @@
-"""Managed-Agents implementation of the on-demand Regulatory Monitor.
+"""Managed-Agents implementation of the Regulatory Monitor.
 
-User-triggered: invoked by POST /api/monitor/run from the in-app mailbox after
-a user subscribes with their email. Agent uses built-in web_search / web_fetch
-plus custom tools to query the user's profile and queue alerts.
-Terminal tool: finalize_run.
+Two entry points:
+  - POST /api/monitor/run for user-triggered runs from the mailbox
+  - utils/monitor_scheduler.py for the periodic asyncio scheduler
 
-No scheduler, no SMTP delivery — the "subscription" is a saved monitoring
-profile, not a push subscription. APScheduler + SMTP would be the natural
-next step to turn this into a true background service (out of scope for this
-release).
+Agent uses built-in web_search / web_fetch plus custom tools (lookup_user_profile,
+queue_alert, finalize_run as the terminal tool).
 """
 from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from typing import Awaitable, Callable
 
 from anthropic import AsyncAnthropic
 
 from utils import metrics, profile_store
+
+log = logging.getLogger("regula")
 
 
 MonitorWsSend = Callable[[dict], Awaitable[None]]
@@ -136,6 +136,11 @@ async def run_managed_monitor(
         pass
 
     profile_store.mark_checked(user_id)
+
+    log.info(
+        "[monitor] user=%s searches=%d alerts_queued=%d",
+        user_id[:12], searches_seen, len(alerts_queued),
+    )
 
     return {
         "user_id": user_id,

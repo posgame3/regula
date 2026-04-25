@@ -37,6 +37,24 @@ in plain Polish or English, for free.
 
 ---
 
+## Why NIS2, not "cybersecurity"?
+
+NIS2 Article 21(2) is not paperwork. It enumerates **ten mandatory security
+controls**: incident handling, business continuity and backup discipline,
+supply-chain security, vulnerability management, cryptography, access
+management, multifactor authentication, cyber-hygiene training, and
+incident reporting. These are the same controls a real attacker probes for
+and a real auditor checks. Compliance with Article 21 *is* a real
+cybersecurity uplift — with legal teeth that "best practice" alone never has.
+
+Regula does **not** replace your SOC, EDR, vulnerability scanner, or
+penetration tester. It tells you which of those ten controls you are missing,
+models how an attacker would exploit each gap, and produces the documents
+required to close them. Compliance is the legal frame; cybersecurity is the
+actual outcome.
+
+---
+
 ## What makes it a hackathon project (not a consulting tool)
 
 Regula is a demonstration of five Claude Opus 4.7 capabilities working

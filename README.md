@@ -4,7 +4,7 @@
 
 Built for the **Cerebral Valley "Built with Opus 4.7" Hackathon** (2026).
 
-Live demo: https://regula.gotowywniosek.pl/
+Live demo: https://regula.digital/
 Repo: https://github.com/posgame3/regula
 
 ---
@@ -77,7 +77,7 @@ model is never asked "what are the NIS2 requirements" — it's always
 
 ## Live demo — what to click
 
-1. Open https://regula.gotowywniosek.pl/ (or run locally, see below).
+1. Open https://regula.digital/ (or run locally, see below).
 2. Pick language (PL / EN).
 3. Either:
    - **"Watch Marek's story" / "Historia Marka"** — a Sonnet 4.6 persona
